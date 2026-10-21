@@ -1,0 +1,2174 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!-- The tutorial page "Three heroes downhill"; build_page.py inlines its scripts and adds the document's html, head
+     and body tags.  Everything above the body marker goes into the head. -->
+<title>Three Heroes Downhill</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IM+Fell+English+SC&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one screen of a storybook lesson; the night map (the stage) on the left, the story and its formula on the
+   right with one big Next; the chapters as a bar that fills along the bottom. */
+:root {
+  --bg: #edf1f5;
+  --surface: #ffffff;
+  --ink: #17212c;
+  --muted: #546273;
+  --line: #d3dbe4;
+  --accent: #8f5a00;
+  --accent-fill: #f5c25c;
+  --accent-ink: #1b1406;
+  --math-bg: #f4f6f9;
+  --stage: #0b121b;
+  --display: 'IM Fell English SC', 'Iowan Old Style', Georgia, serif;
+  --body: 'Atkinson Hyperlegible', 'Segoe UI', system-ui, sans-serif;
+  --mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --bg: #0c1218; --surface: #131b24; --ink: #e6ebf0; --muted: #9aa8b6; --line: #253242; --accent: #ffd27a; --accent-fill: #ffd27a; --accent-ink: #1b1406; --math-bg: #0f161e; color-scheme: dark; }
+}
+:root[data-theme="dark"] { --bg: #0c1218; --surface: #131b24; --ink: #e6ebf0; --muted: #9aa8b6; --line: #253242; --accent: #ffd27a; --accent-fill: #ffd27a; --accent-ink: #1b1406; --math-bg: #0f161e; color-scheme: dark; }
+html, body { height: 100%; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 16px; line-height: 1.55;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 14px;
+}
+.course { max-width: 1320px; margin: 0 auto; display: grid; gap: 14px; }
+.course-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.eyebrow { font-size: 12.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+.course-head h1 { margin: 0; font-family: var(--display); font-weight: 400; font-size: clamp(26px, 3.4vw, 38px); line-height: 1.1; text-wrap: balance; }
+.count { font-family: var(--mono); font-size: 13.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.course-body { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(300px, 1fr); gap: 16px; align-items: start; }
+.stage { position: relative; aspect-ratio: 16 / 11; max-width: 100%; background: var(--stage); border-radius: 12px; overflow: hidden; }
+.stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.story { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px 18px 14px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.chapter { font-size: 12.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); font-weight: 700; }
+.story h2 { margin: 0; font-family: var(--display); font-weight: 400; font-size: 26px; line-height: 1.15; text-wrap: balance; }
+.text { max-width: 65ch; }
+.text kbd { font-family: var(--mono); font-size: 0.85em; border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; }
+.math { font-family: var(--mono); font-size: 14px; line-height: 1.75; background: var(--math-bg); border-left: 3px solid var(--accent); border-radius: 6px; padding: 8px 12px; overflow-wrap: anywhere; }
+.bp { opacity: 0.15; transition: opacity 0.3s; }
+.bp.on { opacity: 1; }
+.fr { display: inline-grid; vertical-align: middle; text-align: center; line-height: 1.15; margin: 0 2px; }
+.fr > span:first-child { border-bottom: 1px solid currentColor; padding: 0 3px; }
+.controls { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.controls button { font: inherit; font-size: 15px; border-radius: 8px; padding: 8px 14px; cursor: pointer; background: transparent; color: var(--ink); border: 1px solid var(--line); }
+.controls button:hover { border-color: var(--accent); }
+.controls button:disabled { opacity: 0.4; cursor: default; }
+.controls #board-next { margin-left: auto; background: var(--accent-fill); color: var(--accent-ink); border-color: var(--accent-fill); font-weight: 700; padding: 10px 26px; font-size: 17px; }
+.controls #board-next:disabled { opacity: 0.55; }
+button:focus-visible, summary:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.contents summary { cursor: pointer; color: var(--muted); font-size: 14px; }
+.contents ol { list-style: none; margin: 8px 0 0; padding: 0; max-height: 240px; overflow: auto; font-size: 14px; border-top: 1px solid var(--line); }
+.contents .bl-chap { color: var(--accent); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; padding: 8px 4px 2px; }
+.contents .bl-step { display: flex; gap: 8px; padding: 3px 6px; border-radius: 6px; cursor: pointer; }
+.contents .bl-step span { min-width: 1.8em; color: var(--muted); font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.contents .bl-step:hover { background: var(--math-bg); }
+.contents .bl-step.on { background: var(--math-bg); font-weight: 700; }
+.progress { display: flex; gap: 4px; }
+.progress .seg { position: relative; flex-basis: 0; min-width: 0; height: 36px; border: 0; border-radius: 6px; background: var(--line); cursor: pointer; overflow: hidden; padding: 0 8px; text-align: left; color: var(--ink); font: inherit; }
+.progress .fill { position: absolute; inset: 0 auto 0 0; width: 0; background: var(--accent-fill); opacity: 0.55; transition: width 0.3s; }
+.progress .seg.on .fill { opacity: 0.9; }
+.progress .name { position: relative; font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+.progress .seg.on .name { font-weight: 700; }
+@media (max-width: 820px) {
+  .course-body { grid-template-columns: minmax(0, 1fr); }
+  .stage { aspect-ratio: 4 / 5; }
+  .story h2 { font-size: 23px; }
+  .progress .name { display: none; }
+  .progress .seg { height: 12px; padding: 0; }
+}
+@media (prefers-reduced-motion: reduce) { .bp, .progress .fill { transition: none; } }
+</style>
+</head>
+<body>
+<main class="course" id="board">
+  <header class="course-head">
+    <div>
+      <div class="eyebrow">A tale of three optimisers</div>
+      <h1 id="board-title">Three heroes downhill</h1>
+    </div>
+    <span class="count" id="board-count"></span>
+  </header>
+  <div class="course-body">
+    <div class="stage"><canvas id="board-canvas" aria-label="The animation of this step"></canvas></div>
+    <section class="story" aria-live="polite">
+      <div class="chapter" id="board-chapter"></div>
+      <h2 id="board-step"></h2>
+      <div class="text" id="board-text"></div>
+      <div class="math" id="board-math"></div>
+      <div class="controls">
+        <button type="button" id="board-prev">← Back</button>
+        <button type="button" id="board-replay" title="Play this step’s animation again">↻ Replay</button>
+        <button type="button" id="board-play" aria-pressed="false">⏵ Play</button>
+        <button type="button" id="board-next">Next →</button>
+      </div>
+      <details class="contents"><summary>Contents</summary><ol id="board-list"></ol></details>
+    </section>
+  </div>
+  <nav class="progress" id="progress" aria-label="Chapters"></nav>
+</main>
+<script>
+// The three heroes' walks on a land of two coordinates, for kings_land_descent.html, the companion page of deck
+// lbgfs_admm_diff_no_math (Three heroes downhill).  Plain JavaScript without optional chaining, so that Node 12
+// runs test_engine.js on it.
+// A land gives J (the walkers' land) and its gradient, f (the Twins' land, J without a law hill), the Wanderer's
+// step argmin f + rho/2 |x - v|^2, the Warden's projection onto the law, and the box the walkers keep to (null on
+// the open plane).  Weather adds ripples to the heights and haze to every tap of the ground.
+var Engine = (function () {
+  function dot(a, b) { return a[0] * b[0] + a[1] * b[1]; }
+  function add(a, b, s) { return [a[0] + s * b[0], a[1] + s * b[1]]; }
+  function norm(a) { return Math.sqrt(dot(a, a)); }
+  function clip(v, lo, hi) { return v < lo ? lo : v > hi ? hi : v; }
+  function clipBox(x, box) { return box ? [clip(x[0], box[0], box[1]), clip(x[1], box[0], box[1])] : x.slice(); }
+  function finite(x) { return isFinite(x[0]) && isFinite(x[1]) && Math.abs(x[0]) < 1e6 && Math.abs(x[1]) < 1e6; }
+
+  // A seeded stream of numbers (mulberry32) with normal draws (Box-Muller): a hazy walk is the same every time.
+  function stream(seed) {
+    var a = (seed >>> 0) || 1;
+    function u() {
+      a = (a + 0x6D2B79F5) >>> 0;
+      var t = Math.imul(a ^ (a >>> 15), a | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    }
+    return { u: u, normal: function () { return Math.sqrt(-2 * Math.log(1 - u())) * Math.cos(2 * Math.PI * u()); } };
+  }
+
+  // ---------------------------------------------------------------- the quadratic lands (canyon, wall, misty hills)
+  function quadLand(p) {
+    var th = p.theta * Math.PI / 180, co = Math.cos(th), si = Math.sin(th);
+    var a11 = p.l1 * co * co + p.l2 * si * si, a22 = p.l1 * si * si + p.l2 * co * co, a12 = (p.l1 - p.l2) * co * si;
+    var c = [p.c1, p.c2], box = p.box || null;
+    function J(x) { var d0 = x[0] - c[0], d1 = x[1] - c[1]; return 0.5 * (d0 * (a11 * d0 + a12 * d1) + d1 * (a12 * d0 + a22 * d1)); }
+    function grad(x) { var d0 = x[0] - c[0], d1 = x[1] - c[1]; return [a11 * d0 + a12 * d1, a12 * d0 + a22 * d1]; }
+    function wanderer(v, rho) {      // (A + rho I) x = A c + rho v
+      var b0 = a11 * c[0] + a12 * c[1] + rho * v[0], b1 = a12 * c[0] + a22 * c[1] + rho * v[1];
+      var m11 = a11 + rho, m22 = a22 + rho, det = m11 * m22 - a12 * a12;
+      return [(m22 * b0 - a12 * b1) / det, (m11 * b1 - a12 * b0) / det];
+    }
+    function project(w) { return clipBox(w, box); }
+    // The treasure: c, or the lowest point of the box (on an edge when c is outside).
+    function treasure() {
+      if (!box || (c[0] >= box[0] && c[0] <= box[1] && c[1] >= box[0] && c[1] <= box[1])) return c.slice();
+      var best = null;
+      [[0, box[0]], [0, box[1]], [1, box[0]], [1, box[1]]].forEach(function (e) {
+        var k = e[0], fixed = e[1], free = 1 - k;          // coordinate k held at fixed, the other free
+        var aff = k === 0 ? a22 : a11;
+        var t = c[free] - a12 * (fixed - c[k]) / aff;       // dJ/dfree = 0
+        var x = [0, 0]; x[k] = fixed; x[free] = clip(t, box[0], box[1]);
+        if (!best || J(x) < J(best)) best = x;
+      });
+      return best;
+    }
+    return { kind: 'quad', J: J, f: J, grad: grad, fgrad: grad, wanderer: wanderer, project: project, box: box, wanderBox: null,
+             lawBox: box, A: [[a11, a12], [a12, a22]], c: c, treasure: treasure() };
+  }
+
+  // ---------------------------------------------------------------- the tower lands (fort, ridge)
+  // Cards x in [-1, 1]; the lanterns y; CORAL's three terms with one tower over the two sentries.
+  // s = +1: the tower's law is that the two flags agree (x1 x2 = +1); s = -1: that they differ.
+  function towerLand(p) {
+    var y = [p.y1, p.y2], s2 = p.s2, muP = p.muP, muB = p.muB, s = p.law;
+    function f(x) {
+      var v = 0;
+      for (var i = 0; i < 2; i++) v += (y[i] - x[i]) * (y[i] - x[i]) / (2 * s2) + muB * Math.pow(1 - x[i] * x[i], 2);
+      return v;
+    }
+    function J(x) { var r = 1 - s * x[0] * x[1]; return f(x) + muP * r * r; }
+    function fgrad(x) { return [0, 1].map(function (i) { return (x[i] - y[i]) / s2 - 4 * muB * x[i] * (1 - x[i] * x[i]); }); }
+    function grad(x) {
+      var r = 1 - s * x[0] * x[1], g = fgrad(x);
+      return [g[0] - 2 * muP * r * s * x[1], g[1] - 2 * muP * r * s * x[0]];
+    }
+    // One sentry's best card on [-1, 1]: phi(x) = (y-x)^2/(2 s2) + muB (1-x^2)^2 + rho/2 (x - v)^2,
+    // phi'(x) = 4 muB x^3 + (1/s2 - 4 muB + rho) x - (y/s2 + rho v): the real roots of a depressed cubic and both ends.
+    function phi(x, yi, v, rho) { return (yi - x) * (yi - x) / (2 * s2) + muB * Math.pow(1 - x * x, 2) + rho / 2 * (x - v) * (x - v); }
+    function bestCard(yi, v, rho) {
+      var a = 4 * muB, b = 1 / s2 - 4 * muB + rho, c0 = -(yi / s2 + rho * v);
+      var cands = [-1, 1], roots = [];
+      if (a < 1e-14) { roots.push(-c0 / b); }
+      else {
+        var P = b / a, Q = c0 / a, disc = Q * Q / 4 + P * P * P / 27;
+        if (Math.abs(P) < 1e-12) roots.push(Math.cbrt(-Q));
+        else if (disc > 0) { var sq = Math.sqrt(disc); roots.push(Math.cbrt(-Q / 2 + sq) + Math.cbrt(-Q / 2 - sq)); }
+        else {
+          var r = Math.sqrt(-P / 3), ang = Math.acos(clip(3 * Q / (2 * P) * Math.sqrt(-3 / P), -1, 1)) / 3;
+          for (var k = 0; k < 3; k++) roots.push(2 * r * Math.cos(ang - 2 * Math.PI * k / 3));
+        }
+      }
+      roots.forEach(function (t) { if (t > -1 && t < 1) cands.push(t); });
+      var best = cands[0];
+      cands.forEach(function (t) { if (phi(t, yi, v, rho) < phi(best, yi, v, rho)) best = t; });
+      return best;
+    }
+    function wanderer(v, rho) { return [bestCard(y[0], v[0], rho), bestCard(y[1], v[1], rho)]; }
+    // The law's set: the segment between the two lawful corners (the tower's parity polytope).
+    var lawA = s > 0 ? [1, 1] : [1, -1], lawB = s > 0 ? [-1, -1] : [-1, 1];
+    function project(w) {
+      var d = [lawB[0] - lawA[0], lawB[1] - lawA[1]];
+      var t = clip(dot([w[0] - lawA[0], w[1] - lawA[1]], d) / dot(d, d), 0, 1);
+      return [lawA[0] + t * d[0], lawA[1] + t * d[1]];
+    }
+    // The King's true order: the lawful corner the lanterns favour.
+    var lantern = function (q) { return (y[0] - q[0]) * (y[0] - q[0]) + (y[1] - q[1]) * (y[1] - q[1]); };
+    var truth = lantern(lawA) <= lantern(lawB) ? lawA : lawB;
+    return { kind: 'tower', J: J, f: f, grad: grad, fgrad: fgrad, wanderer: wanderer, project: project, box: [-1, 1], wanderBox: [-1, 1],
+             lawSegment: [lawA, lawB], lawSign: s, y: y, treasure: truth.slice(), bestCard: bestCard };
+  }
+
+  // ---------------------------------------------------------------- weather
+  // Ripples: R(x) = A/sqrt(6) sum_k sin(w_k . x + phi_k), six waves of random heading, a length within 25% of L
+  // and a random phase.
+  function ripples(A, L, seed) {
+    var r = stream(seed * 7919 + 17), waves = [];
+    for (var k = 0; k < 6; k++) {
+      var th = 2 * Math.PI * r.u(), len = L * (0.75 + 0.5 * r.u()), w = 2 * Math.PI / len;
+      waves.push({ w: [w * Math.cos(th), w * Math.sin(th)], phi: 2 * Math.PI * r.u(), len: len });
+    }
+    var a = A / Math.sqrt(6);
+    return {
+      A: A, L: L, amp: a, waves: waves,
+      R: function (x) { var s = 0; for (var k = 0; k < 6; k++) s += Math.sin(dot(waves[k].w, x) + waves[k].phi); return a * s; },
+      grad: function (x) {
+        var g0 = 0, g1 = 0;
+        for (var k = 0; k < 6; k++) { var c = Math.cos(dot(waves[k].w, x) + waves[k].phi); g0 += c * waves[k].w[0]; g1 += c * waves[k].w[1]; }
+        return [a * g0, a * g1];
+      }
+    };
+  }
+  // Black holes: B(x) = -sum_j D exp(-|x - p_j|^2 / (2 w^2)), narrow deep wells at seeded places inside the realm,
+  // kept off the start flag and apart from each other.
+  function holes(n, D, w, seed, region, avoid) {
+    var r = stream(seed * 104729 + 7), at = [], tries = 0;
+    var x0 = region[0] + 0.06 * (region[1] - region[0]), x1 = region[1] - 0.06 * (region[1] - region[0]);
+    var y0 = region[2] + 0.06 * (region[3] - region[2]), y1 = region[3] - 0.06 * (region[3] - region[2]);
+    while (at.length < n && tries < 500) {
+      tries++;
+      var q = [x0 + (x1 - x0) * r.u(), y0 + (y1 - y0) * r.u()];
+      if (avoid && norm([q[0] - avoid[0], q[1] - avoid[1]]) < 6 * w) continue;
+      if (at.some(function (p) { return norm([p[0] - q[0], p[1] - q[1]]) < 8 * w; })) continue;
+      at.push(q);
+    }
+    var k2 = 1 / (2 * w * w);
+    return {
+      n: at.length, D: D, w: w, at: at,
+      B: function (x) { var v = 0; for (var j = 0; j < at.length; j++) { var dx = x[0] - at[j][0], dy = x[1] - at[j][1]; v -= D * Math.exp(-(dx * dx + dy * dy) * k2); } return v; },
+      grad: function (x) {
+        var g0 = 0, g1 = 0;
+        for (var j = 0; j < at.length; j++) { var dx = x[0] - at[j][0], dy = x[1] - at[j][1], e = D * Math.exp(-(dx * dx + dy * dy) * k2) / (w * w); g0 += e * dx; g1 += e * dy; }
+        return [g0, g1];
+      },
+      // how much of x lies inside a hole, 0 to 1, for drawing them black
+      depth: function (x) { var m = 0; for (var j = 0; j < at.length; j++) { var dx = x[0] - at[j][0], dy = x[1] - at[j][1]; m = Math.max(m, Math.exp(-(dx * dx + dy * dy) * k2)); } return m; }
+    };
+  }
+  // Where the heroes may stand: the cards' box on the tower lands, the map elsewhere.
+  function realm(land) { return land.kind === 'tower' ? [-1, 1, -1, 1] : land.view; }
+  function scan(fn, region, n) {
+    var lo = Infinity, hi = -Infinity, at = null;
+    for (var i = 0; i < n; i++) for (var j = 0; j < n; j++) {
+      var x = [region[0] + (region[1] - region[0]) * i / (n - 1), region[2] + (region[3] - region[2]) * j / (n - 1)], z = fn(x);
+      if (z < lo) { lo = z; at = x; }
+      if (z > hi) hi = z;
+    }
+    return { lo: lo, hi: hi, at: at };
+  }
+  // The lowest spot of J where the walkers may stand: a grid, then projected steps downhill.
+  function lowestSpot(land) {
+    var region = land.box ? [land.box[0], land.box[1], land.box[0], land.box[1]] : land.view, width = region[1] - region[0];
+    var shortest = Math.min(land.ripples ? 0.75 * land.ripples.L : width, land.holes ? 2 * land.holes.w : width), n = Math.max(161, Math.min(601, Math.ceil(12 * width / shortest)));
+    var pts = [];
+    for (var i = 0; i < n; i++) for (var j = 0; j < n; j++) {
+      var x = [region[0] + width * i / (n - 1), region[2] + (region[3] - region[2]) * j / (n - 1)];
+      pts.push([land.J(x), x]);
+    }
+    pts.sort(function (a, b) { return a[0] - b[0]; });
+    var best = null, seeds = land.holes ? land.holes.at.map(function (p) { return p.slice(); }) : [];
+    for (var k = 0; k < pts.length && seeds.length < 8 + (land.holes ? land.holes.n : 0); k++) {
+      if (seeds.every(function (s0) { return norm([s0[0] - pts[k][1][0], s0[1] - pts[k][1][1]]) > 0.5 * shortest; })) seeds.push(pts[k][1]);
+    }
+    seeds.forEach(function (q) {
+      var Jq = land.J(q), t = 0.01 * land.span;
+      for (var it = 0; it < 4000 && t > 1e-14; it++) {
+        var g = land.grad(q), gn = norm(g); if (gn < 1e-13) break;
+        var nq = clipBox(add(q, g, -t / gn), land.box), Jn = land.J(nq);
+        if (Jn < Jq) { q = nq; Jq = Jn; t *= 1.2; } else t *= 0.5;
+      }
+      if (!best || Jq < best[0]) best = [Jq, q];
+    });
+    return best[1];
+  }
+  // Weather on a land.  A and the haze sigma are shares of the land's height range where the heroes may stand; the
+  // ripple length L and the staff h are shares of the map's width.  The walkers feel the slope with four taps of
+  // the staff; in haze each tap is the height plus N(0, sigma^2), and the slope they use is what the taps say.
+  function withWeather(base, view, p) {
+    var land = {}, k;
+    for (k in base) land[k] = base[k];
+    land.base = base; land.view = view; land.span = view[1] - view[0];
+    var range = scan(base.J, realm(land), 61);
+    land.heightRange = range.hi - range.lo;
+    var A = (p.ripA || 0) * land.heightRange, L = (p.ripL || 0.2) * land.span;
+    var sigma = (p.haze || 0) * land.heightRange, h = (p.staff || 0.01) * land.span, seed = Math.round(p.seed || 1);
+    var rip = A > 0 ? ripples(A, L, seed) : null;
+    var nh = Math.round(p.holes || 0), bh = nh > 0 ? holes(nh, (p.holeDepth || 0.6) * land.heightRange, (p.holeWidth || 0.025) * land.span, seed, realm(land), p.sx != null ? [p.sx, p.sy] : (base.kind === 'tower' ? lanternStart(p) : null)) : null;
+    land.weather = { A: A, L: L, sigma: sigma, h: h, seed: seed };
+    land.ripples = rip; land.holes = bh && bh.n ? bh : null; land.sigma = sigma; land.h = h; land.seed = seed;
+    var extra = [], extraGrad = [];
+    if (rip) { extra.push(rip.R); extraGrad.push(rip.grad); }
+    if (land.holes) { extra.push(land.holes.B); extraGrad.push(land.holes.grad); }
+    if (extra.length) {
+      var plus = function (fn) { return function (x) { var v = fn(x); for (var i = 0; i < extra.length; i++) v += extra[i](x); return v; }; };
+      var plusG = function (fn) { return function (x) { var g = fn(x), a = g[0], b = g[1]; for (var i = 0; i < extraGrad.length; i++) { var q = extraGrad[i](x); a += q[0]; b += q[1]; } return [a, b]; }; };
+      land.J = plus(base.J); land.f = plus(base.f); land.grad = plusG(base.grad); land.fgrad = plusG(base.fgrad);
+    }
+    // the land without its holes, for scaling pictures so that the holes go below the rest
+    land.smooth = rip ? function (x) { return base.J(x) + rip.R(x); } : base.J;
+    land.floor = scan(land.smooth, realm(land), 61).lo;
+    land.exactStep = !extra.length && !(sigma > 0);
+    land.fmin = scan(land.f, realm(land), 121).lo;
+    if (land.holes) land.holes.at.forEach(function (q) { land.fmin = Math.min(land.fmin, land.f(q)); });
+    if (extra.length && base.kind === 'quad') land.treasure = lowestSpot(land);
+    return land;
+  }
+
+  // ---------------------------------------------------------------- feeling the slope
+  // Four taps of the staff, east, west, north and south of x, and the two central differences.
+  function feel(land, x, fn, r) {
+    var h = land.h, taps = [];
+    [[1, 0], [-1, 0], [0, 1], [0, -1]].forEach(function (d) {
+      var q = [x[0] + h * d[0], x[1] + h * d[1]];
+      taps.push({ at: q, J: fn(q) + (land.sigma > 0 ? land.sigma * r.normal() : 0) });
+    });
+    return { taps: taps, g: [(taps[0].J - taps[1].J) / (2 * h), (taps[2].J - taps[3].J) / (2 * h)] };
+  }
+  // The slope a walker uses: the land's formula in clear air (the taps are then only shown), the taps in haze.
+  function slope(land, x, r) {
+    var exact = land.grad(x), felt = feel(land, x, land.J, r);
+    return { g: land.sigma > 0 ? felt.g : exact, gTrue: exact, taps: felt.taps, gFelt: felt.g };
+  }
+  // A height as a walker learns it: exact in clear air, one tap in haze.
+  function tap(land, x, r) { return land.J(x) + (land.sigma > 0 ? land.sigma * r.normal() : 0); }
+
+  // ---------------------------------------------------------------- the walks
+  // Each walk is a list of days; day 0 is the start.  A hero who stops moving rests where he is.  Day k records the
+  // place reached and what was felt and reckoned at the place of day k - 1.
+  function pilgrim(land, x0, alpha, days) {
+    var r = stream(land.seed * 1009 + 1), x = clipBox(x0, land.box), out = [{ x: x, raw: null, J: land.J(x) }];
+    for (var k = 1; k <= days; k++) {
+      var s = slope(land, x, r), raw = add(x, s.g, -alpha), nx = clipBox(raw, land.box);
+      if (!finite(nx)) { out.lost = k; break; }
+      var moved = norm([nx[0] - x[0], nx[1] - x[1]]);
+      out.push({ x: nx, raw: raw, J: land.J(nx), clipped: raw[0] !== nx[0] || raw[1] !== nx[1], from: x, taps: s.taps,
+                 g: s.g, gTrue: s.gTrue, gFelt: s.gFelt });
+      x = nx;
+      if (moved < 1e-13) { out.rest = k; break; }
+    }
+    return out;
+  }
+
+  // Deck p9's lbfgs (card_cost.lbfgs): two-loop recursion over the last m pairs, a step halved from one until
+  // the cost falls by 1e-4 step g.d; a direction that does not go downhill is replaced by -g and the journal emptied.
+  // On a land with a box the Cartographer walks on t, x = lo + (hi - lo)(1 + tanh t)/2.
+  function cartographer(land, x0, m, days) {
+    var box = land.box, toX, toT, dxdt, r = stream(land.seed * 1009 + 2);
+    if (box) {
+      var lo = box[0], w = box[1] - box[0];
+      toX = function (t) { return [lo + w * (1 + Math.tanh(t[0])) / 2, lo + w * (1 + Math.tanh(t[1])) / 2]; };
+      toT = function (x) { return x.map(function (v) { var u = clip(2 * (v - lo) / w - 1, -0.99, 0.99); return 0.5 * Math.log((1 + u) / (1 - u)); }); };  // the edge itself is infinitely far on the stretched map
+      dxdt = function (t) { return t.map(function (v) { var th = Math.tanh(v); return w * (1 - th * th) / 2; }); };
+    } else {
+      toX = function (t) { return t.slice(); }; toT = toX; dxdt = function () { return [1, 1]; };
+    }
+    function fun(t) {
+      var x = toX(t), s = slope(land, x, r), d = dxdt(t);
+      return { f: tap(land, x, r), g: [s.g[0] * d[0], s.g[1] * d[1]], x: x, taps: s.taps, gx: s.g, gTrue: s.gTrue, gFelt: s.gFelt };
+    }
+    var t = toT(clipBox(x0, box)), cur = fun(t), S = [], Y = [], D = [];
+    var book = function () { return S.map(function (sv, i) { return { day: D[i], s: sv.slice(), y: Y[i].slice() }; }); };
+    var out = [{ x: toX(t), J: land.J(toX(t)), step: null, trials: [], pages: 0, queue: [], after: [] }];
+    for (var k = 1; k <= days; k++) {
+      var q = cur.g.slice(), alphas = [], betas = [], gam = null;
+      for (var i = S.length - 1; i >= 0; i--) { var a = dot(S[i], q) / dot(Y[i], S[i]); alphas.push(a); q = add(q, Y[i], -a); }
+      if (S.length) { gam = dot(S[S.length - 1], Y[Y.length - 1]) / dot(Y[Y.length - 1], Y[Y.length - 1]); q = [q[0] * gam, q[1] * gam]; }
+      for (var j = 0; j < S.length; j++) { var bb = dot(Y[j], q) / dot(Y[j], S[j]); betas.push(bb); q = add(q, S[j], alphas[S.length - 1 - j] - bb); }
+      var reading = { alphas: alphas, betas: betas, gamma: gam, d: [-q[0], -q[1]] };     // the two readings of the journal, newest page first, then oldest first
+      var d = [-q[0], -q[1]], restart = false, torn = null;
+      if (dot(cur.g, d) >= 0) { d = [-cur.g[0], -cur.g[1]]; torn = book(); S = []; Y = []; D = []; restart = true; }
+      var pages = S.length, queue = book(), step = 1, trials = [], nt, nf, need;
+      while (true) {
+        nt = add(t, d, step);
+        need = cur.f + 1e-4 * step * dot(cur.g, d);
+        if (finite(nt)) {
+          nf = fun(nt);
+          if (nf.f <= need) break;
+          trials.push({ x: nf.x, f: nf.f, need: need, step: step });
+        }
+        step /= 2;
+        if (step < 1e-16) { out.rest = k; out.why = 'line search'; return out; }
+      }
+      var sv = [nt[0] - t[0], nt[1] - t[1]], yv = [nf.g[0] - cur.g[0], nf.g[1] - cur.g[1]], wrote = null, dropped = [];
+      if (dot(sv, yv) > 1e-12 * Math.sqrt(dot(sv, sv) * dot(yv, yv))) {
+        S.push(sv); Y.push(yv); D.push(k); wrote = { day: k, s: sv.slice(), y: yv.slice() };
+        while (S.length > m) { dropped.push({ day: D[0], s: S[0], y: Y[0] }); S.shift(); Y.shift(); D.shift(); }
+      }
+      if (m === 0) { S = []; Y = []; D = []; }
+      out.push({ x: nf.x, J: land.J(nf.x), step: step, trials: trials, pages: pages, restart: restart, from: cur.x, fromF: cur.f,
+                 felt: nf.f, need: need, taps: cur.taps, g: cur.gx, gTrue: cur.gTrue, gFelt: cur.gFelt,
+                 queue: queue, torn: torn, wrote: wrote, dropped: dropped, after: book(),
+                 t: t.slice(), gt: cur.g.slice(), d: d.slice(), reading: reading, stretched: !!box });
+      t = nt; cur = nf;
+      if (Math.max(Math.abs(cur.g[0]), Math.abs(cur.g[1])) < 1e-10) { out.rest = k; out.why = 'flat'; break; }
+    }
+    return out;
+  }
+
+  // The rope's reach: no spot farther from v than r = sqrt(2 (f(v) - fmin) / rho) can beat v itself.
+  function reachOf(land, v, rho) { return Math.sqrt(2 * Math.max(land.f(v) - land.fmin, 0) / rho); }
+  // The Wanderer's step where no formula gives it, as an ADMM solver takes it: from where the Wanderer stands,
+  // small steps down f + rho/2 |x - v|^2 until they stop paying.  In haze both the slope and the heights compared
+  // are taps.  The steps are kept, so the page can show the Wanderer's day as a short walk on the rope.
+  function wanderLocally(land, x, v, rho, r) {
+    var box = land.wanderBox, sig = land.sigma, q = clipBox(x, box), path = [q];
+    function rope(p) { return rho / 2 * ((p[0] - v[0]) * (p[0] - v[0]) + (p[1] - v[1]) * (p[1] - v[1])); }
+    function height(p) { return land.f(p) + (sig > 0 ? sig * r.normal() : 0) + rope(p); }
+    var hq = height(q), t = 0.04 * land.span;
+    for (var it = 0; it < 60 && t > 1e-7 * land.span; it++) {
+      var g = sig > 0 ? feel(land, q, land.f, r).g : land.fgrad(q);
+      g = [g[0] + rho * (q[0] - v[0]), g[1] + rho * (q[1] - v[1])];
+      var gn = norm(g); if (gn < 1e-12) break;
+      if (sig > 0) hq = height(q);
+      var nq = clipBox(add(q, g, -t / gn), box), hn = height(nq);
+      if (hn < hq) { q = nq; hq = hn; path.push(q); t *= 1.3; } else t *= 0.5;
+    }
+    return { x: q, path: path, reach: Math.min(reachOf(land, v, rho), land.span) };
+  }
+
+  // ADMM in scaled form: the Wanderer x, the Warden z (always lawful) and the ledger u.
+  function twins(land, x0, rho, days) {
+    var r = stream(land.seed * 1009 + 3), x = clipBox(x0, land.box), z = land.project(x), u = [0, 0];
+    var out = [{ x: x, z: z, u: u, J: land.J(z) }];
+    for (var k = 1; k <= days; k++) {
+      var v = [z[0] - u[0], z[1] - u[1]], step;
+      if (land.exactStep) { var ex = land.wanderer(v, rho); step = { x: ex, path: [x, ex], reach: Math.min(reachOf(land, v, rho), land.span) }; }
+      else step = wanderLocally(land, x, v, rho, r);
+      var nx = step.x, nz = land.project(add(nx, u, 1)), nu = [u[0] + nx[0] - nz[0], u[1] + nx[1] - nz[1]];
+      if (!finite(nx) || !finite(nu)) { out.lost = k; break; }
+      var still = norm([nx[0] - x[0], nx[1] - x[1]]) + norm([nz[0] - z[0], nz[1] - z[1]]) + norm([nu[0] - u[0], nu[1] - u[1]]);
+      out.push({ x: nx, z: nz, u: nu, J: land.J(nz), gap: norm([nx[0] - nz[0], nx[1] - nz[1]]), from: x, zFrom: z, uFrom: u,
+                 v: v, reach: step.reach, path: step.path, exact: land.exactStep });
+      x = nx; z = nz; u = nu;
+      if (still < 1e-13 && !(land.sigma > 0)) { out.rest = k; break; }
+    }
+    return out;
+  }
+
+  // The first day from which a walk stays within tol of where it ends.
+  function settled(walk, key, tol) {
+    var end = walk[walk.length - 1][key || 'x'], day = walk.length - 1;
+    for (var k = walk.length - 1; k >= 0; k--) {
+      var p = walk[k][key || 'x'];
+      if (norm([p[0] - end[0], p[1] - end[1]]) <= tol) day = k; else break;
+    }
+    return day;
+  }
+
+  // ---------------------------------------------------------------- the five lands
+  var KINDS = {
+    canyon: { kind: 'quad', box: null, view: [-0.25, 1.25, -0.25, 1.25] },
+    wall: { kind: 'quad', box: [0, 1], view: [-0.3, 1.8, -0.55, 1.55] },
+    fort: { kind: 'tower', view: [-1.2, 1.2, -1.2, 1.2] },
+    ridge: { kind: 'tower', view: [-1.2, 1.2, -1.2, 1.2] },
+    misty: { kind: 'quad', box: [-1.5, 1.5], view: [-1.65, 1.65, -1.65, 1.65] }
+  };
+  // The lands as the tale starts them, with the heroes' settings and the weather; the page's "Restore this land"
+  // returns to these.  The canyon and the wall are deck lbfgs_admm_pg's plane (part A of methods_numbers.py); the
+  // fort and the ridge use CORAL's three terms (deck p5) on two sentries; sx, sy null: start from the lanterns.
+  var CLEAR = { ripA: 0, ripL: 0.2, haze: 0, staff: 0.01, seed: 1, holes: 0, holeDepth: 0.6, holeWidth: 0.025 };
+  function preset(p, w) { var out = {}, k; for (k in p) out[k] = p[k]; for (k in (w || CLEAR)) out[k] = (w || CLEAR)[k]; return out; }
+  var PRESETS = {
+    canyon: preset({ l1: 1, l2: 10, theta: 30, c1: 0.62, c2: 0.48, sx: 0.03, sy: 0.31, alpha: 0.18, m: 10, rho: 3, days: 120 }),
+    wall: preset({ l1: 1, l2: 10, theta: 30, c1: 1.45, c2: 0.75, sx: 0.1, sy: 0.15, alpha: 0.18, m: 10, rho: 3, days: 120 }),
+    fort: preset({ y1: 0.8, y2: -0.5, s2: 0.3, muP: 8, muB: 0.2, law: 1, sx: null, sy: null, alpha: 0.03, m: 10, rho: 3, days: 120 }),
+    ridge: preset({ y1: 0.7, y2: -0.4, s2: 0.3, muP: 1, muB: 2, law: 1, sx: null, sy: null, alpha: 0.03, m: 10, rho: 3, days: 120 }),
+    misty: preset({ l1: 1, l2: 1, theta: 0, c1: 0.35, c2: -0.25, sx: -1.2, sy: 1.15, alpha: 0.05, m: 10, rho: 1, days: 120 },
+                  { ripA: 0.05, ripL: 0.2, haze: 0.002, staff: 0.02, seed: 25, holes: 3, holeDepth: 0.6, holeWidth: 0.025 })
+  };
+  function buildLand(key, p) {
+    var K = KINDS[key], base = K.kind === 'quad'
+      ? quadLand({ l1: p.l1, l2: p.l2, theta: p.theta, c1: p.c1, c2: p.c2, box: K.box })
+      : towerLand({ y1: p.y1, y2: p.y2, s2: p.s2, muP: p.muP, muB: p.muB, law: p.law });
+    return withWeather(base, K.view, p);
+  }
+  // CORAL's start, x = tanh(L/2) with L = 2y/sigma^2, kept inside the box so that the Cartographer's t is finite.
+  function lanternStart(p) { return [clip(Math.tanh(p.y1 / p.s2), -0.98, 0.98), clip(Math.tanh(p.y2 / p.s2), -0.98, 0.98)]; }
+
+  return { quadLand: quadLand, towerLand: towerLand, withWeather: withWeather, buildLand: buildLand, ripples: ripples, holes: holes,
+           pilgrim: pilgrim, cartographer: cartographer, twins: twins, wanderLocally: wanderLocally, reachOf: reachOf, feel: feel,
+           settled: settled, norm: norm, clipBox: clipBox, stream: stream, KINDS: KINDS, PRESETS: PRESETS, lanternStart: lanternStart };
+})();
+if (typeof module !== 'undefined') module.exports = Engine;
+</script>
+<script>
+// The step-by-step board of kings_land_descent.html.  It cuts one day's reckoning of a hero (or yours, after you feel
+// the slope) into small steps.  Each step has a few plain words, its formula with that day's numbers, and an
+// animation on a flat chart of the land: where the hero stands, how the height is made, the four taps, the slopes
+// they give, and the hero's move.  game.js opens the board with the day's context; Board.register adds the steps of
+// one part of the reckoning (this file holds the parts every hero shares, board_parts.js the others).
+//
+// A step is { id, chapter, title, text, math, layout, view, dur, draw }:
+//   layout  'map' (the land seen from above), 'map+side' (the map and a panel beside it) or 'side' (a panel only);
+//   view    the part of the land the map shows, [x1min, x1max, x2min, x2max]; the board glides from one view to the next;
+//   dur     seconds the animation takes; text and math are HTML, and a part wrapped by at(p, html) shows from
+//           progress p of the animation on;
+//   draw(g, p) draws the step at progress p in [0, 1] with the kit g (g.mapR and g.sideR are the two panels).
+var Board = (function () {
+  'use strict';
+  var TAU = 2 * Math.PI;
+  function $(id) { return document.getElementById(id); }
+  function clamp(v, a, b) { return v < a ? a : v > b ? b : v; }
+  function ease(t) { t = clamp(t, 0, 1); return t * t * (3 - 2 * t); }
+  // the progress of a part of a step's animation that runs from a to b
+  function seg(p, a, b) { return ease((p - a) / (b - a)); }
+  function mix(a, b, t) { return a + (b - a) * t; }
+  function lerp2(a, b, t) { return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t]; }
+  function add(a, b, s) { s = s == null ? 1 : s; return [a[0] + s * b[0], a[1] + s * b[1]]; }
+  function sub(a, b) { return [a[0] - b[0], a[1] - b[1]]; }
+  function dot(a, b) { return a[0] * b[0] + a[1] * b[1]; }
+  function len(a) { return Math.hypot(a[0], a[1]); }
+  function scale(a, s) { return [a[0] * s, a[1] * s]; }
+  function backOut(t) { var s = 1.6; t = clamp(t, 0, 1) - 1; return t * t * ((s + 1) * t + s) + 1; }
+  function num(v, d) {
+    if (v == null || !isFinite(v)) return '—';
+    var s = v.toFixed(d == null ? 3 : d);
+    if (/^-0(\.0*)?$/.test(s)) s = s.slice(1);
+    return s.replace('-', '−');
+  }
+  function pair(v, d) { return '(' + num(v[0], d) + ', ' + num(v[1], d) + ')'; }
+  // a number ready to be multiplied: negative numbers in brackets
+  function par(v, d) { var t = num(v, d); return v < 0 && t !== '0.000' ? '(' + t + ')' : t; }
+  function at(p, html) { return '<span class="bp" data-at="' + p + '">' + html + '</span>'; }
+  function frac(a, b) { return '<span class="fr"><span>' + a + '</span><span>' + b + '</span></span>'; }
+  // a view around some points: their box, widened by a share of its size, at least `least` wide
+  function around(pts, grow, least) {
+    var x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+    pts.forEach(function (q) { if (!q) return; x0 = Math.min(x0, q[0]); x1 = Math.max(x1, q[0]); y0 = Math.min(y0, q[1]); y1 = Math.max(y1, q[1]); });
+    var cx = (x0 + x1) / 2, cy = (y0 + y1) / 2, w = Math.max((x1 - x0) * (1 + grow), (y1 - y0) * (1 + grow), least);
+    return [cx - w / 2, cx + w / 2, cy - w / 2, cy + w / 2];
+  }
+
+  var C = { bg: '#0b121b', ink: '#f2f5f8', dim: 'rgba(242,245,248,0.6)', faint: 'rgba(242,245,248,0.22)', gold: '#ffd27a',
+            orange: '#ffb071', blue: '#a9cdf6', green: '#b9f0a8', red: '#ff9a8a', violet: '#d9c2ff', box: 'rgba(8,12,18,0.82)' };
+  var HERO = { pg: { col: '#ffb071', letter: 'P' }, lb: { col: '#a9cdf6', letter: 'C' }, tw: { col: '#e6e9ee', letter: 'W' }, you: { col: '#ffd27a', letter: 'Y' } };
+
+  // ------------------------------------------------------------ the drawing kit
+  // Drawings in world spots keep inside the map's panel when a side panel shares the canvas.
+  function mapOnly(fn) { return function () { if (!this.sideR || !this.mapR) return fn.apply(this, arguments); var c = this.ctx, R = this.mapR; c.save(); c.beginPath(); c.rect(R[0], R[1], R[2], R[3]); c.clip(); try { return fn.apply(this, arguments); } finally { c.restore(); } }; }
+  function Kit(canvas) { this.cv = canvas; this.ctx = canvas.getContext('2d'); this.W = 0; this.H = 0; this.grid = null; this.lines = {}; }
+  Kit.prototype.fit = function () {
+    var r = this.cv.getBoundingClientRect(), dpr = Math.min(window.devicePixelRatio || 1, 2);
+    var W = Math.max(240, Math.round(r.width)), H = Math.max(180, Math.round(r.height));
+    if (this.cv.width !== Math.round(W * dpr) || this.cv.height !== Math.round(H * dpr)) { this.cv.width = Math.round(W * dpr); this.cv.height = Math.round(H * dpr); }
+    this.W = W; this.H = H; this.dpr = dpr;
+    this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    this.sans = getComputedStyle(document.body).fontFamily || 'sans-serif';
+    this.mono = (getComputedStyle(document.documentElement).getPropertyValue('--mono') || '').trim() || 'monospace';
+  };
+  Kit.prototype.clear = function () { var c = this.ctx; c.globalAlpha = 1; c.setLineDash([]); c.fillStyle = C.bg; c.fillRect(0, 0, this.W, this.H); };
+  Kit.prototype.layout = function (kind) {
+    var W = this.W, H = this.H, m = 8;
+    this.mapR = this.sideR = null;
+    if (kind === 'side') this.sideR = [m, m, W - 2 * m, H - 2 * m];
+    else if (kind === 'map+side') {
+      if (W >= H * 1.1) { var w = Math.round((W - 3 * m) * 0.54); this.mapR = [m, m, w, H - 2 * m]; this.sideR = [2 * m + w, m, W - 3 * m - w, H - 2 * m]; }
+      else { var h = Math.round((H - 3 * m) * 0.55); this.mapR = [m, m, W - 2 * m, h]; this.sideR = [m, 2 * m + h, W - 2 * m, H - 3 * m - h]; }
+    } else this.mapR = [m, m, W - 2 * m, H - 2 * m];
+  };
+  // The map: world spot q = (x1, x2) to canvas, x1 to the right and x2 up, one scale for both.
+  Kit.prototype.view = function (v) {
+    var R = this.mapR, vw = v[1] - v[0], vh = v[3] - v[2], s = Math.min(R[2] / vw, R[3] / vh);
+    this.s = s; this.ox = R[0] + R[2] / 2 - (v[0] + v[1]) / 2 * s; this.oy = R[1] + R[3] / 2 + (v[2] + v[3]) / 2 * s;
+    this.vis = [(R[0] - this.ox) / s, (R[0] + R[2] - this.ox) / s, (this.oy - R[1] - R[3]) / s, (this.oy - R[1]) / s];
+  };
+  Kit.prototype.P = function (q) { return [this.ox + q[0] * this.s, this.oy - q[1] * this.s]; };
+  Kit.prototype.clip = function (R) { var c = this.ctx; c.save(); c.beginPath(); rrect(c, R[0], R[1], R[2], R[3], 8); c.clip(); };
+  function rrect(c, x, y, w, h, r) { r = Math.min(r, w / 2, h / 2); c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r); c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath(); }
+  function ramp(t) {
+    var lo = [26, 58, 92], mid = [92, 112, 120], hi = [150, 98, 58], u = clamp(t, 0, 1);
+    return u < 0.5 ? [mix(lo[0], mid[0], u * 2), mix(lo[1], mid[1], u * 2), mix(lo[2], mid[2], u * 2)] : [mix(mid[0], hi[0], u * 2 - 1), mix(mid[1], hi[1], u * 2 - 1), mix(mid[2], hi[2], u * 2 - 1)];
+  }
+  // The land as shading and rings of equal height.  fn is the height; o.lo, o.hi fix the shading's range (else the
+  // range in view), o.rings the number of rings (spaced so that a bowl gets evenly spaced rings), o.id names fn.
+  Kit.prototype.land = function (fn, o) {
+    o = o || {};
+    var R = this.mapR, v = this.vis, cell = o.cell || 4, nx = Math.max(40, Math.round(R[2] / cell)), ny = Math.max(30, Math.round(R[3] / cell));
+    var key = (o.id || 'J') + '|' + v.map(function (a) { return a.toPrecision(7); }).join(',') + '|' + nx + 'x' + ny;
+    var g = this.grid && this.grid.key === key ? this.grid : null;
+    if (!g) {
+      var vals = new Float64Array((nx + 1) * (ny + 1)), lo = Infinity, hi = -Infinity;
+      for (var j = 0; j <= ny; j++) for (var i = 0; i <= nx; i++) {
+        var z = fn([v[0] + (v[1] - v[0]) * i / nx, v[2] + (v[3] - v[2]) * j / ny]); vals[j * (nx + 1) + i] = z;
+        if (isFinite(z)) { if (z < lo) lo = z; if (z > hi) hi = z; }
+      }
+      g = this.grid = { key: key, vals: vals, nx: nx, ny: ny, lo: lo, hi: hi, img: null, imgKey: '', rings: null, ringKey: '' };
+      this.lines = {};
+    }
+    var lo = o.lo != null ? o.lo : g.lo, hi = o.hi != null ? o.hi : g.hi; if (!(hi > lo)) hi = lo + 1;
+    var c = this.ctx;
+    if (g.imgKey !== lo + '|' + hi + '|' + !!o.pits) {
+      var cv = document.createElement('canvas'); cv.width = g.nx + 1; cv.height = g.ny + 1;
+      var cc = cv.getContext('2d'), im = cc.createImageData(cv.width, cv.height);
+      for (j = 0; j <= g.ny; j++) for (i = 0; i <= g.nx; i++) {
+        var t = (g.vals[j * (g.nx + 1) + i] - lo) / (hi - lo), col = ramp(Math.sqrt(clamp(t, 0, 1))), k4 = ((g.ny - j) * cv.width + i) * 4;
+        if (t < 0 && o.pits) { var b = clamp(-t * 4, 0, 1); col = [mix(26, 6, b), mix(58, 8, b), mix(92, 12, b)]; }
+        im.data[k4] = col[0]; im.data[k4 + 1] = col[1]; im.data[k4 + 2] = col[2]; im.data[k4 + 3] = 255;
+      }
+      cc.putImageData(im, 0, 0); g.img = cv; g.imgKey = lo + '|' + hi + '|' + !!o.pits; g.ringKey = '';
+    }
+    this.clip(R);
+    c.imageSmoothingEnabled = true; c.globalAlpha = o.alpha == null ? 1 : o.alpha;
+    var A = this.P([v[0], v[3]]), B = this.P([v[1], v[2]]);
+    c.drawImage(g.img, A[0], A[1], B[0] - A[0], B[1] - A[1]);
+    var n = o.rings == null ? 12 : o.rings, rk = lo + '|' + hi + '|' + n;
+    if (n > 0) {
+      if (g.ringKey !== rk) { g.rings = []; for (var q = 1; q <= n; q++) g.rings.push(this.contour(g, lo + (hi - lo) * Math.pow(q / (n + 1), 2))); g.ringKey = rk; }
+      c.strokeStyle = 'rgba(214,230,246,0.33)'; c.lineWidth = 1;
+      g.rings.forEach(function (sg) { strokeSegs(c, sg, this); }, this);
+    }
+    c.globalAlpha = 1; c.restore();
+  };
+  // One ring: the spots of the grid in view where the height is `level` (marching squares).
+  Kit.prototype.contour = function (g, level) {
+    var v = this.vis, nx = g.nx, ny = g.ny, out = [], vals = g.vals, w = nx + 1;
+    function X(i) { return v[0] + (v[1] - v[0]) * i / nx; } function Y(j) { return v[2] + (v[3] - v[2]) * j / ny; }
+    for (var j = 0; j < ny; j++) for (var i = 0; i < nx; i++) {
+      var a = vals[j * w + i], b = vals[j * w + i + 1], cc = vals[(j + 1) * w + i + 1], d = vals[(j + 1) * w + i];
+      var idx = (a > level ? 1 : 0) | (b > level ? 2 : 0) | (cc > level ? 4 : 0) | (d > level ? 8 : 0);
+      if (idx === 0 || idx === 15) continue;
+      var e = [];
+      if ((idx & 1) !== (idx >> 1 & 1)) e.push([X(i + (level - a) / (b - a)), Y(j)]);
+      if ((idx >> 1 & 1) !== (idx >> 2 & 1)) e.push([X(i + 1), Y(j + (level - b) / (cc - b))]);
+      if ((idx >> 2 & 1) !== (idx >> 3 & 1)) e.push([X(i + (level - d) / (cc - d)), Y(j + 1)]);
+      if ((idx >> 3 & 1) !== (idx & 1)) e.push([X(i), Y(j + (level - a) / (d - a))]);
+      if (e.length === 2) out.push(e[0], e[1]); else if (e.length === 4) out.push(e[0], e[1], e[2], e[3]);
+    }
+    return out;
+  };
+  function strokeSegs(c, sg, k) {
+    c.beginPath();
+    for (var i = 0; i + 1 < sg.length; i += 2) { var a = k.P(sg[i]), b = k.P(sg[i + 1]); c.moveTo(a[0], a[1]); c.lineTo(b[0], b[1]); }
+    c.stroke();
+  }
+  // The ring through one height, lit (uses the grid of the last land()).
+  Kit.prototype.ring = function (level, col, w, p) {
+    if (!this.grid || p <= 0) return;
+    var k = String(level), sg = this.lines[k] || (this.lines[k] = this.contour(this.grid, level)), c = this.ctx;
+    this.clip(this.mapR); c.globalAlpha = clamp(p, 0, 1); c.strokeStyle = col; c.lineWidth = w || 2.5; strokeSegs(c, sg, this); c.globalAlpha = 1; c.restore();
+  };
+  // Ticks along the map's bottom (x1) and left (x2) edges.
+  Kit.prototype.axes = function () {
+    var c = this.ctx, R = this.mapR, v = this.vis, step = nice((v[1] - v[0]) / 5), d = places(step);
+    c.font = '11px ' + this.mono; c.fillStyle = C.dim; c.strokeStyle = C.faint; c.lineWidth = 1;
+    c.textAlign = 'center'; c.textBaseline = 'bottom';
+    for (var t = Math.ceil(v[0] / step) * step; t <= v[1]; t += step) { var a = this.P([t, v[2]]); if (a[0] < R[0] + 18 || a[0] > R[0] + R[2] - 24) continue; c.beginPath(); c.moveTo(a[0], R[1] + R[3]); c.lineTo(a[0], R[1] + R[3] - 5); c.stroke(); c.fillText(num(t, d), a[0], R[1] + R[3] - 6); }
+    c.textAlign = 'left'; c.textBaseline = 'middle';
+    for (t = Math.ceil(v[2] / step) * step; t <= v[3]; t += step) { var b = this.P([v[0], t]); if (b[1] < R[1] + 22 || b[1] > R[1] + R[3] - 30) continue; c.beginPath(); c.moveTo(R[0], b[1]); c.lineTo(R[0] + 5, b[1]); c.stroke(); c.fillText(num(t, d), R[0] + 7, b[1]); }
+    c.font = '600 12px ' + this.sans; c.fillStyle = C.ink; c.textAlign = 'right'; c.textBaseline = 'bottom'; c.fillText('x₁ →', R[0] + R[2] - 6, R[1] + R[3] - 4);
+    c.textAlign = 'left'; c.textBaseline = 'top'; c.fillText('↑ x₂', R[0] + 6, R[1] + 5);
+  };
+  function places(step) { return clamp(Math.ceil(-Math.log(step) / Math.LN10 - 1e-9), 0, 7); }
+  function nice(x) { var e = Math.pow(10, Math.floor(Math.log(x) / Math.LN10)), f = x / e; return (f < 1.5 ? 1 : f < 3.5 ? 2 : f < 7.5 ? 5 : 10) * e; }
+  Kit.prototype.dot = mapOnly(function (q, r, col, p) {
+    if (!(p > 0)) return; var c = this.ctx, a = this.P(q);
+    c.beginPath(); c.arc(a[0], a[1], r * backOut(p), 0, TAU); c.fillStyle = col; c.fill(); c.lineWidth = 2; c.strokeStyle = C.bg; c.stroke();
+  });
+  Kit.prototype.halo = mapOnly(function (q, rPx, col, p, w, dash) {
+    if (!(p > 0)) return; var c = this.ctx, a = this.P(q);
+    c.globalAlpha = clamp(p, 0, 1); c.strokeStyle = col; c.lineWidth = w || 1.5; if (dash) c.setLineDash(dash);
+    c.beginPath(); c.arc(a[0], a[1], rPx, 0, TAU); c.stroke(); c.setLineDash([]); c.globalAlpha = 1;
+  });
+  // a ring spreading from a spot, as when the staff touches the ground
+  Kit.prototype.tap = mapOnly(function (q, col, p) {
+    if (!(p > 0) || p >= 1) return; var c = this.ctx, a = this.P(q);
+    c.globalAlpha = 1 - p; c.strokeStyle = col; c.lineWidth = 2; c.beginPath(); c.arc(a[0], a[1], 4 + 22 * p, 0, TAU); c.stroke(); c.globalAlpha = 1;
+  });
+  Kit.prototype.hero = mapOnly(function (q, who, p, label) {
+    if (!(p > 0)) return; var h = HERO[who] || HERO.you, c = this.ctx, a = this.P(q), r = 9 * backOut(p);
+    c.beginPath(); c.arc(a[0], a[1], r + 3, 0, TAU); c.fillStyle = 'rgba(8,12,18,0.85)'; c.fill();
+    c.beginPath(); c.arc(a[0], a[1], r, 0, TAU); c.fillStyle = h.col; c.fill();
+    if (p > 0.6) { c.fillStyle = '#1b1406'; c.font = '700 11px ' + this.sans; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(h.letter, a[0], a[1] + 0.5); }
+    if (label) this.labelPx(a[0] + 14, a[1] - 12, label, h.col, { p: seg(p, 0.5, 1) });
+  });
+  Kit.prototype.flag = mapOnly(function (q, p) {
+    if (!(p > 0)) return; var c = this.ctx, a = this.P(q), k = backOut(p);
+    c.strokeStyle = C.ink; c.lineWidth = 2; c.beginPath(); c.moveTo(a[0], a[1]); c.lineTo(a[0], a[1] - 22 * k); c.stroke();
+    c.fillStyle = '#f7f3ea'; c.beginPath(); c.moveTo(a[0], a[1] - 22 * k); c.lineTo(a[0] + 14 * k, a[1] - 17 * k); c.lineTo(a[0], a[1] - 12 * k); c.closePath(); c.fill();
+    c.fillStyle = '#c45100'; c.beginPath(); c.arc(a[0] + 5 * k, a[1] - 17 * k, 2.2 * k, 0, TAU); c.fill();
+  });
+  // an arrow from a to b (world spots), drawn as far as progress p
+  Kit.prototype.arrow = mapOnly(function (a, b, col, w, p, dash) { if (!(p > 0)) return; var A = this.P(a), B = this.P(b); this.arrowPx(A, [mix(A[0], B[0], p), mix(A[1], B[1], p)], col, w, dash); });
+  Kit.prototype.arrowPx = function (A, B, col, w, dash) {
+    var c = this.ctx, dx = B[0] - A[0], dy = B[1] - A[1], L = Math.hypot(dx, dy); if (L < 0.5) return;
+    var ux = dx / L, uy = dy / L, hl = Math.min(9 + 2 * w, L * 0.5), hw = hl * 0.55;
+    c.strokeStyle = col; c.fillStyle = col; c.lineWidth = w; c.lineCap = 'round'; if (dash) c.setLineDash(dash);
+    c.beginPath(); c.moveTo(A[0], A[1]); c.lineTo(B[0] - ux * hl * 0.7, B[1] - uy * hl * 0.7); c.stroke(); c.setLineDash([]);
+    c.beginPath(); c.moveTo(B[0], B[1]); c.lineTo(B[0] - ux * hl - uy * hw, B[1] - uy * hl + ux * hw); c.lineTo(B[0] - ux * hl + uy * hw, B[1] - uy * hl - ux * hw); c.closePath(); c.fill();
+  };
+  Kit.prototype.line = mapOnly(function (a, b, col, w, p, dash) {
+    if (!(p > 0)) return; var c = this.ctx, A = this.P(a), B = this.P(b);
+    c.strokeStyle = col; c.lineWidth = w || 1.5; c.lineCap = 'round'; if (dash) c.setLineDash(dash);
+    c.beginPath(); c.moveTo(A[0], A[1]); c.lineTo(mix(A[0], B[0], p), mix(A[1], B[1], p)); c.stroke(); c.setLineDash([]);
+  });
+  // a path through world spots, drawn as far as progress p of its length
+  Kit.prototype.path = mapOnly(function (pts, col, w, p, dash) {
+    if (!(p > 0) || pts.length < 2) return; var c = this.ctx, P = pts.map(this.P, this), L = 0, i;
+    for (i = 1; i < P.length; i++) L += Math.hypot(P[i][0] - P[i - 1][0], P[i][1] - P[i - 1][1]);
+    var left = L * clamp(p, 0, 1);
+    c.strokeStyle = col; c.lineWidth = w || 2; c.lineJoin = 'round'; c.lineCap = 'round'; if (dash) c.setLineDash(dash);
+    c.beginPath(); c.moveTo(P[0][0], P[0][1]);
+    for (i = 1; i < P.length && left > 0; i++) {
+      var l = Math.hypot(P[i][0] - P[i - 1][0], P[i][1] - P[i - 1][1]), t = l > left ? left / l : 1;
+      c.lineTo(mix(P[i - 1][0], P[i][0], t), mix(P[i - 1][1], P[i][1], t)); left -= l;
+    }
+    c.stroke(); c.setLineDash([]);
+  });
+  Kit.prototype.label = mapOnly(function (q, text, col, o) { var a = this.P(q); o = o || {}; this.labelPx(a[0] + (o.dx || 0), a[1] + (o.dy || 0), text, col, o); });
+  // a label: text on a dark rounded box; o: { p, size, align ('left', 'center', 'right'), mono, plain (no box), base }
+  Kit.prototype.labelPx = function (x, y, text, col, o) {
+    o = o || {}; var p = o.p == null ? 1 : o.p; if (!(p > 0)) return;
+    var c = this.ctx, size = o.size || 13; c.font = (o.mono ? '' : '600 ') + size + 'px ' + (o.mono ? this.mono : this.sans);
+    var w = c.measureText(text).width, align = o.align || 'left', x0 = align === 'center' ? x - w / 2 : align === 'right' ? x - w : x;
+    x0 = clamp(x0, 4, this.W - w - 4); var yc = clamp(y, size / 2 + 4, this.H - size / 2 - 4);
+    c.globalAlpha = clamp(p, 0, 1);
+    if (!o.plain) { c.fillStyle = C.box; c.beginPath(); rrect(c, x0 - 5, yc - size / 2 - 4, w + 10, size + 8, 5); c.fill(); }
+    c.fillStyle = col || C.ink; c.textAlign = 'left'; c.textBaseline = 'middle'; c.fillText(text, x0, yc + 0.5); c.globalAlpha = 1;
+    return [x0 - 5, yc - size / 2 - 4, w + 10, size + 8];
+  };
+  // a label just beyond the tip of an arrow pointing along dir (a world direction)
+  Kit.prototype.tipLabel = mapOnly(function (tip, dir, text, col, p) {
+    var a = this.P(tip), l = len(dir) || 1, ux = dir[0] / l, uy = -dir[1] / l;
+    return this.labelPx(a[0] + ux * 14, a[1] + uy * 14 + (Math.abs(ux) < 0.4 ? (uy < 0 ? -4 : 4) : 0), text, col, { p: p, align: ux > 0.35 ? 'left' : ux < -0.35 ? 'right' : 'center', size: 12.5 });
+  });
+  // a key in a corner of the map: rows of [colour, text, dash]
+  Kit.prototype.legend = function (rows, p) {
+    if (!(p > 0)) return; var c = this.ctx, R = this.mapR, x = R[0] + 10, y = R[1] + 26, w = 0;
+    c.font = '12px ' + this.mono; rows.forEach(function (r) { w = Math.max(w, c.measureText(r[1]).width); });
+    c.globalAlpha = clamp(p, 0, 1); c.fillStyle = C.box; c.beginPath(); rrect(c, x, y, w + 40, rows.length * 19 + 10, 6); c.fill();
+    rows.forEach(function (r, k) { c.strokeStyle = r[0]; c.lineWidth = 3; if (r[2]) c.setLineDash(r[2]); c.beginPath(); c.moveTo(x + 8, y + 15 + 19 * k); c.lineTo(x + 26, y + 15 + 19 * k); c.stroke(); c.setLineDash([]); c.fillStyle = C.ink; c.textAlign = 'left'; c.textBaseline = 'middle'; c.fillText(r[1], x + 32, y + 15 + 19 * k); });
+    c.globalAlpha = 1;
+  };
+  // A right angle marker at corner q between directions u and v (unit vectors), size in pixels.
+  Kit.prototype.square = mapOnly(function (q, u, v, size, col, p) {
+    if (!(p > 0)) return; var c = this.ctx, a = this.P(q), s = size, U = [u[0] * s, -u[1] * s], V = [v[0] * s, -v[1] * s];
+    c.globalAlpha = clamp(p, 0, 1); c.strokeStyle = col; c.lineWidth = 1.5;
+    c.beginPath(); c.moveTo(a[0] + U[0], a[1] + U[1]); c.lineTo(a[0] + U[0] + V[0], a[1] + U[1] + V[1]); c.lineTo(a[0] + V[0], a[1] + V[1]); c.stroke(); c.globalAlpha = 1;
+  });
+  Kit.prototype.panel = function (R, title) {
+    var c = this.ctx; c.fillStyle = 'rgba(255,255,255,0.035)'; c.beginPath(); rrect(c, R[0], R[1], R[2], R[3], 8); c.fill();
+    if (title) { c.font = '700 12.5px ' + this.sans; c.fillStyle = C.gold; c.textAlign = 'left'; c.textBaseline = 'top'; c.fillText(title, R[0] + 10, R[1] + 8); }
+  };
+  // A 2-by-2 table of numbers in brackets, with cells lit in turn; returns its width.  cells[i][j] are strings,
+  // lit(i, j) in [0, 1] how much cell (i, j) shows.
+  Kit.prototype.matrix = function (x, y, cells, lit, o) {
+    o = o || {}; var c = this.ctx, size = o.size || 14; c.font = size + 'px ' + this.mono;
+    var cw = Math.max.apply(null, cells.map(function (r) { return Math.max.apply(null, r.map(function (s) { return c.measureText(s).width; })); })) + 14;
+    var rows = cells.length, cols = cells[0].length, h = rows * (size + 10), w = cols * cw + 10;
+    c.strokeStyle = o.col || C.ink; c.lineWidth = 1.5;
+    c.beginPath(); c.moveTo(x + 6, y); c.lineTo(x, y); c.lineTo(x, y + h); c.lineTo(x + 6, y + h); c.stroke();
+    c.beginPath(); c.moveTo(x + w - 6, y); c.lineTo(x + w, y); c.lineTo(x + w, y + h); c.lineTo(x + w - 6, y + h); c.stroke();
+    c.textAlign = 'center'; c.textBaseline = 'middle';
+    for (var i = 0; i < rows; i++) for (var j = 0; j < cols; j++) {
+      var l = lit ? lit(i, j) : 1; if (!(l > 0)) continue;
+      c.globalAlpha = clamp(l, 0, 1); c.fillStyle = (o.colOf && o.colOf(i, j)) || C.ink; c.fillText(cells[i][j], x + 5 + cw * (j + 0.5), y + (size + 10) * (i + 0.5)); c.globalAlpha = 1;
+    }
+    return w;
+  };
+  // Bars for a sum: items [{ name, value, col }] grow in turn from a zero line; the last item may be the total.
+  Kit.prototype.bars = function (R, items, p, o) {
+    o = o || {}; var c = this.ctx, n = items.length, top = R[1] + (o.title ? 34 : 12), rowH = Math.min(46, (R[3] - (top - R[1]) - 10) / n);
+    var pos = 0, neg = 0; items.forEach(function (it) { if (it.value > 0) pos = Math.max(pos, it.value); else neg = Math.max(neg, -it.value); });
+    var whole = pos + neg || 1, nameW = Math.min(R[2] * 0.46, o.nameW || 200), x0 = R[0] + nameW + 14, x1 = R[0] + R[2] - 92;
+    var zero = x0 + (x1 - x0) * neg / whole, unit = (x1 - x0) / whole;
+    if (o.title) this.panel(R, o.title); else this.panel(R);
+    c.strokeStyle = C.faint; c.lineWidth = 1; c.beginPath(); c.moveTo(zero, top - 4); c.lineTo(zero, top + rowH * n); c.stroke();
+    items.forEach(function (it, i) {
+      var q = seg(p, i / (n + 0.3), (i + 1) / (n + 0.3)); if (!(q > 0)) return;
+      var y = top + rowH * i + rowH / 2, w = it.value * unit * q, total = o.total && i === n - 1;
+      if (total) { c.strokeStyle = C.faint; c.beginPath(); c.moveTo(R[0] + 8, y - rowH / 2); c.lineTo(R[0] + R[2] - 8, y - rowH / 2); c.stroke(); }
+      c.globalAlpha = clamp(q * 1.5, 0, 1);
+      c.font = (total ? '700 ' : '600 ') + '12.5px ' + this.sans; c.fillStyle = it.col || C.ink; c.textAlign = 'right'; c.textBaseline = 'middle'; c.fillText(it.name, R[0] + nameW, y);
+      c.fillStyle = it.col || C.ink; c.globalAlpha *= total ? 1 : 0.85; c.fillRect(Math.min(zero, zero + w), y - rowH * 0.28, Math.abs(w), rowH * 0.56); c.globalAlpha = clamp(q * 1.5, 0, 1);
+      c.font = (total ? '700 ' : '') + '12.5px ' + this.mono; c.fillStyle = C.ink; c.textAlign = 'right';
+      c.fillText(num(it.value * (q < 1 ? q : 1), o.d == null ? 4 : o.d), R[0] + R[2] - 10, y); c.globalAlpha = 1;
+    }, this);
+  };
+  // A side panel's plot: t across, v up.  Returns helpers in canvas pixels.
+  Kit.prototype.plot = function (R, tr, vr, o) {
+    o = o || {}; var k = this, c = this.ctx, L = R[0] + 44, Rt = R[0] + R[2] - 14, T = R[1] + (o.title ? 34 : 14), B = R[1] + R[3] - 30;
+    var X = function (t) { return L + (t - tr[0]) / (tr[1] - tr[0]) * (Rt - L); }, Y = function (v) { return B - (v - vr[0]) / (vr[1] - vr[0]) * (B - T); };
+    var P = {
+      X: X, Y: Y, box: [L, T, Rt - L, B - T],
+      frame: function (tl, vl) {
+        if (o.title) k.panel(R, o.title); else k.panel(R);
+        c.strokeStyle = C.faint; c.lineWidth = 1; c.beginPath(); c.moveTo(L, T); c.lineTo(L, B); c.lineTo(Rt, B); c.stroke();
+        c.font = '11px ' + k.mono; c.fillStyle = C.dim; c.textAlign = 'center'; c.textBaseline = 'top';
+        var st = nice((tr[1] - tr[0]) / 4), d = places(st);
+        if (o.tTicks !== false) for (var t = Math.ceil(tr[0] / st) * st; t <= tr[1] + 1e-12; t += st) c.fillText(num(t, d), X(t), B + 4);
+        var sv = nice((vr[1] - vr[0]) / 4), dv = places(sv); c.textAlign = 'right'; c.textBaseline = 'middle';
+        for (var v = Math.ceil(vr[0] / sv) * sv; v <= vr[1] + 1e-12; v += sv) c.fillText(num(v, dv), L - 4, Y(v));
+        c.font = '600 12px ' + k.sans; c.fillStyle = C.ink; c.textAlign = 'right'; c.textBaseline = 'bottom'; if (tl) c.fillText(tl, Rt, B - 4);
+        c.textAlign = 'left'; c.textBaseline = 'top'; if (vl) c.fillText(vl, L + 6, T);
+      },
+      curve: function (fn, col, w, p) {
+        if (!(p > 0)) return;
+        c.save(); c.beginPath(); c.rect(L, T - 6, Rt - L, B - T + 6); c.clip();
+        c.strokeStyle = col; c.lineWidth = w || 2; c.lineJoin = 'round'; c.beginPath();
+        var n = 160, last = Math.round(n * clamp(p, 0, 1));
+        for (var i = 0; i <= last; i++) { var t = tr[0] + (tr[1] - tr[0]) * i / n, y = clamp(Y(fn(t)), T - 40, B + 40); if (i) c.lineTo(X(t), y); else c.moveTo(X(t), y); }
+        c.stroke(); c.restore();
+      },
+      point: function (t, v, col, text, p, side) {
+        if (!(p > 0)) return; c.beginPath(); c.arc(X(t), Y(v), 5 * backOut(p), 0, TAU); c.fillStyle = col; c.fill(); c.lineWidth = 2; c.strokeStyle = C.bg; c.stroke();
+        if (text) k.labelPx(X(t) + (side === 'left' ? -10 : 10), Y(v) - 14, text, col, { p: seg(p, 0.4, 1), align: side === 'left' ? 'right' : 'left', size: 12 });
+      },
+      seg: function (t1, v1, t2, v2, col, w, p, dash) {
+        if (!(p > 0)) return; c.strokeStyle = col; c.lineWidth = w || 1.5; if (dash) c.setLineDash(dash);
+        c.beginPath(); c.moveTo(X(t1), Y(v1)); c.lineTo(mix(X(t1), X(t2), p), mix(Y(v1), Y(v2), p)); c.stroke(); c.setLineDash([]);
+      },
+      // a bracket along t at height v (run) or along v at t (rise), with its text
+      run: function (t1, t2, v, text, col, p) {
+        if (!(p > 0)) return; var y = Y(v) + 14; c.globalAlpha = clamp(p, 0, 1); c.strokeStyle = col; c.lineWidth = 1.5;
+        c.beginPath(); c.moveTo(X(t1), y - 5); c.lineTo(X(t1), y); c.lineTo(X(t2), y); c.lineTo(X(t2), y - 5); c.stroke(); c.globalAlpha = 1;
+        k.labelPx((X(t1) + X(t2)) / 2, y + 12, text, col, { p: p, align: 'center', size: 12 });
+      },
+      rise: function (t, v1, v2, text, col, p) {
+        if (!(p > 0)) return; var x = X(t) + 10; c.globalAlpha = clamp(p, 0, 1); c.strokeStyle = col; c.lineWidth = 1.5;
+        c.beginPath(); c.moveTo(x - 5, Y(v1)); c.lineTo(x, Y(v1)); c.lineTo(x, Y(v2)); c.lineTo(x - 5, Y(v2)); c.stroke(); c.globalAlpha = 1;
+        k.labelPx(x + 6, (Y(v1) + Y(v2)) / 2, text, col, { p: p, size: 12 });
+      }
+    };
+    return P;
+  };
+
+  // ------------------------------------------------------------ the parts of a day's reckoning
+  var parts = {};
+  function register(name, fn) { parts[name] = fn; }
+  // The day under study, from game.js's context: who, the day, where it stood, what it felt; the parts add their
+  // terms of the height (cx.parts) and of the slope (cx.gradParts) for the steps that add them up.
+  function study(ctx) {
+    var cx = {}, k;
+    for (k in ctx) cx[k] = ctx[k];
+    var land = ctx.land;
+    cx.J = land.J; cx.span = land.span; cx.landView = ctx.L.view; cx.h = land.h; cx.sigma = land.sigma || 0; cx.haze = cx.sigma > 0;
+    cx.you = ctx.hero === 'you';
+    cx.who = cx.you ? 'you' : ctx.name; cx.Who = cx.you ? 'You' : ctx.name.charAt(0).toUpperCase() + ctx.name.slice(1);
+    if (cx.you) {
+      cx.x = ctx.at.slice(); cx.path = [cx.x]; cx.k = ctx.day;
+      cx.taps = ctx.felt ? ctx.felt.taps : null; cx.gTaps = ctx.felt ? ctx.felt.g : null; cx.g = cx.gTaps;
+    } else {
+      var w = ctx.walk; cx.k = Math.max(0, Math.min(ctx.day, w.length - 2)); cx.last = ctx.day > w.length - 2;
+      cx.here = w[cx.k]; cx.rec = w.length > 1 ? w[cx.k + 1] : null;
+      cx.x = cx.rec && cx.rec.from ? cx.rec.from.slice() : cx.here.x.slice();
+      cx.path = w.slice(0, cx.k + 1).map(function (d) { return d.x; });
+      cx.taps = cx.rec && cx.rec.taps ? cx.rec.taps : null; cx.gTaps = cx.rec ? cx.rec.gFelt : null; cx.g = cx.rec ? cx.rec.g : null;
+    }
+    cx.gTrue = land.grad(cx.x); cx.F = ctx.hero === 'tw' ? land.f : land.J; cx.Jx = cx.F(cx.x);
+    // the shading's range: the land without its pits, over the whole map
+    var v = cx.landView, lo = Infinity, hi = -Infinity, sm = land.smooth || land.J;
+    for (var i = 0; i <= 40; i++) for (var j = 0; j <= 40; j++) { var z = sm([v[0] + (v[1] - v[0]) * i / 40, v[2] + (v[3] - v[2]) * j / 40]); if (z < lo) lo = z; if (z > hi) hi = z; }
+    cx.shade = { lo: lo, hi: hi, id: 'J', pits: !!land.holes };
+    cx.zoom = [cx.x[0] - 3.6 * cx.h, cx.x[0] + 3.6 * cx.h, cx.x[1] - 3.6 * cx.h, cx.x[1] + 3.6 * cx.h];
+    cx.parts = []; cx.gradParts = [];
+    return cx;
+  }
+  function plan(ctx) {
+    var cx = study(ctx), out = [];
+    function run(name) { if (parts[name]) parts[name](cx, out, H); }
+    run('where');
+    run(cx.land.kind === 'tower' ? 'towerHeight' : 'quadHeight');
+    run('weather');
+    if (cx.hero !== 'tw' && cx.taps) run('taps');
+    run({ pg: 'pgStride', lb: 'lbDay', tw: 'twDay', you: 'youDown' }[cx.hero]);
+    return { cx: cx, steps: out };
+  }
+
+  // ------------------------------------------------------------ the board: open, play, step, close
+  var embedded = false, stepHook = null, kit = null, cx = null, steps = [], visited = [], i = 0, t0 = 0, playing = false, raf = 0, opened = false, viewNow = null, viewFrom = null, closeHook = null, frozen = null;
+  function now() { return frozen != null ? frozen : performance.now(); }
+  function open(ctx, o) {
+    o = o || {}; var pl = plan(ctx); if (!pl.steps.length) return false;
+    cx = pl.cx; steps = pl.steps; embedded = false;
+    if (o.ids && o.ids.length) {
+      var all = steps;
+      steps = o.ids.map(function (id) { return all.filter(function (s) { return s.id === id; })[0]; }).filter(Boolean);
+      if (steps.length !== o.ids.length) return false;
+    }
+    visited = steps.map(function () { return false; });
+    if (!kit) { kit = new Kit($('board-canvas')); bind(); }
+    $('board').hidden = false; opened = true; playing = false; viewNow = null; playLabel();
+    $('board-title').textContent = o.title || (cx.you ? 'Your reckoning, step by step' : 'How ' + cx.who + ' reckons day ' + cx.k + ' → ' + (cx.k + 1) + (cx.last ? ' (its last step)' : ''));
+    list(); go(0);
+    return true;
+  }
+  function close() {
+    if (!opened || embedded) return; opened = false; playing = false; cancelAnimationFrame(raf); raf = 0; $('board').hidden = true;
+    if (closeHook) closeHook({ completed: visited.length === steps.length && visited.every(function (v) { return v; }), visited: visited.filter(Boolean).length, count: steps.length });
+  }
+  function go(n) {
+    if (!steps.length) return;
+    i = clamp(n, 0, steps.length - 1); visited[i] = true; viewFrom = viewNow; t0 = now();
+    var s = steps[i];
+    $('board-chapter').textContent = s.chapter || '';
+    $('board-step').textContent = s.title;
+    $('board-text').innerHTML = s.text || '';
+    $('board-math').innerHTML = s.math || ''; $('board-math').hidden = !s.math;
+    $('board-count').textContent = 'Step ' + (i + 1) + ' of ' + steps.length;
+    $('board-prev').disabled = i === 0;
+    $('board-next').textContent = i === steps.length - 1 ? (embedded ? 'The end' : 'Done ✓') : (embedded ? 'Next →' : 'Next ▶');
+    $('board-next').disabled = embedded && i === steps.length - 1;
+    if (stepHook) stepHook(i, steps[i], steps);
+    Array.prototype.forEach.call($('board-list').querySelectorAll('[data-i]'), function (li) {
+      var j = +li.getAttribute('data-i'); li.classList.toggle('on', j === i); li.classList.toggle('done', j < i);
+      if (j === i && li.scrollIntoView) { var box = $('board-list'); if (li.offsetTop < box.scrollTop || li.offsetTop + li.offsetHeight > box.scrollTop + box.clientHeight) box.scrollTop = li.offsetTop - box.clientHeight / 2; }
+    });
+    tick();
+  }
+  function list() {
+    var html = '', chap = null;
+    steps.forEach(function (s, j) {
+      if (s.chapter !== chap) { chap = s.chapter; html += '<li class="bl-chap">' + chap + '</li>'; }
+      html += '<li class="bl-step" data-i="' + j + '"><span>' + (j + 1) + '</span>' + s.title + '</li>';
+    });
+    $('board-list').innerHTML = html;
+  }
+  function hold(s) { var words = ((s.text || '') + ' ' + (s.math || '')).replace(/<[^>]*>/g, ' ').split(/\s+/).length; return clamp(1.6 + 0.07 * words, 3, 10); }
+  function glide(a, b, t) {
+    var ca = [(a[0] + a[1]) / 2, (a[2] + a[3]) / 2], cb = [(b[0] + b[1]) / 2, (b[2] + b[3]) / 2], wa = a[1] - a[0], wb = b[1] - b[0], ha = a[3] - a[2], hb = b[3] - b[2];
+    var c = lerp2(ca, cb, t), w = wa * Math.pow(wb / wa, t), h = ha * Math.pow(hb / ha, t);
+    return [c[0] - w / 2, c[0] + w / 2, c[1] - h / 2, c[1] + h / 2];
+  }
+  function render(p, tSec) {
+    var s = steps[i];
+    kit.fit(); kit.clear(); kit.layout(s.layout || 'map');
+    if (kit.mapR) {
+      var target = s.view || viewNow || cx.landView, v = target;
+      if (viewFrom && tSec < 0.9) v = glide(viewFrom, target, ease(tSec / 0.9));
+      viewNow = v; kit.view(v);
+    }
+    try { s.draw(kit, p); } catch (e) { (window.kingsLandErrors = window.kingsLandErrors || []).push('board ' + s.id + ': ' + (e && e.stack || e)); }
+    if (tSec < 0.3) { kit.ctx.globalAlpha = 1 - tSec / 0.3; kit.ctx.fillStyle = C.bg; kit.ctx.fillRect(0, 0, kit.W, kit.H); kit.ctx.globalAlpha = 1; }
+    Array.prototype.forEach.call(document.querySelectorAll('#board .bp'), function (el) { el.classList.toggle('on', p >= +el.getAttribute('data-at') - 1e-9); });
+  }
+  function tick() {
+    if (!opened) return;
+    cancelAnimationFrame(raf); raf = 0;
+    var s = steps[i], tSec = (now() - t0) / 1000, dur = s.dur || 3, p = clamp(tSec / dur, 0, 1);
+    render(p, tSec);
+    if (playing && tSec > dur + hold(s)) { if (i < steps.length - 1) { go(i + 1); return; } playing = false; playLabel(); }
+    if (frozen == null && (p < 1 || tSec < 0.9 || playing)) raf = requestAnimationFrame(tick);
+  }
+  function playLabel() { var b = $('board-play'); if (b) { b.textContent = playing ? '⏸ Pause' : '⏵ Play'; b.setAttribute('aria-pressed', String(playing)); } }
+  function play() { playing = !playing; if (playing && i === steps.length - 1 && (now() - t0) / 1000 > (steps[i].dur || 3)) go(0); playLabel(); tick(); }
+  function next() { if (i < steps.length - 1) go(i + 1); else close(); }
+  function bind() {
+    if ($('board-close')) $('board-close').addEventListener('click', close);
+    $('board-prev').addEventListener('click', function () { playing = false; playLabel(); go(i - 1); });
+    $('board-next').addEventListener('click', function () { playing = false; playLabel(); next(); });
+    $('board-replay').addEventListener('click', function () { go(i); });
+    $('board-play').addEventListener('click', play);
+    $('board-list').addEventListener('click', function (e) { var li = e.target.closest ? e.target.closest('[data-i]') : null; if (li) { playing = false; playLabel(); go(+li.getAttribute('data-i')); } });
+    window.addEventListener('resize', function () { if (opened) tick(); });
+  }
+  // Keys while the board is open; true when the board used the key.
+  function key(e) {
+    if (!opened) return false;
+    var k = e.key;
+    if (k === 'ArrowRight' || k === 'Enter') { playing = false; playLabel(); next(); }
+    else if (k === 'ArrowLeft') { playing = false; playLabel(); go(i - 1); }
+    else if (k === ' ') play();
+    else if (k === 'r' || k === 'R') go(i);
+    else if (!embedded && (k === 'Escape' || k === 'b' || k === 'B')) close();
+    else return false;
+    e.preventDefault(); return true;
+  }
+  // A course: a list of prepared steps played inside the page itself (no close; the last step is the end).
+  function openSteps(list0, o) {
+    o = o || {}; embedded = !!o.embedded; cx = o.cx || { landView: [-1, 1, -1, 1] }; steps = list0; visited = steps.map(function () { return false; });
+    if (!steps.length) return false;
+    if (!kit) { kit = new Kit($('board-canvas')); bind(); }
+    $('board').hidden = false; opened = true; playing = false; viewNow = null; playLabel();
+    if (o.title && $('board-title')) $('board-title').textContent = o.title;
+    list(); go(o.start || 0);
+    return true;
+  }
+  // For tests: show step n (an index or an id) at progress p, with time stopped.
+  function debug(o) {
+    o = o || {};
+    if (o.step != null && steps.length) {
+      var n = typeof o.step === 'number' ? o.step : steps.map(function (s) { return s.id; }).indexOf(o.step);
+      if (n >= 0) { frozen = 0; viewNow = null; viewFrom = null; go(n); }
+    }
+    if (o.p != null && opened) { frozen = 1e9; t0 = frozen - 1000 * (o.p * (steps[i].dur || 3)) - 1000; render(o.p, 5); }
+    if (o.live) frozen = null;
+    return { open: opened, i: i, n: steps.length, id: steps[i] && steps[i].id, title: steps[i] && steps[i].title };
+  }
+
+  var H = { C: C, HERO: HERO, clamp: clamp, ease: ease, seg: seg, mix: mix, lerp2: lerp2, add: add, sub: sub, dot: dot, len: len, scale: scale,
+            num: num, pair: pair, par: par, at: at, frac: frac, around: around, nice: nice, backOut: backOut };
+
+  // ------------------------------------------------------------ where the hero stands
+  register('where', function (cx, out) {
+    var x = cx.x, x0 = cx.x0, moved = cx.path.length > 1, col = HERO[cx.hero].col;
+    out.push({ id: 'where', chapter: 'Where', title: cx.you ? 'Where you stand: x' : 'Where ' + cx.who + ' stands: x', layout: 'map', view: cx.landView, dur: 3.6,
+      text: 'A spot on the King’s map is a pair of numbers, x = (x₁, x₂): x₁ grows to the east, x₂ to the north. ' +
+        (cx.you ? 'You stand at x = ' + pair(x) + '.' : 'Every hero sets out from the start flag, x₀ = ' + pair(x0) + ', on day 0. ' +
+          (cx.k === 0 ? 'Today is day 0, so ' + cx.who + ' is still at the flag: x = x₀.' : 'After ' + cx.k + (cx.k === 1 ? ' day' : ' days') + ' of walking, ' + cx.who + ' stands at x = ' + pair(x) + '.')),
+      math: (cx.you ? '' : at(0.15, 'x₀ = ' + pair(x0)) + '<br>') + at(0.7, 'x = (x₁, x₂) = ' + pair(x)),
+      draw: function (g, p) {
+        g.land(cx.J, cx.shade); g.axes();
+        if (!cx.you) { g.flag(x0, seg(p, 0, 0.2)); g.label(x0, 'x₀, the start flag', C.ink, { dx: 18, dy: -22, p: seg(p, 0.1, 0.3) }); }
+        if (moved) g.path(cx.path, col, 2.5, seg(p, 0.25, 0.55));
+        g.hero(x, cx.hero, seg(p, moved ? 0.5 : 0.3, moved ? 0.62 : 0.45));
+        var q = seg(p, 0.62, 0.86), v = g.vis, foot = [x[0], v[2]], side = [v[0], x[1]];
+        g.line(x, foot, C.gold, 1.5, q, [5, 4]); g.line(x, side, C.gold, 1.5, q, [5, 4]);
+        g.label(foot, 'x₁ = ' + num(x[0]), C.gold, { dx: 6, dy: -34, p: seg(p, 0.8, 1) });
+        g.label(side, 'x₂ = ' + num(x[1]), C.gold, { dx: 34, dy: -14, p: seg(p, 0.8, 1) });
+      } });
+  });
+
+  // ------------------------------------------------------------ the height of a valley land: ½(x − c)ᵀA(x − c)
+  register('quadHeight', function (cx, out) {
+    var land = cx.land, P = cx.p, x = cx.x, c = land.c, A = land.A, d = sub(x, c), th = (P.theta || 0) * Math.PI / 180;
+    var u1 = [Math.cos(th), Math.sin(th)], u2 = [-Math.sin(th), Math.cos(th)], l1 = P.l1, l2 = P.l2, round = Math.abs(l1 - l2) < 1e-9;
+    var Ad = [A[0][0] * d[0] + A[0][1] * d[1], A[1][0] * d[0] + A[1][1] * d[1]], q = dot(d, Ad), val = q / 2, a = dot(d, u1), b = dot(d, u2);
+    var valley = land.base.J, weather = !!(land.ripples || land.holes), view = around([x, c], 0.7, 0.3 * cx.span);
+    var box = land.box, cOut = box && (c[0] < box[0] || c[0] > box[1] || c[1] < box[0] || c[1] > box[1]);
+    var vshade = { id: 'valley', lo: 0, rings: 10 };
+    cx.parts.push({ name: 'valley', value: val, col: C.gold });
+    cx.gradParts.push({ name: 'valley A(x − c)', vec: Ad, col: C.gold });
+    function base(g, p, noX) { g.land(valley, vshade); g.axes(); g.dot(c, 6, C.blue, 1); g.label(c, 'c', C.blue, { dx: 10, dy: 12 }); if (!noX) g.hero(x, cx.hero, 1); }
+    var who = cx.you ? 'you' : cx.who;
+    out.push({ id: 'formula', chapter: 'The height', title: 'The King’s formula for the height', layout: 'map', view: cx.landView, dur: 3.4,
+      text: 'The height of a spot is the King’s formula, J(x). On this land it is a smooth valley, ½(x − c)ᵀA(x − c)' +
+        (land.ripples ? ', plus ripples R(x)' : '') + (land.holes ? ', plus black holes B(x)' : '') +
+        '. Dark is low and warm is high; each ring joins spots of the same height. We build the valley first, one symbol at a time.',
+      math: 'J(x) = ' + at(0.3, '½(x − c)ᵀA(x − c)') + (land.ripples ? at(0.55, ' + R(x)') : '') + (land.holes ? at(0.7, ' + B(x)') : ''),
+      draw: function (g, p) { g.land(cx.J, { lo: cx.shade.lo, hi: cx.shade.hi, alpha: seg(p, 0, 0.6) }); g.axes(); g.hero(x, cx.hero, seg(p, 0.5, 0.7)); } });
+    out.push({ id: 'c', chapter: 'The height', title: 'c, the bottom of the valley', layout: 'map', view: view, dur: 3.4,
+      text: 'Here is the valley alone, without ' + (weather ? 'its weather' : 'anything else') + '. c = (c₁, c₂) = ' + pair(c) + ' is its lowest spot: there x − c = 0, so the valley’s height is 0. ' +
+        (cOut ? 'This c lies outside the wall, so no lawful spot reaches it. ' : weather ? 'Ripples and pits move the land’s true lowest spot a little away from c. ' : 'With no weather, c is the treasure. ') +
+        'The rings around c are spots of equal height, higher and higher outward.',
+      math: at(0.6, 'c = ' + pair(c)),
+      draw: function (g, p) {
+        g.land(valley, vshade); g.axes(); g.hero(x, cx.hero, 1);
+        g.ring(val * Math.pow(1 - seg(p, 0.05, 0.6), 2) + 1e-9 * val, C.gold, 2.5, seg(p, 0, 0.1) * (1 - seg(p, 0.6, 0.75)));
+        g.dot(c, 6, C.blue, seg(p, 0.55, 0.7)); g.halo(c, 10 + 10 * seg(p, 0.6, 1), C.blue, seg(p, 0.6, 0.7) * (1 - seg(p, 0.85, 1)));
+        g.label(c, 'c = ' + pair(c), C.blue, { dx: 10, dy: 14, p: seg(p, 0.65, 0.85) });
+      } });
+    out.push({ id: 'd', chapter: 'The height', title: 'x − c: from the bottom to ' + who, layout: 'map', view: view, dur: 3.6,
+      text: 'Subtract c from x, part by part. The result, x − c = ' + pair(d) + ', is the arrow from the bottom c to ' + who + ': ' +
+        num(Math.abs(d[0])) + (d[0] < 0 ? ' to the west' : ' to the east') + ' and ' + num(Math.abs(d[1])) + (d[1] < 0 ? ' to the south.' : ' to the north.'),
+      math: 'x − c = (' + at(0.35, num(x[0]) + ' − ' + par(c[0])) + ', ' + at(0.6, num(x[1]) + ' − ' + par(c[1])) + ')' + at(0.85, ' = ' + pair(d)),
+      draw: function (g, p) {
+        base(g, p);
+        var corner = [x[0], c[1]];
+        g.line(c, corner, C.violet, 2, seg(p, 0.2, 0.45), [6, 4]); g.label(lerp2(c, corner, 0.5), 'x₁ − c₁ = ' + num(d[0]), C.violet, { dy: 18, dx: -30, p: seg(p, 0.35, 0.5) });
+        g.line(corner, x, C.violet, 2, seg(p, 0.45, 0.7), [6, 4]); g.label(lerp2(corner, x, 0.5), 'x₂ − c₂ = ' + num(d[1]), C.violet, { dx: 10, p: seg(p, 0.6, 0.75) });
+        g.arrow(c, x, C.gold, 3, seg(p, 0.72, 0.95)); g.label(lerp2(c, x, 0.5), 'x − c', C.gold, { dx: -50, dy: -16, p: seg(p, 0.85, 1) });
+      } });
+    if (!round) {
+      var thDeg = num(P.theta, 0), Lr = 0.42 * (view[1] - view[0]);
+      out.push({ id: 'axes', chapter: 'The height', title: 'The valley’s two directions', layout: 'map', view: view, dur: 3.8,
+        text: 'This valley is long and narrow. Along its floor, in direction u₁ (θ = ' + thDeg + '° turned from east), it rises slowly: steepness λ₁ = ' + num(l1, 2) + '. ' +
+          'Across it, in direction u₂, it rises with steepness λ₂ = ' + num(l2, 2) + ', ' + num(Math.max(l1, l2) / Math.min(l1, l2), 1) + ' times as steep' + (l2 > l1 ? '' : ' the other way') + '. That is why the rings are long ovals: far apart along the valley, close together across it.',
+        math: at(0.3, 'u₁ = (cos θ, sin θ) = ' + pair(u1) + ',  λ₁ = ' + num(l1, 2)) + '<br>' + at(0.6, 'u₂ = (−sin θ, cos θ) = ' + pair(u2) + ',  λ₂ = ' + num(l2, 2)),
+        draw: function (g, p) {
+          base(g, p);
+          var t = th * seg(p, 0.1, 0.5), e1 = [Math.cos(t), Math.sin(t)], e2 = [-Math.sin(t), Math.cos(t)], r = Lr;
+          g.line(add(c, e1, -r), add(c, e1, r), C.green, 1.5, 1, [8, 6]); g.line(add(c, e2, -r * 0.6), add(c, e2, r * 0.6), C.orange, 1.5, 1, [8, 6]);
+          g.arrow(c, add(c, e1, r * 0.55), C.green, 3, seg(p, 0.45, 0.65)); g.arrow(c, add(c, e2, r * 0.35), C.orange, 3, seg(p, 0.55, 0.75));
+          g.tipLabel(add(c, e1, r * 0.55), e1, 'u₁: gentle, λ₁ = ' + num(l1, 2), C.green, seg(p, 0.6, 0.8));
+          g.tipLabel(add(c, e2, r * 0.35), e2, 'u₂: steep, λ₂ = ' + num(l2, 2), C.orange, seg(p, 0.7, 0.9));
+          if (th > 0.01) { var ctx = g.ctx, C0 = g.P(c), rr = 34; ctx.strokeStyle = C.ink; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(C0[0], C0[1], rr, -t, 0); ctx.stroke(); g.labelPx(C0[0] + rr + 6, C0[1] - 10, 'θ = ' + thDeg + '°', C.ink, { p: seg(p, 0.4, 0.6), size: 12 }); }
+        } });
+    }
+    var a11 = A[0][0], a12 = A[0][1], a22 = A[1][1], cs = Math.cos(th), sn = Math.sin(th);
+    out.push({ id: 'A', chapter: 'The height', title: 'A: the valley’s shape in four numbers', layout: 'map+side', view: view, dur: 4.2,
+      text: round ? 'This valley is round: it is equally steep every way, λ₁ = λ₂ = ' + num(l1, 2) + '. Then A = ' + num(l1, 2) + '·I, a table with ' + num(l1, 2) + ' on its diagonal and 0 elsewhere, and the rings are circles.'
+        : 'A puts the two directions and their steepness into one table of four numbers, A = λ₁u₁u₁ᵀ + λ₂u₂u₂ᵀ. Its diagonal says how steep the valley is due east (a₁₁) and due north (a₂₂); a₁₂ mixes the two, because the valley runs at a slant. ' +
+          'Steeper means closer rings: a circle of the gentle valley is squeezed across into the oval of this one.',
+      math: round ? 'A = ' + at(0.5, '[[' + num(a11) + ', ' + num(a12) + '], [' + num(a12) + ', ' + num(a22) + ']]') :
+        at(0.3, 'a₁₁ = λ₁cos²θ + λ₂sin²θ = ' + num(l1, 2) + '·' + num(cs * cs) + ' + ' + num(l2, 2) + '·' + num(sn * sn) + ' = ' + num(a11)) + '<br>' +
+        at(0.5, 'a₁₂ = (λ₁ − λ₂)·cos θ·sin θ = ' + par(l1 - l2, 2) + '·' + num(cs) + '·' + num(sn) + ' = ' + num(a12)) + '<br>' +
+        at(0.7, 'a₂₂ = λ₁sin²θ + λ₂cos²θ = ' + num(l1, 2) + '·' + num(sn * sn) + ' + ' + num(l2, 2) + '·' + num(cs * cs) + ' = ' + num(a22)),
+      draw: function (g, p) {
+        base(g, p);
+        // a ring of the valley through x, from the circle it would be if the valley were gentle every way
+        var r1 = Math.sqrt(2 * val / Math.min(l1, l2)), r2 = Math.sqrt(2 * val / Math.max(l1, l2)), sq = seg(p, 0.2, 0.75), pts = [];
+        var ua = l1 <= l2 ? u1 : u2, ub = l1 <= l2 ? u2 : u1;
+        for (var k = 0; k <= 72; k++) { var t = k / 72 * TAU; pts.push(add(add(c, ua, r1 * Math.cos(t)), ub, mix(r1, r2, sq) * Math.sin(t))); }
+        g.path(pts, C.gold, 2.5, 1);
+        var R = g.sideR, cells = [[num(a11), num(a12)], [num(a12), num(a22)]];
+        g.panel(R, 'A, the valley’s shape');
+        var lit = function (r, s) { return seg(p, r === 0 && s === 0 ? 0.25 : r !== s ? 0.45 : 0.65, (r === 0 && s === 0 ? 0.25 : r !== s ? 0.45 : 0.65) + 0.12); };
+        g.ctx.font = '600 16px ' + g.sans; g.ctx.fillStyle = C.ink; g.ctx.textAlign = 'right'; g.ctx.textBaseline = 'middle'; g.ctx.fillText('A =', R[0] + 70, R[1] + 66);
+        g.matrix(R[0] + 80, R[1] + 42, cells, lit, { size: 15, colOf: function (r, s) { return r === s ? C.gold : C.violet; } });
+        var y = R[1] + 118, rows = round ? ['every way: λ = ' + num(l1, 2)] : ['a₁₁: steepness due east', 'a₂₂: steepness due north', 'a₁₂: how east and north mix'];
+        rows.forEach(function (t, k) { g.labelPx(R[0] + 14, y + 24 * k, t, k === 2 ? C.violet : C.gold, { p: seg(p, 0.3 + 0.2 * k, 0.45 + 0.2 * k), plain: true, size: 13 }); });
+        if (!round) g.labelPx(R[0] + 14, y + 86, 'gentle λ₁ = ' + num(l1, 2) + ' along u₁, steep λ₂ = ' + num(l2, 2) + ' along u₂', C.dim, { p: seg(p, 0.8, 1), plain: true, size: 12 });
+      } });
+    out.push({ id: 'Ad', chapter: 'The height', title: 'Multiply: A(x − c)', layout: 'map+side', view: view, dur: 4.4,
+      text: 'A times x − c gives a new arrow, one row of A at a time. ' + (round ? 'A round valley just scales x − c by λ = ' + num(l1, 2) + '.' :
+        'Seen along the valley’s directions, A stretches the part of x − c across the valley by λ₂ = ' + num(l2, 2) + ' and the part along it by λ₁ = ' + num(l1, 2) + ', so the new arrow swings toward the steep direction.'),
+      math: 'A(x − c) = (' + at(0.3, num(a11) + '·' + par(d[0]) + ' + ' + par(a12) + '·' + par(d[1])) + ', ' + at(0.5, par(a12) + '·' + par(d[0]) + ' + ' + num(a22) + '·' + par(d[1])) + ')' + at(0.85, ' = ' + pair(Ad)),
+      draw: function (g, p) {
+        base(g, p);
+        g.arrow(c, x, C.gold, 2.5, 1);
+        var R = g.sideR; g.panel(R, round ? 'A scales the arrow' : 'What A does to x − c');
+        // a small diagram of its own: x − c, its parts along u₁ and u₂, the parts stretched by λ, and their sum
+        var pa = scale(u1, a), pb = scale(u2, b), sa = scale(u1, l1 * a), sb = scale(u2, l2 * b), pts = [[0, 0], d, Ad, pa, pb, sa, sb];
+        var bx0 = Math.min.apply(null, pts.map(function (v) { return v[0]; })), bx1 = Math.max.apply(null, pts.map(function (v) { return v[0]; }));
+        var by0 = Math.min.apply(null, pts.map(function (v) { return v[1]; })), by1 = Math.max.apply(null, pts.map(function (v) { return v[1]; }));
+        var mx = Math.min(70, R[2] * 0.2), my = Math.min(44, R[3] * 0.16), inner = [R[0] + mx, R[1] + my, R[2] - 2 * mx, R[3] - my - 26], k = Math.min(inner[2] / Math.max(bx1 - bx0, 1e-9), inner[3] / Math.max(by1 - by0, 1e-9));
+        var O = [inner[0] + (inner[2] - (bx1 - bx0) * k) / 2 - bx0 * k, inner[1] + (inner[3] - (by1 - by0) * k) / 2 + by1 * k];
+        function Q(v) { return [O[0] + v[0] * k, O[1] - v[1] * k]; }
+        function tip(v, text, col, q) { var A0 = Q(v), l = len(v) || 1; g.labelPx(A0[0] + v[0] / l * 12, A0[1] - v[1] / l * 12, text, col, { p: q, size: 12, align: v[0] > 0.3 * l ? 'left' : v[0] < -0.3 * l ? 'right' : 'center' }); }
+        var ctx = g.ctx; ctx.strokeStyle = C.faint; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(R[0] + 10, O[1]); ctx.lineTo(R[0] + R[2] - 10, O[1]); ctx.moveTo(O[0], R[1] + 30); ctx.lineTo(O[0], R[1] + R[3] - 8); ctx.stroke();
+        g.arrowPx(O, Q(d), C.blue, 2.5); tip(d, 'x − c', C.blue, 1);
+        if (!round) {
+          var grow = seg(p, 0.35, 0.75), la = scale(u1, a * mix(1, l1, grow)), lb = scale(u2, b * mix(1, l2, grow));
+          ctx.globalAlpha = seg(p, 0.1, 0.3) * 0.8; g.arrowPx(O, Q(pa), C.green, 1.5, [4, 3]); g.arrowPx(O, Q(pb), C.orange, 1.5, [4, 3]); ctx.globalAlpha = 1;
+          g.arrowPx(O, Q(la), C.green, 2.5); g.arrowPx(O, Q(lb), C.orange, 2.5);
+          tip(sa, 'along × λ₁ = ' + num(l1, 2), C.green, seg(p, 0.45, 0.65)); tip(sb, 'across × λ₂ = ' + num(l2, 2), C.orange, seg(p, 0.45, 0.65));
+          var s2 = seg(p, 0.75, 0.95);
+          if (s2 > 0) { ctx.globalAlpha = s2; ctx.setLineDash([3, 3]); ctx.strokeStyle = C.faint; ctx.beginPath(); ctx.moveTo(Q(sa)[0], Q(sa)[1]); ctx.lineTo(Q(Ad)[0], Q(Ad)[1]); ctx.lineTo(Q(sb)[0], Q(sb)[1]); ctx.stroke(); ctx.setLineDash([]); g.arrowPx(O, Q(Ad), C.gold, 3); ctx.globalAlpha = 1; tip(Ad, 'A(x − c) = ' + pair(Ad), C.gold, s2); }
+        } else { var s3 = seg(p, 0.4, 0.9); g.arrowPx(O, Q(scale(d, mix(1, l1, s3))), C.gold, 3); tip(Ad, 'A(x − c) = ' + pair(Ad), C.gold, s3); }
+      } });
+    out.push({ id: 'dot', chapter: 'The height', title: 'Then (x − c)ᵀ times A(x − c)', layout: 'side', dur: 3.6,
+      text: '(x − c)ᵀ is x − c laid on its side, ready to multiply A(x − c) part by part: the first parts together, the second parts together, then add. This is called a dot product, and it gives a single number.',
+      math: '(x − c)ᵀA(x − c) = ' + at(0.3, par(d[0]) + '·' + par(Ad[0])) + at(0.55, ' + ' + par(d[1]) + '·' + par(Ad[1])) + at(0.8, ' = ' + num(d[0] * Ad[0]) + ' + ' + par(d[1] * Ad[1]) + ' = ' + num(q)),
+      draw: function (g, p) {
+        g.bars(g.sideR, [
+          { name: 'first parts: ' + num(d[0]) + ' × ' + num(Ad[0]), value: d[0] * Ad[0], col: C.blue },
+          { name: 'second parts: ' + num(d[1]) + ' × ' + num(Ad[1]), value: d[1] * Ad[1], col: C.violet },
+          { name: '(x − c)ᵀA(x − c)', value: q, col: C.gold }], p, { total: true, title: 'Multiply part by part, then add', nameW: 260, d: 3 });
+      } });
+    out.push({ id: 'half', chapter: 'The height', title: 'Half of it: the valley’s height', layout: 'map', view: view, dur: 3.2,
+      text: 'Halve it: ½·' + num(q) + ' = ' + num(val) + '. That is the valley’s height at x, and every spot on the lit ring has the same height. ' +
+        '(The ½ is there so that the slope of the valley comes out as exactly A(x − c), the arrow of the last steps.)',
+      math: '½(x − c)ᵀA(x − c) = ½·' + num(q) + at(0.5, ' = ' + num(val)),
+      draw: function (g, p) {
+        base(g, p, true); g.ring(val, C.gold, 3, seg(p, 0.3, 0.6)); g.hero(x, cx.hero, 1);
+        g.label(x, 'valley height ' + num(val), C.gold, { dx: 14, dy: -16, p: seg(p, 0.5, 0.7) });
+      } });
+    if (!round) {
+      var T = Math.max(Math.abs(a), Math.abs(b)) * 1.35 || 1, top = 0.5 * Math.max(l1, l2) * T * T;
+      out.push({ id: 'parts', chapter: 'The height', title: 'Why it is a valley', layout: 'side', dur: 4.2,
+        text: 'The same number another way. x − c goes a = ' + num(a) + ' along the valley (u₁) and b = ' + num(b) + ' across it (u₂). Each part costs height like a parabola, ½·λ·(part)²: ' +
+          'along, ½·' + num(l1, 2) + '·' + par(a) + '² = ' + num(0.5 * l1 * a * a) + '; across, ½·' + num(l2, 2) + '·' + par(b) + '² = ' + num(0.5 * l2 * b * b) + '. ' +
+          'Together ' + num(val) + ', as before. A step across the valley costs ' + num(Math.max(l1, l2) / Math.min(l1, l2), 1) + ' times the height of the same step along it.',
+        math: '½(λ₁a² + λ₂b²) = ' + at(0.45, num(0.5 * l1 * a * a)) + at(0.7, ' + ' + num(0.5 * l2 * b * b)) + at(0.9, ' = ' + num(val)),
+        draw: function (g, p) {
+          var R = g.sideR, h2 = (R[3] - 8) / 2, top1 = [R[0], R[1], R[2], h2], bot = [R[0], R[1] + h2 + 8, R[2], h2];
+          [[top1, l1, a, C.green, 'along the valley: ½·λ₁·a²', 0.1], [bot, l2, b, C.orange, 'across the valley: ½·λ₂·b²', 0.35]].forEach(function (row) {
+            var pl = g.plot(row[0], [-T, T], [0, top], { title: row[4] }), lam = row[1], t1 = row[2], s0 = row[5];
+            pl.frame('', ''); pl.curve(function (t) { return 0.5 * lam * t * t; }, row[3], 2, seg(p, s0, s0 + 0.2));
+            var tt = t1 * seg(p, s0 + 0.2, s0 + 0.45); pl.point(tt, 0.5 * lam * tt * tt, row[3], seg(p, s0 + 0.2, s0 + 0.3) > 0 ? num(0.5 * lam * tt * tt) : '', seg(p, s0 + 0.2, s0 + 0.3), tt < 0 ? 'left' : 'right');
+          });
+        } });
+    }
+  });
+
+  // ------------------------------------------------------------ the weather: ripples, black holes, and the sum
+  register('weather', function (cx, out) {
+    var land = cx.land, x = cx.x, W = land.weather || {}, rip = land.ripples, hol = land.holes;
+    if (rip) {
+      var rx = rip.R(x), view = around([x], 0, Math.min(cx.span, 5 * W.L));
+      out.push({ id: 'ripples', chapter: 'The weather', title: 'Ripples: R(x)', layout: 'map', view: view, dur: 4.6,
+        text: 'Ripples are six waves laid over the land, each running its own way with its own start. Each wave is about L = ' + num(W.L) + ' long (ripple length ' + num(cx.p.ripL, 2) + ' × map width ' + num(cx.span, 2) + ') ' +
+          'and together they are about A = ' + num(W.A) + ' high (ripple height ' + num(cx.p.ripA, 2) + ' × the land’s height range ' + num(land.heightRange, 2) + '). At x they add R(x) = ' + num(rx, 4) + '.',
+        math: 'R(x) = ' + frac('A', '√6') + '·Σₖ sin(ωₖ·x + φₖ)' + at(0.85, ' = ' + num(rx, 4)),
+        draw: function (g, p) {
+          g.land(rip.R, { id: 'R', rings: 0, alpha: seg(p, 0.7, 0.95) });
+          g.axes();
+          var v = g.vis, ctx = g.ctx;
+          rip.waves.forEach(function (wv, k) {
+            var q = seg(p, 0.05 + k * 0.1, 0.15 + k * 0.1) * (1 - 0.7 * seg(p, 0.7, 0.9)); if (!(q > 0)) return;
+            var wl = len(wv.w), n = scale(wv.w, 1 / wl), tdir = [-n[1], n[0]], cen = [(v[0] + v[1]) / 2, (v[2] + v[3]) / 2], reach = (v[1] - v[0]) * 0.8;
+            var s0 = dot(cen, n), first = Math.ceil(((s0 - reach) * wl + wv.phi - Math.PI / 2) / TAU), last = Math.floor(((s0 + reach) * wl + wv.phi - Math.PI / 2) / TAU);
+            g.clip(g.mapR); ctx.globalAlpha = q * 0.75;
+            for (var m = first; m <= last; m++) { var off = (Math.PI / 2 + TAU * m - wv.phi) / wl, base = add(scale(n, off), tdir, dot(cen, tdir)); g.line(add(base, tdir, -reach), add(base, tdir, reach), k % 2 ? C.blue : C.violet, 1.2, 1); }
+            ctx.globalAlpha = 1; ctx.restore();
+          });
+          g.hero(x, cx.hero, 1);
+          g.label(x, 'R(x) = ' + num(rx, 4), C.gold, { dx: 14, dy: -16, p: seg(p, 0.85, 1) });
+        } });
+    }
+    if (hol) {
+      var bx = hol.B(x), near = hol.at.map(function (q) { return { q: q, d: len(sub(x, q)) }; }).sort(function (a, b) { return a.d - b.d; })[0];
+      out.push({ id: 'holes', chapter: 'The weather', title: 'Black holes: B(x)', layout: 'map+side', view: cx.landView, dur: 4.4,
+        text: 'Black holes are narrow, deep pits: each is a bell-shaped dip of depth D = ' + num(hol.D, 3) + ' and width w = ' + num(hol.w, 3) + ' at its spot pⱼ. ' +
+          'Far from them B is almost 0. The nearest hole is ' + num(near.d) + ' away (' + num(near.d / hol.w, 1) + ' widths), so at x, B(x) = ' + num(bx, 4) + '.',
+        math: 'B(x) = −Σⱼ D·exp(−' + frac('|x − pⱼ|²', '2w²') + ')' + at(0.85, ' = ' + num(bx, 4)),
+        draw: function (g, p) {
+          g.land(cx.J, cx.shade); g.axes();
+          hol.at.forEach(function (q, k) { g.halo(q, Math.max(4, hol.w * g.s), C.red, seg(p, 0.1 + 0.1 * k, 0.2 + 0.1 * k), 2); g.halo(q, Math.max(7, 2 * hol.w * g.s), C.red, seg(p, 0.15 + 0.1 * k, 0.25 + 0.1 * k), 1, [3, 3]); });
+          g.hero(x, cx.hero, 1); g.line(x, near.q, C.red, 1.5, seg(p, 0.45, 0.65), [5, 4]); g.label(lerp2(x, near.q, 0.5), num(near.d) + ' away', C.red, { dy: -14, p: seg(p, 0.6, 0.75) });
+          var R = g.sideR, rmax = Math.max(4 * hol.w, Math.min(near.d * 1.15, 12 * hol.w)), pl = g.plot(R, [0, rmax], [-hol.D * 1.08, hol.D * 0.15], { title: 'one pit, seen from the side' });
+          pl.frame('distance from its centre', 'B'); pl.curve(function (r) { return -hol.D * Math.exp(-r * r / (2 * hol.w * hol.w)); }, C.red, 2.2, seg(p, 0.3, 0.6));
+          var dd = Math.min(near.d, rmax); pl.point(dd, -hol.D * Math.exp(-dd * dd / (2 * hol.w * hol.w)), cx.hero === 'you' ? C.gold : HERO[cx.hero].col, near.d > rmax ? 'x is farther out' : 'x', seg(p, 0.6, 0.75));
+        } });
+    }
+    var items = cx.parts.slice();
+    if (rip) items.push({ name: 'ripples R(x)', value: rip.R(x), col: C.blue });
+    if (hol) items.push({ name: 'black holes B(x)', value: hol.B(x), col: C.red });
+    if (items.length > 1) {
+      items.push({ name: cx.hero === 'tw' ? 'f(x)' : 'J(x)', value: cx.Jx, col: C.ink });
+      out.push({ id: 'total', chapter: 'The weather', title: 'Add the parts: the height J(x)', layout: 'side', dur: 3.4,
+        text: (cx.hero === 'tw' ? 'Add the parts: the Wanderer’s height at x is f(x) = ' : 'Add the parts: the height at x is J(x) = ') + num(cx.Jx, 4) + '.' + (cx.haze ? ' In this haze nobody can know this number exactly: every tap of the ground carries an error of about σ = ' + num(cx.sigma, 4) + '.' : ''),
+        math: (cx.hero === 'tw' ? 'f(x) = ' : 'J(x) = ') + items.slice(0, -1).map(function (it, k) { return at(0.2 + 0.5 * k / items.length, (k ? ' + ' : '') + par(it.value, 4)); }).join('') + at(0.85, ' = ' + num(cx.Jx, 4)),
+        draw: function (g, p) { g.bars(g.sideR, items, p, { total: true, title: 'The height, part by part', nameW: 220 }); } });
+    }
+  });
+
+  // ------------------------------------------------------------ feeling the slope: the staff, the four taps, the slopes
+  register('taps', function (cx, out) {
+    var x = cx.x, h = cx.h, taps = cx.taps, J = cx.J, land = cx.land, names = ['East', 'West', 'North', 'South'], dirs = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+    var gT = [(taps[0].J - taps[1].J) / (2 * h), (taps[2].J - taps[3].J) / (2 * h)], mid = (taps[0].J + taps[1].J + taps[2].J + taps[3].J) / 4;
+    var who = cx.you ? 'you' : cx.who, has = cx.you ? 'have' : 'has', zoom = cx.zoom;
+    function ground(g) { g.land(J, { id: 'J', rings: 9 }); g.axes(); }
+    function tapCol(k) { return taps[k].J > mid ? C.orange : C.blue; }
+    out.push({ id: 'staff', chapter: 'Feeling the slope', title: 'The staff: h', layout: 'map', view: zoom, dur: 3.4,
+      text: 'In the fog nobody can see the land. A hero learns heights only by tapping the ground with a staff, a length h from where it stands: ' +
+        'h = staff share × map width = ' + num(cx.p.staff || 0.01, 3) + ' × ' + num(cx.span, 2) + ' = ' + num(h, 4) + '. We zoom in to look closely at the ground around x.',
+      math: 'h = ' + num(cx.p.staff || 0.01, 3) + ' × ' + num(cx.span, 2) + ' = ' + at(0.5, num(h, 4)),
+      draw: function (g, p) {
+        ground(g); g.hero(x, cx.hero, 1);
+        g.halo(x, h * g.s, C.gold, seg(p, 0.35, 0.55), 1.5, [5, 4]);
+        dirs.forEach(function (dv, k) { g.line(x, add(x, dv, h), C.faint, 1.5, seg(p, 0.45 + 0.08 * k, 0.6 + 0.08 * k)); });
+        g.label(add(x, [0.5, 0.5], h * 0.72), 'h = ' + num(h, 4), C.gold, { dx: 8, p: seg(p, 0.7, 0.9) });
+      } });
+    out.push({ id: 'four', chapter: 'Feeling the slope', title: 'Four taps, four heights', layout: 'map', view: zoom, dur: 4.2,
+      text: 'The staff touches the ground four times: east, west, north and south of x, each h away. Each tap gives the height there, worked out with the same formula J. ' +
+        (cx.haze ? 'In this haze every tap is off by a random amount of about σ = ' + num(cx.sigma, 4) + ', and nobody can tell by how much. ' : '') +
+        'Orange taps are higher than the average of the four, blue ones lower.',
+      math: taps.map(function (tp, k) { return at(0.15 + 0.2 * k, names[k] + ' ' + pair(tp.at) + ': J = ' + num(tp.J, 4)); }).join('<br>'),
+      draw: function (g, p) {
+        ground(g); g.hero(x, cx.hero, 1); g.halo(x, h * g.s, C.faint, 1, 1, [5, 4]);
+        taps.forEach(function (tp, k) {
+          var s = seg(p, 0.1 + 0.2 * k, 0.25 + 0.2 * k); g.tap(tp.at, C.gold, seg(p, 0.1 + 0.2 * k, 0.35 + 0.2 * k)); g.dot(tp.at, 6, tapCol(k), s);
+          g.label(tp.at, names[k] + ' ' + num(tp.J, 4), tapCol(k), { dx: k === 1 ? -110 : 10, dy: k === 2 ? -16 : k === 3 ? 16 : -14, p: s });
+        });
+      } });
+    function slopeStep(id, i1, i2, axis) {
+      var a = taps[i1], b = taps[i2], s = (a.J - b.J) / (2 * h), along = axis === 0 ? [1, 0] : [0, 1], nm = axis === 0 ? ['East', 'West'] : ['North', 'South'];
+      var line = function (t) { var q = x.slice(); q[axis] = t; return J(q); }, t0 = x[axis], tr = [t0 - 2.6 * h, t0 + 2.6 * h];
+      var vs = [], k; for (k = 0; k <= 40; k++) vs.push(line(tr[0] + (tr[1] - tr[0]) * k / 40)); vs.push(a.J, b.J);
+      var vlo = Math.min.apply(null, vs), vhi = Math.max.apply(null, vs), pad = (vhi - vlo) * 0.25 || 1e-3;
+      var fall = s < 0, dirWord = axis === 0 ? (fall ? 'east' : 'west') : (fall ? 'north' : 'south');
+      out.push({ id: id, chapter: 'Feeling the slope', title: nm[0] + ' minus ' + nm[1].toLowerCase() + ': the slope along x' + (axis ? '₂' : '₁'), layout: 'map+side', view: zoom, dur: 4.6,
+        text: 'Going from the ' + nm[1].toLowerCase() + ' tap to the ' + nm[0].toLowerCase() + ' tap moves 2h = ' + num(2 * h, 4) + (axis ? ' north' : ' east') + ' and changes the height by J' + (axis ? '<sub>North</sub> − J<sub>South</sub>' : '<sub>East</sub> − J<sub>West</sub>') + ' = ' + num(a.J, 4) + ' − ' + par(b.J, 4) + ' = ' + num(a.J - b.J, 4) + '. ' +
+          'Height change over distance is the slope: ' + num(a.J - b.J, 4) + '/' + num(2 * h, 4) + ' = ' + num(s) + '. ' + (Math.abs(s) < 1e-9 ? 'The land is level this way.' : 'The land falls toward the ' + dirWord + '.') +
+          (cx.haze ? ' The haze moved the taps off the true ground (the curve), so this slope is a little wrong.' : ''),
+        math: '∂J/∂x' + (axis ? '₂' : '₁') + ' ≈ ' + frac('J<sub>' + nm[0] + '</sub> − J<sub>' + nm[1] + '</sub>', '2h') + at(0.45, ' = ' + frac(num(a.J, 4) + ' − ' + par(b.J, 4), num(2 * h, 4))) + at(0.85, ' = ' + num(s)),
+        draw: function (g, p) {
+          ground(g); g.hero(x, cx.hero, 1);
+          g.line(b.at, a.at, C.gold, 2.5, seg(p, 0.05, 0.25)); g.dot(a.at, 6, tapCol(i1), 1); g.dot(b.at, 6, tapCol(i2), 1);
+          g.label(a.at, nm[0], tapCol(i1), { dx: 8, dy: -12 }); g.label(b.at, nm[1], tapCol(i2), { dx: axis ? 8 : -50, dy: axis ? 14 : -12 });
+          var pl = g.plot(g.sideR, tr, [vlo - pad, vhi + pad], { title: 'the ground along x' + (axis ? '₂' : '₁') + ', seen from the side' });
+          pl.frame('x' + (axis ? '₂' : '₁') + ' →', 'J');
+          pl.curve(line, C.dim, 1.8, seg(p, 0.05, 0.3));
+          pl.point(b.at[axis], b.J, tapCol(i2), nm[1] + ' ' + num(b.J, 4), seg(p, 0.25, 0.35), 'left');
+          pl.point(a.at[axis], a.J, tapCol(i1), nm[0] + ' ' + num(a.J, 4), seg(p, 0.35, 0.45), 'right');
+          pl.seg(b.at[axis], b.J, a.at[axis], a.J, C.gold, 2.5, seg(p, 0.45, 0.6));
+          pl.run(b.at[axis], a.at[axis], Math.min(a.J, b.J) - pad * 0.45, 'run 2h = ' + num(2 * h, 4), C.ink, seg(p, 0.55, 0.7));
+          pl.rise(Math.max(a.at[axis], b.at[axis]) + 0.15 * h, b.J, a.J, 'rise ' + num(a.J - b.J, 4), C.ink, seg(p, 0.65, 0.8));
+          g.labelPx(pl.box[0] + pl.box[2] / 2, pl.box[1] + 14, 'slope = rise/run = ' + num(s), C.gold, { align: 'center', p: seg(p, 0.85, 1), size: 13 });
+        } });
+      return s;
+    }
+    slopeStep('ew', 0, 1, 0); slopeStep('ns', 2, 3, 1);
+    var gl = len(gT), k0 = gl > 0 ? 0.32 * 7.2 * h / gl : 1;
+    out.push({ id: 'grad', chapter: 'Feeling the slope', title: 'The gradient ∇J: both slopes in one arrow', layout: 'map', view: zoom, dur: 4.4,
+      text: 'Put the two slopes together as one arrow, the gradient ∇J ≈ ' + pair(gT) + ': ' + num(Math.abs(gT[0])) + (gT[0] < 0 ? ' westward' : ' eastward') + ' and ' + num(Math.abs(gT[1])) + (gT[1] < 0 ? ' southward' : ' northward') + ', drawn shrunk to fit. ' +
+        'It points straight uphill, at right angles to the ring of equal height through x. Its length, ' + num(gl) + ', says how steep the ground is.',
+      math: '∇J ≈ (∂J/∂x₁, ∂J/∂x₂) = ' + at(0.75, pair(gT)),
+      draw: function (g, p) {
+        ground(g); g.ring(cx.Jx, C.ink, 2, seg(p, 0.05, 0.25)); g.hero(x, cx.hero, 1);
+        var e1 = add(x, [gT[0] * k0, 0]), tip = add(x, gT, k0);
+        g.arrow(x, e1, C.violet, 2.5, seg(p, 0.2, 0.4)); g.label(e1, num(gT[0]), C.violet, { dx: gT[0] < 0 ? -60 : 8, dy: 14, p: seg(p, 0.3, 0.45) });
+        g.arrow(e1, tip, C.violet, 2.5, seg(p, 0.4, 0.6)); g.label(lerp2(e1, tip, 0.5), num(gT[1]), C.violet, { dx: 8, p: seg(p, 0.5, 0.65) });
+        g.arrow(x, tip, C.orange, 3.5, seg(p, 0.62, 0.85)); g.tipLabel(tip, gT, '∇J, uphill', C.orange, seg(p, 0.8, 1));
+        if (gl > 0) g.square(x, scale(gT, 1 / gl), [-gT[1] / gl, gT[0] / gl], 12, C.ink, seg(p, 0.85, 1));
+      } });
+    // the exact slope: the parts' slopes, tip to tail, beside the taps' arrow
+    var parts = cx.gradParts.slice(), gx = cx.gTrue;
+    if (land.ripples) parts.push({ name: 'ripples ∇R(x)', vec: land.ripples.grad(x), col: C.blue });
+    if (land.holes) parts.push({ name: 'black holes ∇B(x)', vec: land.holes.grad(x), col: C.red });
+    var top = Math.max(len(gx), gl, 1e-12), k1 = 0.32 * 7.2 * h / top;
+    var tapNote = cx.haze ? 'The taps can differ because haze perturbs every measured height' + (land.ripples || land.holes ? ', and finite spacing also averages the changing slope between the taps.' : '.') :
+      (land.ripples || land.holes ? 'The taps can differ because finite spacing averages a slope that changes between the taps.' : 'On this quadratic land, centred taps recover the exact slope; any displayed mismatch is only rounding.');
+    out.push({ id: 'exact', chapter: 'Feeling the slope', title: 'The slope, exactly', layout: 'map', view: zoom, dur: 4.4,
+      text: 'The formula also gives the slope exactly, with no taps: ' + parts.map(function (q) { return q.name + ' = ' + pair(q.vec); }).join(', ') + (parts.length > 1 ? ', together ' : ': ') + '∇J(x) = ' + pair(gx) + '. ' +
+        'The taps said ' + pair(gT) + '. ' + tapNote + ' ' +
+        (cx.haze ? 'In this haze the heroes cannot use the formula: they only have their taps.' : cx.you ? 'Your staff only ever gives the taps.' : 'In clear air the heroes use the exact slope.'),
+      math: '∇J(x) = ' + parts.map(function (q, k) { return at(0.15 + 0.25 * k, (k ? ' + ' : '') + pair(q.vec)); }).join('') + at(0.8, ' = ' + pair(gx)),
+      draw: function (g, p) {
+        ground(g); g.hero(x, cx.hero, 1);
+        var from = x;
+        parts.forEach(function (q, k) { var to = add(from, q.vec, k1), s = seg(p, 0.1 + 0.25 * k, 0.3 + 0.25 * k); g.arrow(from, to, q.col, 2.5, s); from = to; });
+        g.arrow(x, add(x, gx, k1), C.ink, 3.5, seg(p, 0.7, 0.9));
+        g.arrow(x, add(x, gT, k1), C.orange, 2, seg(p, 0.85, 1), [6, 4]);
+        g.legend(parts.map(function (q) { return [q.col, q.name + ' = ' + pair(q.vec)]; }).concat([[C.ink, 'exact ∇J = ' + pair(gx)], [C.orange, 'taps ∇J ≈ ' + pair(gT), [6, 4]]]), seg(p, 0.05, 0.2));
+      } });
+  });
+
+  // ------------------------------------------------------------ the Pilgrim's stride
+  register('pgStride', function (cx, out) {
+    var rec = cx.rec; if (!rec) return;
+    var x = cx.x, g0 = rec.g, a = cx.p.alpha, stp = scale(g0, -a), raw = rec.raw, nx = rec.x, gl = len(g0), k0 = gl > 0 ? 0.32 * 7.2 * cx.h / gl : 1, land = cx.land;
+    out.push({ id: 'down', chapter: 'The stride', title: 'Downhill is −∇J', layout: 'map', view: cx.zoom, dur: 3.2,
+      text: 'The gradient points uphill, so the Pilgrim turns the other way: downhill is −∇J = ' + pair(scale(g0, -1)) + '.' + (cx.haze ? ' (In this haze it uses the slope its taps gave.)' : ''),
+      math: '−∇J = ' + at(0.6, pair(scale(g0, -1))),
+      draw: function (g, p) {
+        g.land(cx.J, { id: 'J', rings: 9 }); g.axes(); g.hero(x, 'pg', 1);
+        var ang = Math.atan2(g0[1], g0[0]) + Math.PI * seg(p, 0.2, 0.7), dir = [Math.cos(ang), Math.sin(ang)];
+        g.arrow(x, add(x, dir, gl * k0), p < 0.7 ? C.orange : C.ink, 3.5, 1); g.tipLabel(add(x, dir, gl * k0), dir, p < 0.7 ? '∇J' : 'downhill, −∇J', p < 0.7 ? C.orange : C.ink, 1);
+      } });
+    var v2 = around([x, raw, nx], 0.5, 12 * cx.h);
+    out.push({ id: 'alpha', chapter: 'The stride', title: 'How far: α times the slope', layout: 'map', view: v2, dur: 3.6,
+      text: 'The Pilgrim has no memory and no map. Its stride is always the same share α = ' + num(a) + ' of the slope: −α∇J = −' + num(a) + '·' + pair(g0) + ' = ' + pair(stp) + '. On steep ground the stride is long; on flat ground it is short.',
+      math: '−α∇J = −' + num(a) + '·' + pair(g0) + at(0.6, ' = ' + pair(stp)),
+      draw: function (g, p) {
+        g.land(cx.J, cx.shade); g.axes(); g.hero(x, 'pg', 1);
+        g.arrow(x, raw, C.ink, 3.5, seg(p, 0.2, 0.75)); g.label(lerp2(x, raw, 0.55), '−α∇J', C.ink, { dx: 10, dy: -14, p: seg(p, 0.6, 0.8) });
+        if (land.box) { var b = land.box; g.path([[b[0], b[0]], [b[1], b[0]], [b[1], b[1]], [b[0], b[1]], [b[0], b[0]]], C.blue, 2, 1); }
+      } });
+    out.push({ id: 'new', chapter: 'The stride', title: 'The new spot', layout: 'map', view: v2, dur: 3.6,
+      text: 'x ← x − α∇J = ' + pair(x) + ' + ' + pair(stp) + ' = ' + pair(raw) + '. ' + (rec.clipped ? 'That spot lies outside the ' + (cx.key === 'wall' ? 'wall' : 'realm') + ', so the Pilgrim is set back to the nearest spot inside, ' + pair(nx) + '. ' : '') +
+        'There the height is J = ' + num(rec.J, 4) + ', ' + (rec.J < cx.Jx ? 'down' : 'up') + ' from ' + num(cx.Jx, 4) + '.',
+      math: 'x ← x − α∇J = ' + at(0.4, pair(raw)) + (rec.clipped ? at(0.7, ' → set back to ' + pair(nx)) : '') + '<br>' + at(0.85, 'J: ' + num(cx.Jx, 4) + ' → ' + num(rec.J, 4)),
+      draw: function (g, p) {
+        g.land(cx.J, cx.shade); g.axes();
+        if (land.box) { var b = land.box; g.path([[b[0], b[0]], [b[1], b[0]], [b[1], b[1]], [b[0], b[1]], [b[0], b[0]]], C.blue, 2, 1); }
+        var m1 = seg(p, 0.1, 0.55), at1 = lerp2(x, raw, m1);
+        g.path([x, at1], 'rgba(255,176,113,0.6)', 2.5, 1);
+        if (rec.clipped) { var m2 = seg(p, 0.6, 0.8); g.line(raw, nx, C.blue, 2, m2, [5, 4]); g.hero(m2 > 0 ? lerp2(raw, nx, m2) : at1, 'pg', 1); }
+        else g.hero(at1, 'pg', 1);
+        g.label(x, 'J = ' + num(cx.Jx, 4), C.dim, { dx: 12, dy: 16 });
+        g.label(nx, 'J = ' + num(rec.J, 4), C.gold, { dx: 12, dy: -16, p: seg(p, 0.85, 1) });
+      } });
+    var w = cx.walk, ahead = w.slice(cx.k, Math.min(w.length, cx.k + 9)).map(function (d) { return d.x; });
+    if (ahead.length > 2) {
+      var turns = 0; for (var j = 2; j < ahead.length; j++) { var s1 = sub(ahead[j - 1], ahead[j - 2]), s2 = sub(ahead[j], ahead[j - 1]); if (dot(s1, s2) < -0.3 * len(s1) * len(s2)) turns++; }
+      out.push({ id: 'again', chapter: 'The stride', title: 'And again, day after day', layout: 'map', view: around(ahead, 0.35, 10 * cx.h), dur: 4.2,
+        text: 'Tomorrow the Pilgrim starts from the new spot and does it all again: four taps, the slope, one stride. Here are its next ' + (ahead.length - 1) + ' days.' +
+          (turns >= 2 ? ' Each stride overshoots the valley’s floor, so the Pilgrim zigzags from side to side: its fixed share α cannot tell a steep side from a long way down.' : ''),
+        math: 'x<sub>k+1</sub> = x<sub>k</sub> − α∇J(x<sub>k</sub>)',
+        draw: function (g, p) {
+          g.land(cx.J, cx.shade); g.axes();
+          var n = ahead.length - 1, s = seg(p, 0.05, 0.9) * n, kk = Math.floor(s), f = s - kk;
+          g.path(ahead.slice(0, kk + 1).concat(kk < n ? [lerp2(ahead[kk], ahead[kk + 1], ease(f))] : []), C.orange, 2.5, 1);
+          ahead.slice(1, kk + 1).forEach(function (q, m) { g.dot(q, 4, C.orange, 1); g.label(q, 'day ' + (cx.k + m + 1), C.dim, { dx: 8, dy: -10, size: 11 }); });
+          g.hero(kk < n ? lerp2(ahead[kk], ahead[kk + 1], ease(f)) : ahead[n], 'pg', 1);
+        } });
+    }
+  });
+
+  // ------------------------------------------------------------ your own move
+  register('youDown', function (cx, out) {
+    var x = cx.x, gT = cx.gTaps, gl = len(gT), k0 = gl > 0 ? 0.32 * 7.2 * cx.h / gl : 1, dn = scale(gT, -1), ang = Math.atan2(dn[1], dn[0]);
+    var names = ['east', 'north-east', 'north', 'north-west', 'west', 'south-west', 'south', 'south-east'], toward = names[Math.round(((ang % TAU) + TAU) % TAU / (Math.PI / 4)) % 8];
+    out.push({ id: 'walk', chapter: 'Your move', title: 'Downhill is −∇J: turn and walk', layout: 'map', view: cx.zoom, dur: 3.4,
+      text: 'Your taps say the land rises toward ∇J ≈ ' + pair(gT) + ', so downhill is −∇J = ' + pair(dn) + ', toward the ' + toward + '. ' +
+        'Turn to face it and walk (W). The slope changes as you go, so feel again (F) every few steps: that is gradient descent, done by hand.',
+      math: '−∇J = ' + at(0.6, pair(dn)),
+      draw: function (g, p) {
+        g.land(cx.J, { id: 'J', rings: 9 }); g.axes(); g.hero(x, 'you', 1);
+        var a0 = Math.atan2(gT[1], gT[0]) + Math.PI * seg(p, 0.2, 0.7), dir = [Math.cos(a0), Math.sin(a0)];
+        g.arrow(x, add(x, dir, gl * k0), p < 0.7 ? C.orange : C.ink, 3.5, 1); g.tipLabel(add(x, dir, gl * k0), dir, p < 0.7 ? '∇J' : 'downhill: walk this way', p < 0.7 ? C.orange : C.ink, 1);
+      } });
+  });
+
+  return { register: register, open: open, openSteps: openSteps, onStep: function (f) { stepHook = f; }, go: function (n) { playing = false; playLabel(); go(n); }, close: close, key: key, debug: debug, plan: plan, H: H, Kit: Kit,
+           isOpen: function () { return opened; }, onClose: function (f) { closeHook = f; },
+           steps: function () { return steps.map(function (s) { return { id: s.id, chapter: s.chapter, title: s.title, text: s.text, math: s.math, layout: s.layout }; }); } };
+})();
+</script>
+<script>
+// The parts of the step-by-step board that only some days need: the height of the tower lands (the old fort and the
+// ridge), the Cartographer's journal, reading and stride tests, and the Twins' aim, rope, Warden and ledger.  Each
+// part is registered with Board.register(name, function (cx, out, H) { ... out.push(step) ... }); see board.js.
+(function () {
+  'use strict';
+  var B = window.Board; if (!B) return;
+  var H = B.H, C = H.C, seg = H.seg, num = H.num, pair = H.pair, par = H.par, at = H.at, frac = H.frac, add = H.add, sub = H.sub, dot = H.dot;
+  var lerp2 = H.lerp2, len = H.len, scale = H.scale, around = H.around, clamp = H.clamp, mix = H.mix, ease = H.ease;
+  var TAU = 2 * Math.PI;
+  function sign(v) { return v >= 0 ? '+' : '−'; }
+  function order(q) { return '(' + sign(q[0]) + ', ' + sign(q[1]) + ')'; }
+  function boxPath(b) { return [[b[0], b[0]], [b[1], b[0]], [b[1], b[1]], [b[0], b[1]], [b[0], b[0]]]; }
+  // a strided name: 1, ½, ¼, ⅛, then 1/2^j
+  function strideName(s) { var j = Math.round(-Math.log(s) / Math.LN2); return j === 0 ? '1' : j === 1 ? '½' : j === 2 ? '¼' : j === 3 ? '⅛' : '1/' + Math.pow(2, j); }
+
+  // ------------------------------------------------------------ the tower lands: two sentries' cards
+  B.register('towerHeight', function (cx, out) {
+    var land = cx.land, P = cx.p, x = cx.x, y = land.y, s2 = P.s2, mb = P.muB, mp = P.muP, s = land.lawSign, tw = cx.hero === 'tw';
+    var dx = [x[0] - y[0], x[1] - y[1]], lan = (dx[0] * dx[0] + dx[1] * dx[1]) / (2 * s2);
+    var f1 = Math.pow(1 - x[0] * x[0], 2), f2 = Math.pow(1 - x[1] * x[1], 2), fl = mb * (f1 + f2);
+    var r = 1 - s * x[0] * x[1], law = mp * r * r;
+    var gLan = [dx[0] / s2, dx[1] / s2], gFl = [-4 * mb * x[0] * (1 - x[0] * x[0]), -4 * mb * x[1] * (1 - x[1] * x[1])], gLaw = [-2 * mp * r * s * x[1], -2 * mp * r * s * x[0]];
+    cx.parts.push({ name: 'lanterns', value: lan, col: C.gold }, { name: 'flags', value: fl, col: C.green });
+    cx.gradParts.push({ name: 'lanterns (x − y)/σ²', vec: gLan, col: C.gold }, { name: 'flags', vec: gFl, col: C.green });
+    if (!tw) { cx.parts.push({ name: 'the law', value: law, col: C.violet }); cx.gradParts.push({ name: 'the law', vec: gLaw, col: C.violet }); }
+    var view = [-1.32, 1.32, -1.32, 1.32], T = land.treasure, seg2 = land.lawSegment, weather = !!(land.ripples || land.holes);
+    var lanFn = function (q) { return ((q[0] - y[0]) * (q[0] - y[0]) + (q[1] - y[1]) * (q[1] - y[1])) / (2 * s2); };
+    var flFn = function (q) { return mb * (Math.pow(1 - q[0] * q[0], 2) + Math.pow(1 - q[1] * q[1], 2)); };
+    var lawFn = function (q) { var rr = 1 - s * q[0] * q[1]; return mp * rr * rr; };
+    var SQ = [[-1, -1], [1, -1], [1, 1], [-1, 1], [-1, -1]], CORN = [[1, 1], [1, -1], [-1, 1], [-1, -1]];
+    function square(g, p, col) { g.path(SQ, col || 'rgba(255,210,122,0.7)', 1.5, p, [6, 4]); }
+    function corners(g, p, marks) {
+      CORN.forEach(function (q, i) {
+        var ok = q[0] * q[1] === s, q0 = seg(p, i * 0.1, i * 0.1 + 0.2), col = marks ? (ok ? C.blue : C.orange) : C.ink;
+        g.dot(q, 5, col, q0);
+        g.label(q, order(q) + (marks ? (ok ? ' lawful' : ' broken') : ''), col, { dx: q[0] > 0 ? 9 : -9, dy: q[1] > 0 ? -13 : 14, align: q[0] > 0 ? 'left' : 'right', p: q0, size: 12 });
+      });
+    }
+    var lean = function (v) { return Math.abs(v) < 0.2 ? 'is unsure' : v > 0 ? 'leans to +' : 'leans to −'; };
+    out.push({ id: 'cards', chapter: 'The height', title: 'Two sentries, two cards', layout: 'map', view: view, dur: 4,
+      text: 'On this land a spot is a pair of cards, one for each of two sentries: x₁ for the first, x₂ for the second. A card lies between −1 and +1. ' +
+        '+1 and −1 are the two flags a sentry can raise; a card in between means the sentry is still unsure. The four corners of the square are the four orders the sentries could give, and the King’s true order is ' + order(T) + '. ' +
+        'Today the first sentry ' + lean(x[0]) + ' (x₁ = ' + num(x[0]) + ') and the second ' + lean(x[1]) + ' (x₂ = ' + num(x[1]) + ').',
+      math: at(0.75, 'x = (x₁, x₂) = ' + pair(x) + ', each card in [−1, 1]'),
+      draw: function (g, p) {
+        g.land(cx.J, { lo: cx.shade.lo, hi: cx.shade.hi, id: 'J', alpha: 0.45, pits: cx.shade.pits }); g.axes();
+        square(g, seg(p, 0, 0.3)); corners(g, seg(p, 0.2, 0.7), false);
+        g.halo(T, 14, C.gold, seg(p, 0.6, 0.75), 2.5); g.label(T, 'the true order', C.gold, { dx: T[0] > 0 ? 18 : -18, dy: T[1] > 0 ? 14 : -14, align: T[0] > 0 ? 'left' : 'right', p: seg(p, 0.65, 0.8) });
+        g.hero(x, cx.hero, seg(p, 0.7, 0.85));
+        var q = seg(p, 0.82, 1), v = g.vis; g.line(x, [x[0], v[2]], C.gold, 1.5, q, [5, 4]); g.line(x, [v[0], x[1]], C.gold, 1.5, q, [5, 4]);
+      } });
+    out.push({ id: 'formula', chapter: 'The height', title: 'The King’s formula: three parts', layout: 'map', view: view, dur: 3.6,
+      text: 'The height of a spot is the King’s formula J(x), in three parts: the lanterns, the flags and the tower’s law' + (weather ? ', with the weather added on top' : '') + '. ' +
+        (tw ? 'The Wanderer carries only the first two: its twin, the Warden, keeps the law instead. ' : '') + 'Dark is low and warm is high. We take the parts one at a time.',
+      math: 'J(x) = ' + at(0.25, 'lanterns') + at(0.45, ' + flags') + at(0.65, ' + law') + (land.ripples ? at(0.8, ' + R(x)') : '') + (land.holes ? at(0.85, ' + B(x)') : '') + (tw ? at(0.9, '<br>the Wanderer’s land: f(x) = J(x) − law') : ''),
+      draw: function (g, p) { g.land(cx.J, { lo: cx.shade.lo, hi: cx.shade.hi, id: 'J', alpha: seg(p, 0, 0.6), pits: cx.shade.pits }); g.axes(); square(g, 1); g.hero(x, cx.hero, seg(p, 0.5, 0.7)); } });
+    out.push({ id: 'lanterns', chapter: 'The height', title: 'The lanterns: what the sentries saw', layout: 'map', view: view, dur: 4.2,
+      text: 'The lanterns say y = (y₁, y₂) = ' + pair(y, 2) + ': what each sentry saw in the night. The first part grows with the distance from y, ' +
+        '[(x₁ − y₁)² + (x₂ − y₂)²]/(2σ²). σ² = ' + num(s2, 2) + ' says how far the lanterns can be trusted: the smaller it is, the harder they pull. Here x − y = ' + pair(dx) + ', so the lanterns add ' + num(lan, 4) + '.',
+      math: 'lanterns = ' + frac('(x₁ − y₁)² + (x₂ − y₂)²', '2σ²') + at(0.5, ' = ' + frac(par(dx[0]) + '² + ' + par(dx[1]) + '²', num(2 * s2, 2))) + at(0.85, ' = ' + num(lan, 4)),
+      draw: function (g, p) {
+        g.land(lanFn, { id: 'lan', rings: 10 }); g.axes(); square(g, 1, 'rgba(242,245,248,0.35)');
+        g.dot(y, 7, C.gold, seg(p, 0, 0.15)); g.halo(y, 12 + 8 * seg(p, 0.1, 0.4), C.gold, seg(p, 0.05, 0.2) * (1 - seg(p, 0.4, 0.55)));
+        g.label(y, 'y, the lanterns', C.gold, { dx: 12, dy: -14, p: seg(p, 0.1, 0.25) });
+        g.hero(x, cx.hero, 1);
+        var corner = [x[0], y[1]];
+        g.line(y, corner, C.violet, 2, seg(p, 0.25, 0.45), [6, 4]); g.line(corner, x, C.violet, 2, seg(p, 0.45, 0.6), [6, 4]);
+        g.label(lerp2(y, corner, 0.5), 'x₁ − y₁ = ' + num(dx[0]), C.violet, { dy: 16, p: seg(p, 0.35, 0.5), align: 'center' });
+        g.label(lerp2(corner, x, 0.5), 'x₂ − y₂ = ' + num(dx[1]), C.violet, { dx: 10, p: seg(p, 0.55, 0.65) });
+        g.ring(lan, C.gold, 2.5, seg(p, 0.7, 0.85)); g.label(x, 'lanterns ' + num(lan, 4), C.gold, { dx: 14, dy: -16, p: seg(p, 0.85, 1) });
+      } });
+    var fmax = mb * 1.08;
+    out.push({ id: 'flags', chapter: 'The height', title: 'The flags: each card wants +1 or −1', layout: 'map+side', view: view, dur: 4.4,
+      text: 'The second part pulls each card toward a flag. Each card adds μ_b(1 − t²)²: 0 at t = −1 and at t = +1, and largest at t = 0, so an unsure card costs height. ' +
+        'With μ_b = ' + num(mb, 2) + ': card 1 (x₁ = ' + num(x[0]) + ') adds ' + num(mb * f1, 4) + ', card 2 (x₂ = ' + num(x[1]) + ') adds ' + num(mb * f2, 4) + ', together ' + num(fl, 4) + '.',
+      math: 'flags = μ_b[(1 − x₁²)² + (1 − x₂²)²] = ' + at(0.45, num(mb, 2) + '·[' + num(f1, 4) + ' + ' + num(f2, 4) + ']') + at(0.85, ' = ' + num(fl, 4)),
+      draw: function (g, p) {
+        g.land(flFn, { id: 'flags', rings: 8 }); g.axes(); square(g, 1, 'rgba(242,245,248,0.35)'); g.hero(x, cx.hero, 1);
+        CORN.forEach(function (q) { g.halo(q, 9, C.green, seg(p, 0.05, 0.25), 1.5); });
+        var pl = g.plot(g.sideR, [-1.2, 1.2], [0, fmax], { title: 'one card’s part: μ_b(1 − t²)²' });
+        pl.frame('t →', ''); pl.curve(function (t) { return mb * Math.pow(1 - t * t, 2); }, C.green, 2.2, seg(p, 0.1, 0.4));
+        pl.point(x[0], mb * f1, C.orange, 'card 1: ' + num(mb * f1, 4), seg(p, 0.45, 0.6), x[0] > 0.5 ? 'left' : 'right');
+        pl.point(x[1], mb * f2, C.blue, 'card 2: ' + num(mb * f2, 4), seg(p, 0.6, 0.75), x[1] > 0.5 ? 'left' : 'right');
+      } });
+    var lawOK = CORN.filter(function (q) { return q[0] * q[1] === s; }).map(order).join(' and ');
+    out.push({ id: 'law', chapter: 'The height', title: 'The tower’s law', layout: 'map', view: view, dur: 4.4,
+      text: 'The tower has one law. s = +1 says the two flags must agree; s = −1 that they must differ. Here s = ' + (s > 0 ? '+1' : '−1') + ', so the lawful orders are ' + lawOK + '. ' +
+        'The third part, μ_p(1 − s·x₁x₂)², is 0 where s·x₁x₂ = 1 and grows as the cards break the law; μ_p = ' + num(mp, 2) + ' says how hard the law pushes. At x, s·x₁x₂ = ' + num(s * x[0] * x[1]) + ', so the law adds ' + num(law, 4) + '.' +
+        (tw ? ' The Wanderer does not carry this part: the Warden keeps the law, standing on the lawful line between the two lawful corners.' : ''),
+      math: 'law = μ_p(1 − s·x₁x₂)² = ' + at(0.45, num(mp, 2) + '·(1 − ' + par(s * x[0] * x[1]) + ')²') + at(0.85, ' = ' + num(law, 4)),
+      draw: function (g, p) {
+        g.land(lawFn, { id: 'law', rings: 9 }); g.axes(); square(g, 1, 'rgba(242,245,248,0.35)'); corners(g, seg(p, 0.05, 0.5), true);
+        g.line(seg2[0], seg2[1], C.blue, 3, seg(p, 0.45, 0.7)); g.label(lerp2(seg2[0], seg2[1], 0.3), 'the lawful line', C.blue, { dx: 10, dy: -10, p: seg(p, 0.6, 0.75) });
+        g.hero(x, cx.hero, 1); g.ring(law, C.violet, 2.5, seg(p, 0.7, 0.85)); g.label(x, 'law ' + num(law, 4), C.violet, { dx: 14, dy: -16, p: seg(p, 0.85, 1) });
+      } });
+  });
+
+  // ------------------------------------------------------------ the Cartographer: its journal, its course, its stride tests
+  // A FIFO table drawn on the canvas: rows [{ n, day, s, y, col, strike, mark, lit }], oldest at the top.
+  function fifo(g, R, rows, m, p, o) {
+    o = o || {}; var c = g.ctx, top = R[1] + 34, rh = Math.min(22, (R[3] - 80) / Math.max(rows.length + 1, 4)), X = [R[0] + 12, R[0] + 40, R[0] + 92, R[0] + 92 + Math.min(170, Math.max(120, (R[2] - 110) / 2))];
+    g.panel(R, o.title || 'The journal: a queue of m = ' + m + ' pages');
+    c.font = '600 11.5px ' + g.sans; c.fillStyle = C.dim; c.textAlign = 'left'; c.textBaseline = 'middle';
+    c.fillText('↑ out: the oldest page leaves first', X[0], top);
+    c.font = '12px ' + g.mono; c.fillStyle = C.blue;
+    ['#', 'day', 'stride s', 'slope change y'].forEach(function (h, i) { c.fillText(h, X[i], top + rh); });
+    rows.forEach(function (r, i) {
+      var q = r.p == null ? 1 : r.p; if (!(q > 0)) return;
+      var y = top + rh * (i + 2), dy = (1 - q) * 10;
+      c.globalAlpha = clamp(q, 0, 1) * (r.strike ? 0.55 : 1);
+      if (r.lit) { c.fillStyle = 'rgba(255,210,122,0.2)'; c.fillRect(R[0] + 6, y - rh / 2 + dy, R[2] - 12, rh); }
+      c.fillStyle = r.col || C.ink; c.font = '12px ' + g.mono;
+      [r.n, r.day == null ? '' : 'day ' + r.day, r.s ? pair(r.s, 3) : '', r.y ? pair(r.y, 3) : ''].forEach(function (t, k) { c.fillText(String(t), X[k], y + dy); });
+      if (r.strike) { c.strokeStyle = r.col || C.ink; c.lineWidth = 1; c.beginPath(); c.moveTo(X[0], y + dy); c.lineTo(R[0] + R[2] - 70, y + dy); c.stroke(); }
+      if (r.mark) { c.textAlign = 'right'; c.font = '600 11.5px ' + g.sans; c.fillText(r.mark, R[0] + R[2] - 10, y + dy); c.textAlign = 'left'; }
+      c.globalAlpha = 1;
+    });
+    c.font = '600 11.5px ' + g.sans; c.fillStyle = C.dim; c.fillText('↓ in: each new page joins here', X[0], top + rh * (rows.length + 2) + 2);
+  }
+  function pageRows(pages, extra) { return pages.map(function (pg, i) { var r = { n: i + 1, day: pg.day, s: pg.s, y: pg.y }; for (var k in (extra && extra(pg, i)) || {}) r[k] = extra(pg, i)[k]; return r; }); }
+  function stretcher(land) {
+    var b = land.box; if (!b) return null;
+    var lo = b[0], w = b[1] - b[0];
+    return { lo: lo, w: w, toX: function (t) { return [lo + w * (1 + Math.tanh(t[0])) / 2, lo + w * (1 + Math.tanh(t[1])) / 2]; },
+             dxdt: function (t) { return t.map(function (v) { var th = Math.tanh(v); return w * (1 - th * th) / 2; }); } };
+  }
+  function unit(v) { var l = len(v) || 1; return [v[0] / l, v[1] / l]; }
+  function degBetween(a, b) { var d = Math.atan2(a[0] * b[1] - a[1] * b[0], dot(a, b)); return Math.round(Math.abs(d) * 180 / Math.PI); }
+
+  B.register('lbDay', function (cx, out) {
+    var rec = cx.rec, w = cx.walk, land = cx.land, mm = Math.round(cx.p.m), x = cx.x, k = cx.k;
+    if (!rec) return;
+    var st = rec.stretched ? stretcher(land) : null, t0 = rec.t, d = rec.d, gt = rec.gt;
+    var toX = st ? st.toX : function (t) { return t.slice(); }, J = cx.J;
+    var D = st ? st.dxdt(t0) : [1, 1], dirX = unit([D[0] * d[0], D[1] * d[1]]), downX = unit([-D[0] * gt[0], -D[1] * gt[1]]), turn = degBetween(downX, dirX);
+    var queue = rec.queue || [], pagesIn = function (pages) { return pages.map(function (pg) { return [w[Math.max(0, pg.day - 1)].x, w[Math.min(pg.day, w.length - 1)].x]; }); };
+    var span = cx.span, near = around([x, rec.x].concat(queue.length ? [].concat.apply([], pagesIn(queue)) : []), 0.5, 10 * cx.h);
+    function course(tau) { return toX([t0[0] + tau * d[0], t0[1] + tau * d[1]]); }
+    function base(g) { g.land(J, cx.shade); g.axes(); if (land.box) g.path(boxPath(land.box), C.blue, 1.5, 1); }
+    // 1. the journal
+    var torn = rec.torn || [];
+    out.push({ id: 'journal', chapter: 'The journal', title: 'The journal: a queue of the last m strides', layout: 'map+side', view: near, dur: 4.2,
+      text: mm === 0 ? 'This Cartographer keeps no journal (m = 0): it goes straight downhill and only tests its strides.' :
+        'The Cartographer keeps a journal of its last m = ' + mm + ' strides. It works like a queue: each new page joins at the bottom, and once there are m pages the oldest leaves at the top. ' +
+        (rec.restart ? 'Today its pages pointed it uphill, so it tears all ' + torn.length + ' out and starts again with none.' : queue.length ? 'Today it holds ' + queue.length + (queue.length === 1 ? ' page' : ' pages') + ', each written on the day its stride was taken; on the map each page is the stride it remembers.' : 'Today is its first day, so the journal is still empty.'),
+      math: mm === 0 ? 'm = 0' : at(0.2, 'm = ' + mm) + at(0.6, ', pages today: ' + queue.length),
+      draw: function (g, p) {
+        base(g); g.path(cx.path, C.blue, 1.5, 1, [4, 4]); g.hero(x, 'lb', 1);
+        var shown = rec.restart ? torn : queue, segs = pagesIn(shown);
+        segs.forEach(function (sg, i) { var q = seg(p, 0.15 + 0.6 * i / Math.max(segs.length, 1), 0.15 + 0.6 * (i + 1) / Math.max(segs.length, 1)); g.arrow(sg[0], sg[1], rec.restart ? C.red : C.gold, 3, q); g.label(lerp2(sg[0], sg[1], 0.5), 'page ' + (i + 1), rec.restart ? C.red : C.gold, { dx: 8, dy: -12, p: q, size: 12 }); });
+        if (mm > 0) fifo(g, g.sideR, pageRows(shown, function (pg, i) { return { p: seg(p, 0.15 + 0.6 * i / Math.max(shown.length, 1), 0.15 + 0.6 * (i + 1) / Math.max(shown.length, 1)), strike: rec.restart, col: rec.restart ? C.red : C.ink, mark: rec.restart ? 'torn out' : '' }; }).concat(shown.length < mm ? [{ n: '', day: null, p: seg(p, 0.75, 0.9), col: C.dim, mark: (mm - shown.length) + ' empty' }] : []), mm, p);
+        else g.panel(g.sideR, 'No journal');
+      } });
+    // 2. one page
+    var last = queue[queue.length - 1];
+    if (last && !rec.restart) {
+      var a = w[last.day - 1].x, b = w[last.day].x, gb = w[last.day].g, ga = w[last.day + 1] ? w[last.day + 1].g : rec.g, curve = dot(last.y, last.s) / dot(last.s, last.s);
+      var pv = around([a, b], 0.9, 12 * cx.h), gl = Math.max(len(ga), len(gb), 1e-12), kk = 0.32 * (pv[1] - pv[0]) / gl;
+      out.push({ id: 'page', chapter: 'The journal', title: 'What one page says', layout: 'map+side', view: pv, dur: 4.4,
+        text: 'Take the newest page, from day ' + last.day + '. It holds the stride s, from where the Cartographer stood to where it went, and y, how the slope ∇J changed over that stride (the slope after minus the slope before). ' +
+          'Together they say how the land bends along that stride: curve = yᵀs/sᵀs = ' + num(curve, 2) + ', large when the slope grows fast.' + (st ? ' (On this walled land the journal is kept on a stretched map, so its numbers are measured there; see the next step.)' : ''),
+        math: at(0.3, 's = ' + pair(last.s)) + at(0.5, ',  y = ' + pair(last.y)) + at(0.8, '<br>curve = yᵀs/sᵀs = ' + num(curve, 2)),
+        draw: function (g, p) {
+          base(g); g.arrow(a, b, C.gold, 3, seg(p, 0.05, 0.3)); g.label(lerp2(a, b, 0.5), 's, the stride', C.gold, { dx: 8, dy: -14, p: seg(p, 0.2, 0.35) });
+          g.arrow(a, add(a, gb, kk), C.orange, 2.5, seg(p, 0.35, 0.5)); g.tipLabel(add(a, gb, kk), gb, 'slope before', C.orange, seg(p, 0.45, 0.55));
+          g.arrow(b, add(b, ga, kk), C.orange, 2.5, seg(p, 0.5, 0.65)); g.tipLabel(add(b, ga, kk), ga, 'slope after', C.orange, seg(p, 0.6, 0.7));
+          var dy = sub(ga, gb); g.arrow(add(b, gb, kk), add(add(b, gb, kk), dy, kk), C.violet, 2.5, seg(p, 0.7, 0.85)); g.tipLabel(add(add(b, gb, kk), dy, kk), dy, 'y: the change', C.violet, seg(p, 0.8, 0.9));
+          g.line(b, add(b, gb, kk), 'rgba(255,176,113,0.45)', 1.5, seg(p, 0.65, 0.75), [4, 4]);
+          var R = g.sideR; g.panel(R, 'Page from day ' + last.day);
+          [['stride s', pair(last.s), C.gold], ['slope change y', pair(last.y), C.violet], ['curve yᵀs/sᵀs', num(curve, 2), C.ink]].forEach(function (row, i) {
+            g.labelPx(R[0] + 14, R[1] + 52 + 30 * i, row[0], row[2], { plain: true, p: seg(p, 0.3 + 0.2 * i, 0.45 + 0.2 * i) });
+            g.labelPx(R[0] + 150, R[1] + 52 + 30 * i, row[1], C.ink, { plain: true, mono: true, p: seg(p, 0.3 + 0.2 * i, 0.45 + 0.2 * i) });
+          });
+        } });
+    }
+    // 3. the stretched map
+    if (st) {
+      out.push({ id: 'stretch', chapter: 'The course', title: 'The stretched map', layout: 'side', dur: 4.2,
+        text: 'Inside a wall the Cartographer never steps out, because it walks on a stretched map t instead of on x: x = lo + w·(1 + tanh t)/2 for each coordinate, with lo = ' + num(st.lo, 2) + ' and w = ' + num(st.w, 2) + '. ' +
+          'Every t, however large, lands inside the wall, and the wall itself is infinitely far away. Near the wall a step in t moves x very little, so the Cartographer slows down there.',
+        math: 'x = lo + w·(1 + tanh t)/2;  today t = ' + pair(t0) + at(0.7, ' ↔ x = ' + pair(x)),
+        draw: function (g, p) {
+          var R = g.sideR, T = Math.max(3, Math.abs(t0[0]) + 0.5, Math.abs(t0[1]) + 0.5), pl = g.plot(R, [-T, T], [st.lo - 0.08 * st.w, st.lo + 1.08 * st.w], { title: 'from the stretched map t to the land x' });
+          pl.frame('t →', 'x'); pl.seg(-T, st.lo, T, st.lo, C.blue, 1.5, 1, [5, 4]); pl.seg(-T, st.lo + st.w, T, st.lo + st.w, C.blue, 1.5, 1, [5, 4]);
+          pl.curve(function (t) { return st.lo + st.w * (1 + Math.tanh(t)) / 2; }, C.gold, 2.5, seg(p, 0.05, 0.4));
+          pl.point(t0[0], x[0], C.orange, 't₁ → x₁ = ' + num(x[0]), seg(p, 0.45, 0.6), t0[0] > 0 ? 'left' : 'right');
+          pl.point(t0[1], x[1], C.violet, 't₂ → x₂ = ' + num(x[1]), seg(p, 0.6, 0.75), t0[1] > 0 ? 'left' : 'right');
+          g.labelPx(pl.box[0] + 8, pl.Y(st.lo + st.w) - 12, 'the wall', C.blue, { plain: true, size: 12, p: seg(p, 0.75, 0.9) });
+        } });
+    }
+    // 4. reading the journal: the two-loop recursion
+    var rd = rec.reading || {}, n = queue.length, aw = 0.3 * (cx.zoom[1] - cx.zoom[0]), cv = [x[0] - 4.5 * cx.h, x[0] + 4.5 * cx.h, x[1] - 4.5 * cx.h, x[1] + 4.5 * cx.h];
+    out.push({ id: 'read', chapter: 'The course', title: 'Reading the journal', layout: 'map+side', view: cv, dur: 5,
+      text: rec.restart ? 'Its pages would have turned it uphill, so it trusts none of them today: it heads straight downhill' + (st ? ' on its stretched map' : '') + ', d = −∇J.' :
+        !n ? 'With no pages yet there is nothing to bend: it heads straight downhill' + (st ? ' on its stretched map' : '') + ', d = −∇J, like the Pilgrim. Unlike the Pilgrim, it will test its stride before it takes it.' :
+        'To choose its course it reads its pages twice: from the newest to the oldest, then back from the oldest to the newest. Each page bends the course to match how the land curved along that stride, and in between it scales by γ = sᵀy/yᵀy of the newest page, ' + num(rd.gamma, 4) + '. ' +
+        'The result is d = −H∇J: ' + turn + '° away from straight downhill' + (st ? ' on its stretched map' : '') + '.',
+      math: (n && !rec.restart ? at(0.45, 'γ = sᵀy/yᵀy = ' + num(rd.gamma, 4)) + '<br>' : '') + at(0.85, 'd = ' + (n && !rec.restart ? '−H∇J = ' : '−∇J = ') + pair(d) + ', ' + turn + '° from straight downhill'),
+      draw: function (g, p) {
+        g.land(J, { id: 'J', rings: 9 }); g.axes(); g.hero(x, 'lb', 1);
+        g.arrow(x, add(x, downX, aw), C.ink, 2.5, seg(p, 0.05, 0.25), [6, 4]); g.label(lerp2(x, add(x, downX, aw), 0.6), 'straight downhill', C.ink, { dx: downX[1] > 0 ? 12 : -12, dy: downX[0] > 0 ? 14 : -14, align: downX[1] > 0 ? 'left' : 'right', p: seg(p, 0.15, 0.3), size: 12 });
+        var sw = seg(p, 0.6, 0.95), a0 = Math.atan2(downX[1], downX[0]), a1 = Math.atan2(dirX[1], dirX[0]), da = Math.atan2(Math.sin(a1 - a0), Math.cos(a1 - a0)), ang = a0 + da * sw, dv = [Math.cos(ang), Math.sin(ang)];
+        g.arrow(x, add(x, dv, aw * 1.15), C.blue, 3.5, seg(p, 0.55, 0.65)); if (sw > 0.95) g.tipLabel(add(x, dv, aw * 1.15), dv, 'd, its course', C.blue, 1);
+        if (mm > 0) {
+          var order1 = [], r;
+          for (r = n - 1; r >= 0; r--) order1.push(r);
+          for (r = 0; r < n; r++) order1.push(r);
+          var pos = rec.restart || !n ? -1 : Math.floor(seg(p, 0.1, 0.55) * order1.length * 0.999), cur = pos >= 0 ? order1[pos] : -1, second = pos >= n;
+          fifo(g, g.sideR, pageRows(rec.restart ? torn : queue, function (pg, i) {
+            var aI = rd.alphas ? rd.alphas[n - 1 - i] : null, bI = rd.betas ? rd.betas[i] : null, firstDone = pos >= 0 && (second || order1.indexOf(i) <= pos), secondDone = second && i <= cur;
+            return { lit: i === cur, strike: rec.restart, col: rec.restart ? C.red : C.ink, mark: rec.restart ? 'torn out' : secondDone ? 'β = ' + num(bI, 3) : firstDone && aI != null ? 'α = ' + num(aI, 3) : '' };
+          }), mm, p, { title: rec.restart ? 'Torn out today' : second ? 'Reading back: oldest to newest' : 'Reading: newest to oldest' });
+        } else g.panel(g.sideR, 'No journal');
+      } });
+    // 5. testing the stride (Armijo)
+    var tr = (rec.trials || []).map(function (q) { return { tau: q.step, f: q.f, need: q.need, x: q.x, ok: false }; });
+    tr.push({ tau: rec.step, f: rec.felt, need: rec.need, x: rec.x, ok: true });
+    var gd = dot(gt, d), tmin = Math.min.apply(null, tr.map(function (q) { return q.tau; })), u0 = Math.log(tmin) / Math.LN2 - 0.6, u1 = 0.6;
+    var sv = around([x].concat(tr.map(function (q) { return q.x; })), 0.4, 10 * cx.h);
+    var hs = [], uu; for (uu = u0; uu <= u1; uu += (u1 - u0) / 60) hs.push(J(course(Math.pow(2, uu))));
+    tr.forEach(function (q) { hs.push(q.f, q.need); }); hs.push(rec.fromF);
+    var vlo = Math.min.apply(null, hs), vhi = Math.max.apply(null, hs), vp = (vhi - vlo) * 0.15 || 1e-3;
+    var words = tr.map(function (q) { return 'stride ' + strideName(q.tau) + ': ' + num(q.f, 4) + (q.ok ? ' ≤ ' : ' > ') + num(q.need, 4) + (q.ok ? ' ✓' : ' ✗'); });
+    out.push({ id: 'tests', chapter: 'The stride', title: 'Testing the stride', layout: 'map+side', view: sv, dur: Math.min(6, 3.4 + 0.4 * tr.length),
+      text: 'It never trusts a stride blindly. It tries the full stride 1 along d; if the land there is not lower by enough, it halves the stride and tries again. ' +
+        '“Enough” is the Armijo test: the height must be at most f(x) + 10⁻⁴·stride·(∇J·d), a hair below the ' + num(rec.fromF, 4) + ' where it stands. ' +
+        (tr.length > 1 ? 'Today it tried ' + tr.length + ' strides; ' + strideName(rec.step) + ' passed.' : 'Today the full stride passed at once.') + (cx.haze ? ' In this haze every height it tries is a tap, off by about σ, so the dots need not sit on the curve.' : ''),
+      math: words.slice(0, 4).map(function (wd, i) { return at(0.2 + 0.6 * i / Math.min(4, words.length), wd); }).join('<br>') + (words.length > 4 ? '<br>' + at(0.85, '… ' + (words.length - 4) + ' more') : ''),
+      draw: function (g, p) {
+        base(g); g.hero(x, 'lb', 1);
+        var crv = []; for (var i = 0; i <= 40; i++) crv.push(course(i / 40)); g.path(crv, C.blue, 2, seg(p, 0, 0.2), [6, 4]);
+        tr.forEach(function (q, i) { var s0 = seg(p, 0.2 + 0.6 * i / tr.length, 0.2 + 0.6 * (i + 1) / tr.length); g.dot(q.x, 6, q.ok ? C.green : C.red, s0); if (i < 6 || q.ok) g.label(q.x, strideName(q.tau) + (q.ok ? ' ✓' : ' ✗'), q.ok ? C.green : C.red, { dx: 9, dy: -11, p: s0, size: 12 }); });
+        var pl = g.plot(g.sideR, [u0, u1], [vlo - vp, vhi + vp], { title: 'the height along its course, by stride', tTicks: false }), U = function (tau) { return Math.log(tau) / Math.LN2; };
+        pl.frame('stride, halving to the left', 'J');
+        var nT = Math.round(-U(tmin)), every = Math.max(1, Math.ceil((nT + 1) / 7)); g.ctx.font = '11px ' + g.mono; g.ctx.fillStyle = C.dim; g.ctx.textAlign = 'center'; g.ctx.textBaseline = 'top';
+        for (var jj = 0; jj <= nT; jj += every) g.ctx.fillText(strideName(Math.pow(2, -jj)), pl.X(-jj), pl.box[1] + pl.box[3] + 4);
+        pl.curve(function (u) { return J(course(Math.pow(2, u))); }, C.dim, 1.8, seg(p, 0.05, 0.25));
+        pl.curve(function (u) { return rec.fromF + 1e-4 * Math.pow(2, u) * gd; }, C.gold, 1.5, seg(p, 0.1, 0.3));
+        g.labelPx(pl.box[0] + pl.box[2] - 4, pl.Y(rec.fromF) - 12, 'the bar to pass', C.gold, { align: 'right', size: 11.5, p: seg(p, 0.2, 0.35) });
+        tr.forEach(function (q, i) { pl.point(U(q.tau), q.f, q.ok ? C.green : C.red, i < 5 || q.ok ? strideName(q.tau) + (q.ok ? ' ✓' : ' ✗') : '', seg(p, 0.2 + 0.6 * i / tr.length, 0.2 + 0.6 * (i + 1) / tr.length), U(q.tau) > (u0 + u1) / 2 ? 'left' : 'right'); });
+      } });
+    // 6. the stride
+    var mv = around([x, rec.x], 0.6, 10 * cx.h);
+    out.push({ id: 'stride', chapter: 'The stride', title: 'The stride', layout: 'map', view: mv, dur: 3.6,
+      text: 'It takes the stride that passed, ' + strideName(rec.step) + ' along d: from ' + pair(x) + ' to ' + pair(rec.x) + '. The height goes from ' + num(cx.Jx, 4) + ' to ' + num(rec.J, 4) + '.',
+      math: 'x ← ' + at(0.5, pair(rec.x)) + at(0.85, ';  J: ' + num(cx.Jx, 4) + ' → ' + num(rec.J, 4)),
+      draw: function (g, p) {
+        base(g); var q = seg(p, 0.1, 0.7), pts = []; for (var i = 0; i <= 30; i++) pts.push(course(rec.step * i / 30 * q));
+        g.path(pts, C.blue, 3, 1); g.hero(pts[pts.length - 1], 'lb', 1);
+        g.label(x, 'J = ' + num(cx.Jx, 4), C.dim, { dx: 12, dy: 16 }); g.label(rec.x, 'J = ' + num(rec.J, 4), C.gold, { dx: 12, dy: -16, p: seg(p, 0.75, 0.9) });
+      } });
+    // 7. a new page
+    if (mm > 0) {
+      var after = rec.after || [], dropped = rec.dropped || [];
+      out.push({ id: 'newpage', chapter: 'The journal', title: rec.wrote ? 'A new page joins the queue' : 'No page today', layout: 'side', dur: 4,
+        text: rec.wrote ? 'After the stride it writes today’s page at the bottom of the journal: s = ' + pair(rec.wrote.s) + ', y = ' + pair(rec.wrote.y) + '. ' +
+            (dropped.length ? 'The journal already held m = ' + mm + ' pages, so the oldest, from day ' + dropped[0].day + ', leaves at the top: first in, first out.' : 'The journal now holds ' + after.length + ' of its ' + mm + ' pages; pages leave only once it is full.')
+          : 'It writes no page today: the slope did not grow along this stride (yᵀs ≤ 0), and such a page would mislead its reading.',
+        math: rec.wrote ? at(0.5, 'in: day ' + rec.wrote.day) + (dropped.length ? at(0.75, ',  out: day ' + dropped[0].day) : '') : 'yᵀs ≤ 0: no page',
+        draw: function (g, p) {
+          var rows = dropped.map(function (pg) { return { n: '−', day: pg.day, s: pg.s, y: pg.y, strike: true, col: C.red, mark: '← leaves', p: 1 - 0.6 * seg(p, 0.55, 0.9) }; });
+          rows = rows.concat(pageRows(after, function (pg) { var fresh = rec.wrote && pg.day === rec.wrote.day; return fresh ? { col: C.green, mark: '← joins', p: seg(p, 0.15, 0.5) } : {}; }));
+          if (after.length < mm) rows.push({ n: '', day: null, col: C.dim, mark: (mm - after.length) + ' empty' });
+          fifo(g, g.sideR, rows, mm, p);
+        } });
+    }
+    // 8. and again
+    var ahead = w.slice(k, Math.min(w.length, k + 9)).map(function (q) { return q.x; });
+    if (ahead.length > 2) {
+      out.push({ id: 'again', chapter: 'The stride', title: 'And again, day after day', layout: 'map', view: around(ahead, 0.35, 10 * cx.h), dur: 4,
+        text: 'Each day it reads its pages, tests its stride and writes one more page. Here are its next ' + (ahead.length - 1) + ' days. The pages teach it the shape of the land, so its course bends toward the bottom instead of zigzagging across the valley.',
+        math: 'd = −H∇J,  x ← x + stride·d',
+        draw: function (g, p) {
+          base(g); var nn = ahead.length - 1, s = seg(p, 0.05, 0.9) * nn, kk = Math.floor(s), f = s - kk;
+          g.path(ahead.slice(0, kk + 1).concat(kk < nn ? [lerp2(ahead[kk], ahead[kk + 1], ease(f))] : []), C.blue, 2.5, 1);
+          ahead.slice(1, kk + 1).forEach(function (q, i) { g.dot(q, 4, C.blue, 1); g.label(q, 'day ' + (k + i + 1), C.dim, { dx: 8, dy: -10, size: 11 }); });
+          g.hero(kk < nn ? lerp2(ahead[kk], ahead[kk + 1], ease(f)) : ahead[nn], 'lb', 1);
+        } });
+    }
+    if (cx.last && w.why === 'line search') {
+      out.push({ id: 'stall', chapter: 'The stride', title: 'Why it stops', layout: 'map', view: around([w[w.length - 1].x], 0, 12 * cx.h), dur: 3.4,
+        text: 'On day ' + (w.length) + ' it halved its stride again and again, down to almost nothing, and no stride passed the test: ' + (cx.haze ? 'in this haze its taps contradict each other, so even a tiny step looks too high.' : 'along its course this is as low as it can measure.') + ' So it stops for good.',
+        math: 'no stride ≥ 10⁻¹⁶ passed',
+        draw: function (g, p) { g.land(J, { id: 'J', rings: 9 }); g.axes(); var q = w[w.length - 1].x; g.hero(q, 'lb', 1); g.halo(q, 14 + 10 * seg(p, 0.2, 0.8), C.red, 1 - seg(p, 0.8, 1), 2); } });
+    }
+  });
+
+  // ------------------------------------------------------------ the Twins: aim, rope, the Wanderer's step, the Warden, the ledger
+  B.register('twDay', function (cx, out) {
+    var rec = cx.rec, w = cx.walk, land = cx.land, P = cx.p, rho = P.rho, k = cx.k;
+    if (!rec) return;
+    var x = rec.from, z = rec.zFrom, u = rec.uFrom, v = rec.v, xn = rec.x, zn = rec.z, un = rec.u, tower = land.kind === 'tower', box = land.box;
+    var lawName = tower ? 'on the lawful line between the two lawful corners' : box ? (cx.key === 'wall' ? 'inside the wall' : 'inside the realm') : '';
+    var noLaw = !tower && !box, f = land.f, rope = function (q) { var dq = sub(q, v); return f(q) + rho / 2 * dot(dq, dq); };
+    var splitMeaning = cx.key === 'wall' ? 'The height was called J earlier. In this split, f = J is the cost assigned to the Wanderer, while z ∈ C carries the wall law.' :
+      tower ? 'At the fort, f contains the lantern and flag costs but not the law term, because the Warden enforces that law.' :
+      'Here f names the cost assigned to the Wanderer.';
+    var xu = add(xn, u), view = around([x, z, v, xn, zn, xu, add(z, u)], 0.5, 0.3 * cx.span);
+    function law(g, p) { if (tower) g.line(land.lawSegment[0], land.lawSegment[1], C.blue, 3, p); else if (box) g.path(boxPath(box), C.blue, 2, p); }
+    function warden(g, q, p, label) { if (!(p > 0)) return; g.dot(q, 7, C.blue, p); g.label(q, label || 'Warden z', C.blue, { dx: 10, dy: 14, p: p, size: 12 }); }
+    function base(g, shade) { g.land(shade || cx.J, shade ? { id: 'rope', rings: 10 } : cx.shade); g.axes(); law(g, 1); }
+    out.push({ id: 'twins', chapter: 'The Twins', title: 'One answer, two temporary copies', layout: 'map', view: view, dur: 4.2,
+      text: 'ADMM temporarily makes two copies of one final decision so that two jobs can be handled separately. The Wanderer, x, searches for low cost. The Warden, z, keeps the other copy where the law allows' + (noLaw ? '; with no law here, it simply copies the Wanderer.' : ': ' + lawName + '.') +
+        ' The rope and the scaled dual variable u—the ledger—drive the copies back toward one answer. ' + splitMeaning + ' Today x = ' + pair(x) + ', z = ' + pair(z) + ', u = ' + pair(u) + '.',
+      math: at(0.2, 'same final decision: x = z') + at(0.45, '<br>x = ' + pair(x)) + at(0.65, ',  z = ' + pair(z)) + at(0.82, ',  u = ' + pair(u)),
+      draw: function (g, p) {
+        base(g); law(g, seg(p, 0, 0.3)); g.label(tower ? lerp2(land.lawSegment[0], land.lawSegment[1], 0.25) : box ? [box[0], box[1]] : x, noLaw ? '' : 'the law', C.blue, { dx: 8, dy: -12, p: seg(p, 0.15, 0.3) });
+        g.hero(x, 'tw', seg(p, 0.25, 0.4), 'Wanderer x'); warden(g, z, seg(p, 0.45, 0.6));
+        if (len(u) > 1e-9) { g.arrow(z, add(z, u), C.orange, 2.5, seg(p, 0.7, 0.9)); g.tipLabel(add(z, u), u, 'ledger u', C.orange, seg(p, 0.8, 0.95)); }
+      } });
+    out.push({ id: 'aim', chapter: 'The Twins', title: 'The aim: v = z − u', layout: 'map', view: view, dur: 3.8,
+      text: 'Before it moves, the Wanderer takes its aim: the Warden’s spot, corrected by the ledger, v = z − u = ' + pair(z) + ' − ' + pair(u) + ' = ' + pair(v) + '. ' +
+        (len(u) > 1e-9 ? 'The ledger remembers which way the law has kept pushing, and leans the aim the other way.' : 'The ledger is still empty, so the aim is the Warden’s own spot.'),
+      math: 'v = z − u = ' + at(0.4, pair(z) + ' − ' + pair(u)) + at(0.8, ' = ' + pair(v)),
+      draw: function (g, p) {
+        base(g); g.hero(x, 'tw', 1); warden(g, z, 1);
+        if (len(u) > 1e-9) { g.arrow(z, sub(z, u), C.violet, 2.5, seg(p, 0.2, 0.6)); }
+        g.dot(v, 6, C.violet, seg(p, 0.55, 0.7)); g.halo(v, 12, C.violet, seg(p, 0.6, 0.75), 1.5); g.label(v, 'v, the aim', C.violet, { dx: 12, dy: -14, p: seg(p, 0.65, 0.85) });
+      } });
+    var rr = Math.min(rec.reach, cx.span);
+    out.push({ id: 'rope', chapter: 'The Twins', title: 'The rope', layout: 'map', view: view, dur: 4.2,
+      text: 'The Wanderer is tied to its aim v by a rope of stiffness ρ = ' + num(rho, 2) + '. It looks for the spot that is lowest for its land and its rope together: f(x) + ρ/2·|x − v|². ' +
+        'A stiff rope keeps it close to v; a slack one lets the land decide. The shading shows that sum; no spot farther than ' + num(rr) + ' from v can beat v itself (the dashed ring).',
+      math: 'minimise f(x) + ρ/2·|x − v|²,  ρ = ' + num(rho, 2),
+      draw: function (g, p) {
+        g.land(rope, { id: 'rope' + v[0] + ',' + v[1], rings: 10, alpha: seg(p, 0, 0.5) }); g.axes(); law(g, 1);
+        g.hero(x, 'tw', 1); g.dot(v, 6, C.violet, 1); g.label(v, 'v', C.violet, { dx: 10, dy: -12 });
+        g.line(x, v, C.orange, 2, seg(p, 0.3, 0.55), [4, 3]); g.label(lerp2(x, v, 0.5), 'the rope', C.orange, { dx: 8, dy: -12, p: seg(p, 0.45, 0.6) });
+        if (rr > 0) g.halo(v, rr * g.s, C.ink, seg(p, 0.6, 0.8), 1.2, [5, 4]);
+      } });
+    // the Wanderer's step: by a formula, sentry by sentry, or in small steps
+    var mv = around([x, v, xn], 0.6, 0.25 * cx.span), stepText, stepMath, side = null;
+    if (rec.exact && !tower) {
+      var A = land.A, c = land.c, M = [[A[0][0] + rho, A[0][1]], [A[1][0], A[1][1] + rho]], rhs = [A[0][0] * c[0] + A[0][1] * c[1] + rho * v[0], A[1][0] * c[0] + A[1][1] * c[1] + rho * v[1]];
+      stepText = 'The Wanderer first aims at v = z − u = ' + pair(v) + '. It then lowers the cost f(x) plus the rope penalty ρ/2·|x − v|². On this valley a formula gives the lowest spot at once: setting the slope of the sum to zero gives (A + ρI)·x = Ac + ρv, two equations for the two numbers of x. Solved: x = ' + pair(xn) + '.';
+      stepMath = '(A + ρI) = [[' + num(M[0][0]) + ', ' + num(M[0][1]) + '], [' + num(M[1][0]) + ', ' + num(M[1][1]) + ']]' + at(0.4, '<br>Ac + ρv = ' + pair(rhs)) + at(0.8, '<br>x = (A + ρI)⁻¹(Ac + ρv) = ' + pair(xn));
+      side = function (g, p) {
+        var R = g.sideR; g.panel(R, 'Two equations, two unknowns');
+        var y0 = R[1] + 44, wM = g.matrix(R[0] + 14, y0, [[num(M[0][0]), num(M[0][1])], [num(M[1][0]), num(M[1][1])]], function () { return seg(p, 0.1, 0.3); }, { size: 13 });
+        g.labelPx(R[0] + 22 + wM, y0 + 24, '· x =', C.ink, { plain: true, p: seg(p, 0.2, 0.35) });
+        g.matrix(R[0] + 70 + wM, y0, [[num(rhs[0])], [num(rhs[1])]], function () { return seg(p, 0.35, 0.55); }, { size: 13, col: C.violet });
+        g.labelPx(R[0] + 14, y0 + 84, 'x = ' + pair(xn), C.gold, { plain: true, mono: true, size: 14, p: seg(p, 0.7, 0.85) });
+      };
+    } else if (rec.exact && tower) {
+      var y = land.y, s2 = P.s2, mb = P.muB, phi = function (t, i) { return (y[i] - t) * (y[i] - t) / (2 * s2) + mb * Math.pow(1 - t * t, 2) + rho / 2 * (t - v[i]) * (t - v[i]); };
+      stepText = 'The Wanderer first aims at v = z − u = ' + pair(v) + ', then lowers f plus the rope penalty. On a tower land the two sentries can choose their cards one at a time: each card is the lowest point on [−1, 1] of its lantern part, its flag part and its share of the rope, φ(t) = (y − t)²/(2σ²) + μ_b(1 − t²)² + ρ/2·(t − v)². The lowest points: x = ' + pair(xn) + '.';
+      stepMath = at(0.4, 'card 1: lowest φ at ' + num(xn[0])) + at(0.7, ',  card 2: lowest φ at ' + num(xn[1]));
+      side = function (g, p) {
+        var R = g.sideR, h2 = (R[3] - 8) / 2;
+        [0, 1].forEach(function (i) {
+          var Rr = [R[0], R[1] + i * (h2 + 8), R[2], h2], vals = []; for (var q = 0; q <= 40; q++) vals.push(phi(-1 + q / 20, i));
+          var lo = Math.min.apply(null, vals), hi = Math.max.apply(null, vals), pl = g.plot(Rr, [-1, 1], [lo - 0.08 * (hi - lo), hi + 0.08 * (hi - lo)], { title: 'sentry ' + (i + 1) + ': φ(t)' });
+          pl.frame('card t', ''); pl.curve(function (t) { return phi(t, i); }, i ? C.blue : C.orange, 2, seg(p, 0.1 + 0.25 * i, 0.35 + 0.25 * i));
+          pl.point(xn[i], phi(xn[i], i), C.gold, 'lowest: ' + num(xn[i]), seg(p, 0.35 + 0.25 * i, 0.5 + 0.25 * i), xn[i] > 0.3 ? 'left' : 'right');
+        });
+      };
+    } else {
+      stepText = 'The Wanderer first aims at v = z − u = ' + pair(v) + ', then lowers f plus the rope penalty. With ' + (cx.haze ? 'haze' : 'ripples or pits') + ' on the land there is no formula. It walks down that combined cost in ' + Math.max(rec.path.length - 1, 0) + ' small steps, feeling the way with its staff, until it is as low as it can tell: x = ' + pair(xn) + '.';
+      stepMath = at(0.8, 'x = ' + pair(xn));
+    }
+    out.push({ id: 'wander', chapter: 'The Twins', title: 'The Wanderer’s step', layout: side ? 'map+side' : 'map', view: mv, dur: 4.6,
+      text: stepText, math: stepMath,
+      draw: function (g, p) {
+        g.land(rope, { id: 'rope' + v[0] + ',' + v[1], rings: 10 }); g.axes(); law(g, 1); g.dot(v, 6, C.violet, 1); g.label(v, 'v', C.violet, { dx: 10, dy: -12 });
+        var path = rec.path && rec.path.length > 1 ? rec.path : [x, xn], q = seg(p, 0.35, 0.9);
+        g.path(path, C.ink, 2, q, [4, 3]);
+        var L = 0, segL = []; for (var i = 1; i < path.length; i++) { segL.push(len(sub(path[i], path[i - 1]))); L += segL[i - 1]; }
+        var goal = L * q, pos = path[0]; for (i = 1; i < path.length; i++) { if (goal <= segL[i - 1]) { pos = lerp2(path[i - 1], path[i], segL[i - 1] ? goal / segL[i - 1] : 1); break; } goal -= segL[i - 1]; pos = path[i]; }
+        g.hero(pos, 'tw', 1); if (q >= 1) g.label(xn, 'new x', C.gold, { dx: 12, dy: -14 });
+        if (side) side(g, p);
+      } });
+    out.push({ id: 'warden', chapter: 'The Twins', title: 'The Warden keeps the law', layout: 'map', view: view, dur: 4.2,
+      text: noLaw ? 'With no law on this land, the Warden just stands at x + u = ' + pair(zn) + '.' :
+        'The Warden goes to the lawful spot nearest to x + u = ' + pair(xn) + ' + ' + pair(u) + ' = ' + pair(xu) + ': z = ' + pair(zn) + '. ' +
+        (tower ? 'On the tower the nearest lawful spot is the nearest point of the lawful line.' : 'Inside a wall that means pulling each number back within the wall, if it is outside.') +
+        ' This game shows the constraint form of ADMM, so the Warden projects. In general ADMM, the second copy may have another cost and its update need not be a projection.',
+      math: 'z = Π' + '<sub>C</sub>(x + u) = Π<sub>C</sub>' + pair(xu) + at(0.75, ' = ' + pair(zn)),
+      draw: function (g, p) {
+        base(g); g.hero(xn, 'tw', 1);
+        if (len(u) > 1e-9) g.arrow(xn, xu, C.orange, 2, seg(p, 0.1, 0.35));
+        g.dot(xu, 5, C.ink, seg(p, 0.3, 0.4)); g.label(xu, 'x + u', C.ink, { dx: 10, dy: -12, p: seg(p, 0.35, 0.5) });
+        g.line(xu, zn, C.blue, 2, seg(p, 0.5, 0.75), [5, 4]); warden(g, zn, seg(p, 0.7, 0.85), 'new z');
+      } });
+    var gap = sub(xn, zn);
+    out.push({ id: 'ledger', chapter: 'The Twins', title: 'The ledger', layout: 'map', view: view, dur: 4.2,
+      text: 'The scaled dual variable u—the ledger—adds today’s signed gap between the copies: u ← u + (x − z) = ' + pair(u) + ' + ' + pair(gap) + ' = ' + pair(un) + '. ' +
+        (noLaw ? 'With no law the twins never part, the gap is 0 and the ledger stays empty.' :
+          'A small gap means the copies agree, but agreement alone is not enough to stop: the Warden’s copy must also have nearly stopped moving. At a settled solution, ρu is the corresponding unscaled dual variable.'),
+      math: 'u ← u + x − z = ' + at(0.45, pair(u) + ' + ' + pair(gap)) + at(0.85, ' = ' + pair(un)),
+      draw: function (g, p) {
+        base(g); g.hero(xn, 'tw', 1); warden(g, zn, 1);
+        g.arrow(zn, xn, C.violet, 2, seg(p, 0.05, 0.3)); g.label(lerp2(zn, xn, 0.5), 'gap x − z', C.violet, { dx: 8, dy: 14, p: seg(p, 0.2, 0.35) });
+        if (len(u) > 1e-9) g.arrow(zn, add(zn, u), 'rgba(255,176,113,0.55)', 2, seg(p, 0.35, 0.55));
+        g.arrow(add(zn, u), add(add(zn, u), gap), C.violet, 2, seg(p, 0.5, 0.7), [4, 3]);
+        if (len(un) > 1e-9) { g.arrow(zn, add(zn, un), C.orange, 3, seg(p, 0.7, 0.9)); g.tipLabel(add(zn, un), un, 'new ledger u', C.orange, seg(p, 0.85, 1)); }
+      } });
+    var primal = len(sub(xn, zn)), dual = rho * len(sub(zn, z));
+    var ahead = w.slice(k, Math.min(w.length, k + 9));
+    if (ahead.length > 2) {
+      var xs = ahead.map(function (q) { return q.x; }), zs = ahead.map(function (q) { return q.z; });
+      out.push({ id: 'again', chapter: 'The Twins', title: 'Repeat—and know when to stop', layout: 'map', view: around(xs.concat(zs), 0.35, 0.2 * cx.span), dur: 4,
+        text: 'Each circuit repeats the four moves: aim, lower the cost plus rope, keep the law, and update the ledger. Stop only when both tests are small: the primal residual measures whether the two copies agree, and the dual residual measures whether the Warden’s copy has stopped moving. Today they are ' + num(primal, 4) + ' and ' + num(dual, 4) + '. Agreement alone is not enough.',
+        math: 'primal residual: |x − z| = ' + num(primal, 4) + '<br>dual residual: ρ|z<sub>new</sub> − z<sub>old</sub>| = ' + num(dual, 4) + '<br>stop when both are small',
+        draw: function (g, p) {
+          base(g); var q = seg(p, 0.05, 0.9);
+          g.path(xs, C.ink, 2.5, q); g.path(zs, C.blue, 2.5, q, [5, 3]);
+          var nn = xs.length - 1, s = q * nn, kk = Math.min(Math.floor(s), nn - 1), f2 = s - kk;
+          g.hero(lerp2(xs[kk], xs[kk + 1], ease(Math.min(f2, 1))), 'tw', 1); warden(g, lerp2(zs[kk], zs[kk + 1], ease(Math.min(f2, 1))), 1, 'Warden');
+        } });
+    }
+  });
+})();
+</script>
+<script>
+// The tutorial "Three heroes downhill": the tale of three optimisers told as one line of steps.  The reader only
+// clicks Next.  Each step is a line or two of the story, its formula with real numbers, and an animation on the map
+// of the land.  The lands and the walks come from engine.js; the drawing kit, the step player and the day-by-day steps
+// (feeling the slope, the Pilgrim's stride, the Cartographer's journal, the Twins' day) from board.js and
+// board_parts.js.
+(function () {
+  'use strict';
+  var E = window.Engine, B = window.Board; if (!E || !B) return;
+  var H = B.H, C = H.C, seg = H.seg, num = H.num, pair = H.pair, at = H.at, add = H.add, sub = H.sub, dot = H.dot, len = H.len;
+  var scale = H.scale, lerp2 = H.lerp2, around = H.around, ease = H.ease, clamp = H.clamp, TAU = 2 * Math.PI;
+  var NAMES = { pg: 'the Pilgrim', lb: 'the Cartographer', tw: 'the Wanderer' }, COL = { pg: C.orange, lb: C.blue, tw: '#e6e9ee' };
+
+  // ------------------------------------------------------------ lands and walks, as the game computes them
+  function world(key, over) {
+    var p = {}, k; for (k in E.PRESETS[key]) p[k] = E.PRESETS[key][k]; for (k in (over || {})) p[k] = over[k];
+    var K = E.KINDS[key], land = E.buildLand(key, p), x0 = K.kind === 'tower' && p.sx == null ? E.lanternStart(p) : [p.sx, p.sy], D = Math.round(p.days);
+    var W = { key: key, p: p, K: K, land: land, x0: x0, view: K.view, T: land.treasure,
+              walks: { pg: E.pilgrim(land, x0, p.alpha, D), lb: E.cartographer(land, x0, Math.round(p.m), D), tw: E.twins(land, x0, p.rho, D) } };
+    var v = K.view, lo = Infinity, hi = -Infinity, sm = land.smooth || land.J;
+    for (var i = 0; i <= 40; i++) for (var j = 0; j <= 40; j++) { var z = sm([v[0] + (v[1] - v[0]) * i / 40, v[2] + (v[3] - v[2]) * j / 40]); lo = Math.min(lo, z); hi = Math.max(hi, z); }
+    W.shade = { id: key + JSON.stringify(over || {}), lo: lo, hi: hi, pits: !!land.holes, rings: 14 };
+    W.Jstar = land.J(W.T);
+    return W;
+  }
+  function ctxOf(W, hero, day) { return { hero: hero, name: NAMES[hero], key: W.key, L: { view: W.view, kind: W.K.kind }, land: W.land, p: W.p, x0: W.x0, day: day, walk: W.walks[hero] }; }
+  // steps of the day-by-day board, renamed into the course's chapter
+  function pick(W, hero, day, ids, chapter) {
+    var all = B.plan(ctxOf(W, hero, day)).steps;
+    return ids.map(function (id) {
+      var s = all.filter(function (q) { return q.id === id; })[0]; if (!s) throw new Error('no step ' + id);
+      var c = {}, k; for (k in s) c[k] = s[k]; c.id = W.key + '-' + hero + '-' + id; c.chapter = chapter; return c;
+    });
+  }
+  function firstWithin(walk, T, tol, key) { for (var k = 0; k < walk.length; k++) { var q = walk[k][key || 'x']; if (Math.hypot(q[0] - T[0], q[1] - T[1]) <= tol) return k; } return null; }
+
+  // ------------------------------------------------------------ drawing helpers for the story steps
+  function base(g, W, o) {
+    o = o || {}; var sh = {}, k; for (k in W.shade) sh[k] = W.shade[k]; if (o.alpha != null) sh.alpha = o.alpha;
+    g.land(W.land.J, sh); g.axes();
+    var b = W.land.box;
+    if (b && W.K.kind === 'quad' && o.law !== false) g.path([[b[0], b[0]], [b[1], b[0]], [b[1], b[1]], [b[0], b[1]], [b[0], b[0]]], C.blue, 2, o.lawP == null ? 1 : o.lawP);
+    if (W.K.kind === 'tower' && o.law !== false) g.line(W.land.lawSegment[0], W.land.lawSegment[1], C.blue, 2, 1, [6, 4]);
+  }
+  function star(g, q, p, text) {
+    if (!(p > 0)) return; var c = g.ctx, a = g.P(q), r = 11 * H.backOut(p);
+    var gl = c.createRadialGradient(a[0], a[1], 0, a[0], a[1], 30); gl.addColorStop(0, 'rgba(255,210,122,0.55)'); gl.addColorStop(1, 'rgba(255,210,122,0)');
+    c.fillStyle = gl; c.beginPath(); c.arc(a[0], a[1], 30, 0, TAU); c.fill();
+    c.beginPath(); for (var i = 0; i < 10; i++) { var an = -Math.PI / 2 + i * Math.PI / 5, rr = i % 2 ? r * 0.45 : r; c.lineTo(a[0] + rr * Math.cos(an), a[1] + rr * Math.sin(an)); }
+    c.closePath(); c.fillStyle = '#ffd27a'; c.fill(); c.strokeStyle = '#8a4b00'; c.lineWidth = 1.2; c.stroke();
+    if (text) g.label(q, text, C.gold, { dx: 16, dy: 14, p: seg(p, 0.4, 1), size: 12.5 });
+  }
+  // a walk drawn up to a fractional day; returns where its hero stands then
+  function walkTo(g, walk, upto, col, w, key) {
+    key = key || 'x'; var n = Math.min(walk.length - 1, Math.floor(upto)), f = clamp(upto - n, 0, 1), pts = [];
+    for (var k = 0; k <= n; k++) pts.push(walk[k][key]);
+    var now = n < walk.length - 1 ? lerp2(walk[n][key], walk[n + 1][key], ease(f)) : walk[n][key];
+    pts.push(now); g.path(pts, col, w || 2.5, 1);
+    for (k = 1; k <= n; k++) g.dot(walk[k][key], 2.8, col, 1);
+    return now;
+  }
+  // the height of a walk, day by day, on a log scale: log10(J − J*)
+  function chart(g, R, series, upto, title) {
+    var D = 0, lo = Infinity, hi = -Infinity;
+    series.forEach(function (s) { D = Math.max(D, s.days); for (var k = 0; k <= Math.min(s.days, s.walk.length - 1); k++) { var v = s.val(k); lo = Math.min(lo, v); hi = Math.max(hi, v); } });
+    lo = Math.max(lo, -9); var pad = (hi - lo) * 0.08 || 1, pl = g.plot(R, [0, D], [lo - pad, hi + pad], { title: title || 'height above the treasure, J − J*, day by day (log scale)' });
+    pl.frame('day', 'log₁₀(J − J*)');
+    series.forEach(function (s) {
+      var f = function (t) { var k = Math.min(Math.floor(t), s.walk.length - 1), k2 = Math.min(k + 1, s.walk.length - 1), u = t - Math.floor(t); return Math.max(lo - pad, s.val(k) * (1 - u) + s.val(k2) * u); };
+      pl.curve(f, s.col, 2.2, clamp(upto / D, 0, 1));
+      var tEnd = Math.min(upto, D), yEnd = f(tEnd); if (s.mark != null && upto >= s.mark) pl.point(s.mark, f(s.mark), s.col, s.name + ': day ' + s.mark, 1, s.mark > D * 0.6 ? 'left' : 'right');
+      void yEnd;
+    });
+  }
+  function series(W, hero, days, key, mark, name) {
+    var w = W.walks[hero], J = W.land.J, Js = W.Jstar;
+    return { walk: w, days: days, col: COL[hero], mark: mark, name: name || NAMES[hero].replace('the ', ''), val: function (k) { var q = w[Math.min(k, w.length - 1)][key || 'x']; return Math.log(Math.max(J(q) - Js, 1e-9)) / Math.LN10; } };
+  }
+
+  // ------------------------------------------------------------ the course
+  var Wc = world('canyon'), Wlong = world('canyon', { alpha: 0.22 }), Ww = world('wall'), Wf = world('fort'), Wm = world('misty');
+  var out = [], CH = { land: 'The King’s land', feel: 'Feeling the slope', pg: 'The Pilgrim: gradient descent', lb: 'The Cartographer: L-BFGS', tw: 'The Twins: ADMM and the King’s law', fort: 'The old fort', cajode: 'From the fort to CAJODE', misty: 'The misty hills', end: 'What we learned' };
+  var T = Wc.T, x0 = Wc.x0, A = Wc.land.A, c = Wc.land.c, pc = Wc.p;
+
+  // 1. the King's land
+  out.push({ id: 'title', chapter: CH.land, title: 'Three heroes downhill', layout: 'map', view: Wc.view, dur: 4.2,
+    text: 'Fog lies on the King’s land, and at its lowest spot he has hidden a treasure. Three heroes set out from the same flag to find it: the Pilgrim, the Cartographer and the Twins. Each finds its way down in its own manner, and each manner is a method computers use to solve problems.',
+    math: '',
+    draw: function (g, p) {
+      base(g, Wc, { alpha: seg(p, 0, 0.5) }); g.flag(x0, seg(p, 0.35, 0.5)); g.label(x0, 'the start flag', C.ink, { dx: 18, dy: -22, p: seg(p, 0.45, 0.6) });
+      [['pg', [-0.03, 0]], ['lb', [0, -0.035]], ['tw', [0.03, 0]]].forEach(function (h, i) { g.hero(add(x0, h[1]), h[0], seg(p, 0.5 + 0.1 * i, 0.62 + 0.1 * i), i === 0 ? '' : ''); });
+      star(g, T, seg(p, 0.8, 1), 'the treasure');
+    } });
+  var probe = [[-0.15, 1.1], [0.25, 0.9], [0.55, 0.62], [0.95, 0.35], [1.15, -0.1]];
+  function along(pts, t) { var n = pts.length - 1, s = clamp(t, 0, 1) * n, k = Math.min(Math.floor(s), n - 1); return lerp2(pts[k], pts[k + 1], s - k); }
+  out.push({ id: 'land', chapter: CH.land, title: 'The land is a formula', layout: 'map', view: Wc.view, dur: 4.6,
+    text: 'Every spot on the map is a pair of numbers, x = (x₁, x₂), and every spot has a height, J(x), given by the King’s formula. On the map, colour shows height, dark low and warm high, and each ring joins spots of the same height. Watch a probe read the height as it crosses the land.',
+    math: 'J(x) = ½(x − c)ᵀA(x − c),  c = ' + pair(c, 2),
+    draw: function (g, p) {
+      base(g, Wc); var q = along(probe, seg(p, 0.1, 0.95));
+      g.ring(Wc.land.J(q), C.gold, 2, seg(p, 0.1, 0.2)); g.dot(q, 6, C.gold, seg(p, 0.05, 0.15));
+      g.label(q, 'x = ' + pair(q, 2) + '   J(x) = ' + num(Wc.land.J(q), 3), C.gold, { dx: 12, dy: -16, p: seg(p, 0.1, 0.2) });
+    } });
+  var flow = E.pilgrim(Wc.land, x0, 0.02, 600).map(function (q) { return q.x; });
+  out.push({ id: 'goal', chapter: CH.land, title: 'The treasure is the lowest spot', layout: 'map', view: Wc.view, dur: 4.2,
+    text: 'Finding the treasure means finding the spot where J is smallest. In the words of optimisation: minimise the cost J(x) over all x; the answer, x*, is called the minimiser. On this land, a long canyon, x* = ' + pair(T) + ' and J(x*) = 0.',
+    math: 'x* = argmin<sub>x</sub> J(x) = ' + pair(T),
+    draw: function (g, p) {
+      base(g, Wc); g.flag(x0, 1); var n = Math.round(seg(p, 0.1, 0.8) * (flow.length - 1));
+      g.path(flow.slice(0, n + 1), C.gold, 2.5, 1); g.dot(flow[n], 6, C.gold, 1); g.label(flow[n], 'J = ' + num(Wc.land.J(flow[n]), 3), C.gold, { dx: 12, dy: -14 });
+      star(g, T, seg(p, 0.8, 1), 'x*, the treasure');
+    } });
+  out.push({ id: 'fog', chapter: CH.land, title: 'But the land lies in fog', layout: 'map', view: Wc.view, dur: 4,
+    text: 'Nobody can see the land. A hero knows only what it measures where it stands. A computer program solving a problem is in the same place: it cannot look at the whole cost function, only work it out at the spots it tries. Every hero must find its way down from local measurements alone.',
+    math: '',
+    draw: function (g, p) {
+      base(g, Wc); g.hero(x0, 'pg', 1);
+      var ctx = g.ctx, R = g.mapR, a = g.P(x0), r = 40 + (1 - seg(p, 0.1, 0.8)) * Math.max(R[2], R[3]);
+      ctx.save(); ctx.beginPath(); ctx.rect(R[0], R[1], R[2], R[3]); ctx.arc(a[0], a[1], r, 0, TAU, true); ctx.fillStyle = 'rgba(14,20,28,0.93)'; ctx.fill('evenodd');
+      ctx.strokeStyle = 'rgba(242,245,248,0.35)'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(a[0], a[1], r, 0, TAU); ctx.stroke(); ctx.restore();
+      g.label(x0, 'all it can know: the ground under its feet', C.ink, { dx: 46, dy: -46, p: seg(p, 0.75, 0.95) });
+    } });
+
+  // 2. feeling the slope (the board's own steps, on the Pilgrim's first day)
+  out = out.concat(pick(Wc, 'pg', 0, ['staff', 'four', 'ew', 'ns', 'grad'], CH.feel));
+
+  // 3. the Pilgrim
+  var wp = Wc.walks.pg, pgDays = firstWithin(wp, T, 0.01), u1 = [Math.cos(pc.theta * Math.PI / 180), Math.sin(pc.theta * Math.PI / 180)], u2 = [-u1[1], u1[0]];
+  out.push({ id: 'pilgrim', chapter: CH.pg, title: 'The Pilgrim', layout: 'map', view: around([x0, wp[1].x, wp[2].x], 0.8, 0.5), dur: 4.4,
+    text: 'The Pilgrim carries a staff and no memory. Every day it feels the slope, turns downhill and takes a stride whose length is a fixed share α of the slope. That is gradient descent, the simplest way down a land you cannot see.',
+    math: 'x<sub>k+1</sub> = x<sub>k</sub> − α∇J(x<sub>k</sub>),  α = ' + num(pc.alpha, 2),
+    draw: function (g, p) {
+      base(g, Wc); g.flag(x0, 1); var gk = wp[1].g, gl = len(gk) || 1, A0 = g.P(x0);
+      if (p > 0.15) g.arrowPx(A0, [A0[0] + gk[0] / gl * 60 * seg(p, 0.15, 0.35), A0[1] - gk[1] / gl * 60 * seg(p, 0.15, 0.35)], C.orange, 3);
+      g.label(x0, '∇J, uphill', C.orange, { dx: gk[0] > 0 ? 50 : -110, dy: -30, p: seg(p, 0.3, 0.4) });
+      g.arrow(x0, wp[1].x, C.ink, 3, seg(p, 0.45, 0.75)); g.label(lerp2(x0, wp[1].x, 0.5), '−α∇J', C.ink, { dx: 10, dy: -14, p: seg(p, 0.6, 0.75) });
+      g.hero(lerp2(x0, wp[1].x, seg(p, 0.75, 0.95)), 'pg', 1, 'the Pilgrim');
+    } });
+  out = out.concat(pick(Wc, 'pg', 0, ['down', 'alpha', 'new'], CH.pg));
+  out.push({ id: 'pgwalk', chapter: CH.pg, title: 'Day after day', layout: 'map+side', view: around(wp.slice(0, pgDays + 2).map(function (q) { return q.x; }), 0.3, 0.5), dur: 6,
+    text: 'The Pilgrim repeats the same rule every day. It comes within 0.01 of the treasure on day ' + pgDays + '. Watch its path: it crosses the canyon from side to side, again and again, while it creeps along the canyon’s floor.',
+    math: 'within 0.01 of x* on day ' + at(0.9, String(pgDays)),
+    draw: function (g, p) {
+      base(g, Wc); star(g, T, 1); var up = seg(p, 0, 0.95) * (pgDays + 1), q = walkTo(g, wp, up, C.orange, 2.5); g.hero(q, 'pg', 1, 'day ' + Math.min(Math.floor(up), pgDays + 1));
+      chart(g, g.sideR, [series(Wc, 'pg', pgDays + 1, 'x', pgDays)], up);
+    } });
+  var zig = wp.slice(0, 13).map(function (q) { var d = sub(q.x, c); return [dot(d, u1), dot(d, u2)]; });
+  out.push({ id: 'zigzag', chapter: CH.pg, title: 'Why it zigzags', layout: 'side', dur: 5,
+    text: 'Split the Pilgrim’s distance from the treasure into the part along the canyon and the part across it. The canyon is ten times steeper across (λ₂ = ' + num(pc.l2, 0) + ') than along (λ₁ = ' + num(pc.l1, 0) + '). Each day the part along is multiplied by 1 − αλ₁ = ' + num(1 - pc.alpha * pc.l1, 2) + ', and the part across by 1 − αλ₂ = ' + num(1 - pc.alpha * pc.l2, 2) + ': the minus sign throws it to the other side every day. That is the zigzag. A stride short enough for the steep direction is far too short for the gentle one.',
+    math: 'along: × (1 − αλ₁) = ' + at(0.3, num(1 - pc.alpha * pc.l1, 2)) + ';  across: × (1 − αλ₂) = ' + at(0.6, num(1 - pc.alpha * pc.l2, 2)),
+    draw: function (g, p) {
+      var R = g.sideR, h2 = (R[3] - 8) / 2;
+      [[0, 'along the canyon (gentle, λ₁ = ' + num(pc.l1, 0) + ')', C.green], [1, 'across the canyon (steep, λ₂ = ' + num(pc.l2, 0) + ')', C.orange]].forEach(function (row, r) {
+        var Rr = [R[0], R[1] + r * (h2 + 8), R[2], h2], vals = zig.map(function (z) { return z[row[0]]; }), m = Math.max.apply(null, vals.map(Math.abs)) * 1.15 || 1;
+        var pl = g.plot(Rr, [0, 12], [-m, m], { title: row[1] }); pl.frame('day', ''); pl.seg(0, 0, 12, 0, C.faint, 1, 1);
+        var upto = seg(p, 0.1 + 0.3 * r, 0.6 + 0.3 * r) * 12;
+        for (var k = 0; k <= Math.floor(upto); k++) { pl.seg(k, 0, k, vals[k], row[2], 3, 1); pl.point(k, vals[k], row[2], '', 1); if (k) pl.seg(k - 1, vals[k - 1], k, vals[k], row[2], 1, 1, [3, 3]); }
+      });
+    } });
+  var wl = Wlong.walks.pg, lostDay = wl.lost != null ? wl.lost : wl.length - 1, nShow = Math.min(12, wl.length - 1);
+  out.push({ id: 'toolong', chapter: CH.pg, title: 'A stride too long', layout: 'map', view: around(wl.slice(0, nShow + 1).map(function (q) { return q.x; }), 0.2, 0.6), dur: 5,
+    text: 'The share α has a limit. Across the canyon the daily factor is 1 − αλ₂; once α is above 2/λ₂ = ' + num(2 / pc.l2, 2) + ', that factor is below −1, and the zigzag grows instead of shrinking. With α = 0.22 the part across is multiplied by ' + num(1 - 0.22 * pc.l2, 2) + ' every day, and the Pilgrim is flung out of the canyon.',
+    math: 'α = 0.22 > 2/λ₂ = ' + num(2 / pc.l2, 2) + ':  × (1 − 0.22·' + num(pc.l2, 0) + ') = ' + at(0.5, num(1 - 0.22 * pc.l2, 2)),
+    draw: function (g, p) { base(g, Wc); star(g, T, 1); var up = seg(p, 0, 0.95) * nShow, q = walkTo(g, wl, up, C.red, 2.5); g.hero(q, 'pg', 1, 'day ' + Math.floor(up)); void lostDay; } });
+
+  // 4. the Cartographer
+  var wc2 = Wc.walks.lb, lbDays = firstWithin(wc2, T, 0.01);
+  out.push({ id: 'carto', chapter: CH.lb, title: 'The Cartographer', layout: 'map', view: around([x0, wc2[1].x, wc2[2].x, T], 0.5, 0.5), dur: 4.4,
+    text: 'The Cartographer also feels the slope with a staff, but it keeps a journal: its last m = ' + Math.round(Wc.p.m) + ' strides, each with how the slope changed over it. From those pages it learns the shape of the land, and bends its course toward the bottom instead of going straight downhill. It also tests every stride before it trusts it. This is L-BFGS, a quasi-Newton method.',
+    math: 'x<sub>k+1</sub> = x<sub>k</sub> + t·d,  d = −H∇J',
+    draw: function (g, p) { base(g, Wc); g.flag(x0, 1); star(g, T, 1); var up = seg(p, 0.1, 0.9) * 2, q = walkTo(g, wc2, up, C.blue, 3); g.hero(q, 'lb', 1, 'the Cartographer'); } });
+  out = out.concat(pick(Wc, 'lb', 2, ['journal', 'page', 'read', 'tests', 'newpage'], CH.lb));
+  out.push({ id: 'race1', chapter: CH.lb, title: 'The Cartographer against the Pilgrim', layout: 'map+side', view: around(wp.slice(0, pgDays + 1).map(function (q) { return q.x; }), 0.3, 0.5), dur: 6,
+    text: 'On the canyon the Cartographer is within 0.01 of the treasure on day ' + lbDays + '; the Pilgrim needs ' + pgDays + ' days. After a couple of strides its journal has learned the canyon’s shape, so it stops zigzagging and heads along the floor.',
+    math: 'days to within 0.01 of x*:  Pilgrim ' + at(0.5, String(pgDays)) + ',  Cartographer ' + at(0.8, String(lbDays)),
+    draw: function (g, p) {
+      base(g, Wc); star(g, T, 1); var up = seg(p, 0, 0.95) * (pgDays + 1);
+      var qp = walkTo(g, wp, up, C.orange, 2.2), ql = walkTo(g, wc2, Math.min(up, wc2.length - 1), C.blue, 3);
+      g.hero(qp, 'pg', 1); g.hero(ql, 'lb', 1); g.labelPx(g.mapR[0] + 12, g.mapR[1] + 30, 'day ' + Math.min(Math.floor(up), pgDays + 1), C.gold, { size: 14 });
+      chart(g, g.sideR, [series(Wc, 'pg', pgDays + 1, 'x', pgDays), series(Wc, 'lb', pgDays + 1, 'x', lbDays)], up);
+    } });
+
+  // 5. the Twins and the King's law
+  var Tw = Ww.T, cw = Ww.land.c, wpw = Ww.walks.pg, wlw = Ww.walks.lb, wtw = Ww.walks.tw, tol = 0.001;
+  var dPg = firstWithin(wpw, Tw, tol), dLb = firstWithin(wlw, Tw, tol), dTw = firstWithin(wtw, Tw, tol, 'z'), clipped = wpw.slice(1, dPg + 1).filter(function (q) { return q.clipped; }).length;
+  var twEnd = wtw[wtw.length - 1], twPrev = wtw[Math.max(0, wtw.length - 2)], uEnd = twEnd.u, gStar = Ww.land.grad(Tw), uTheory = [-gStar[0] / Ww.p.rho, -gStar[1] / Ww.p.rho];
+  var primalEnd = len(sub(twEnd.x, twEnd.z)), dualEnd = Ww.p.rho * len(sub(twEnd.z, twPrev.z)), wallView = [-0.3, 1.8, -0.55, 1.55];
+  out.push({ id: 'wall', chapter: CH.tw, title: 'The kingdom wall', layout: 'map', view: wallView, dur: 4.6,
+    text: 'On this land the King adds a law: the treasure must lie inside the wall, the square from 0 to 1 on each side. The bottom of the valley, c = ' + pair(cw, 2) + ', lies outside it, so the lowest lawful spot is on the wall itself, at x* = ' + pair(Tw) + '. In the words of optimisation the wall is a constraint: minimise J(x) with x in the set C.',
+    math: 'minimise J(x) subject to x ∈ C = [0, 1]²;  x* = ' + at(0.8, pair(Tw)),
+    draw: function (g, p) {
+      base(g, Ww, { lawP: seg(p, 0.1, 0.45) }); g.dot(cw, 6, C.violet, seg(p, 0.45, 0.6)); g.label(cw, 'c, outside the wall', C.violet, { dx: 10, dy: 14, p: seg(p, 0.5, 0.65) });
+      g.ring(Ww.land.J(Tw), C.gold, 2, seg(p, 0.6, 0.8)); star(g, Tw, seg(p, 0.75, 0.95), 'x*, on the wall');
+    } });
+  out.push({ id: 'pgwall', chapter: CH.tw, title: 'The Pilgrim at the wall', layout: 'map', view: wallView, dur: 5.4,
+    text: 'The Pilgrim keeps its rule and adds one more: when a stride carries it outside the wall, it is set back to the nearest spot inside. That is projected gradient descent. It comes within 0.001 of the treasure on day ' + dPg + '; on ' + clipped + ' of those days the wall set it back.',
+    math: 'x<sub>k+1</sub> = Π<sub>C</sub>(x<sub>k</sub> − α∇J(x<sub>k</sub>))',
+    draw: function (g, p) {
+      base(g, Ww); star(g, Tw, 1); var up = seg(p, 0, 0.95) * (dPg + 1), n = Math.floor(up);
+      for (var k = 1; k <= Math.min(n, wpw.length - 1); k++) if (wpw[k].clipped) { g.dot(wpw[k].raw, 3.5, C.red, 1); g.line(wpw[k].raw, wpw[k].x, C.red, 1.5, 1, [3, 3]); }
+      var q = walkTo(g, wpw, up, C.orange, 2.5); g.hero(q, 'pg', 1, 'day ' + Math.min(n, dPg + 1));
+    } });
+  out.push({ id: 'twins', chapter: CH.tw, title: 'The Twins', layout: 'map', view: wallView, dur: 4.4,
+    text: 'ADMM temporarily makes two copies of one final decision. The Wanderer x handles the land cost; the Warden z handles the law; and the scaled dual variable u keeps the running sum of their signed gaps. Day by day the rope and ledger restore agreement. This is the alternating direction method of multipliers.',
+    math: 'one final decision, two temporary copies:  x for the cost,  z ∈ C for the law',
+    draw: function (g, p) {
+      base(g, Ww); star(g, Tw, 1); var up = seg(p, 0.1, 0.9) * 5;
+      var qx = walkTo(g, wtw, up, '#e6e9ee', 2.5, 'x'), qz = walkTo(g, wtw, up, C.blue, 2.5, 'z');
+      g.hero(qx, 'tw', 1, 'the Wanderer'); g.dot(qz, 7, C.blue, 1); g.label(qz, 'the Warden', C.blue, { dx: 10, dy: 14 });
+    } });
+  out = out.concat(pick(Ww, 'tw', 3, ['aim', 'rope', 'wander', 'warden', 'ledger', 'again'], CH.tw));
+  var Dw = Math.max(dPg, dLb, dTw) + 1;
+  out.push({ id: 'race2', chapter: CH.tw, title: 'Three heroes at the wall', layout: 'map+side', view: [0.0, 1.6, -0.2, 1.4], dur: 6,
+    text: 'At the wall the Cartographer is within 0.001 of the treasure on day ' + dLb + ', the Twins’ Warden on day ' + dTw + ' and the Pilgrim on day ' + dPg + '. At the Twins’ settled endpoint, both tests are small: the primal residual is ' + num(primalEnd, 5) + ' and the dual residual is ' + num(dualEnd, 5) + '. The ledger is the scaled dual variable u = ' + pair(uEnd) + '; there it approaches −∇J(x*)/ρ = ' + pair(uTheory) + '.',
+    math: 'days to within 0.001:  Cartographer ' + at(0.25, String(dLb)) + ',  Twins ' + at(0.42, String(dTw)) + ',  Pilgrim ' + at(0.58, String(dPg)) + '<br>' + at(0.72, 'primal residual ' + num(primalEnd, 5) + ';  dual residual ' + num(dualEnd, 5)) + '<br>' + at(0.88, 'scaled dual u → −∇J(x*)/ρ = ' + pair(uTheory)),
+    draw: function (g, p) {
+      base(g, Ww); star(g, Tw, 1); var up = seg(p, 0, 0.95) * Dw;
+      var a = walkTo(g, wpw, up, C.orange, 2), b = walkTo(g, wlw, up, C.blue, 2.5), z = walkTo(g, wtw, up, '#9ec5f3', 2, 'z');
+      g.hero(a, 'pg', 1); g.hero(b, 'lb', 1); g.dot(z, 6, '#6aa2e3', 1);
+      chart(g, g.sideR, [series(Ww, 'pg', Dw, 'x', dPg), series(Ww, 'lb', Dw, 'x', dLb), series(Ww, 'tw', Dw, 'z', dTw, 'Twins')], up);
+    } });
+
+  // 6. the old fort
+  var fT = Wf.T, fw = Wf.walks, fDays = {}; ['pg', 'lb', 'tw'].forEach(function (h) { fDays[h] = E.settled(fw[h], h === 'tw' ? 'z' : 'x', 1e-3 * 2.4); });
+  function word(q) { return '(' + (q[0] >= 0 ? '+' : '−') + ', ' + (q[1] >= 0 ? '+' : '−') + ')'; }
+  out.push({ id: 'fort', chapter: CH.fort, title: 'Two sentries and a law', layout: 'map', view: [-1.3, 1.3, -1.3, 1.3], dur: 5,
+    text: 'Not every land is a valley. The old fort is the smallest coding example in this tale: two coded bits, one parity check and a known channel. A spot is a pair of cards held by two sentries, each between −1 and +1. The lanterns hint at what each sentry saw, the flags pull every card toward +1 or −1, and the tower’s law says the two flags must agree. Each card is a bit not yet decided, the lanterns are what was received, and the law is the one parity check.',
+    math: 'J(x) = lanterns + flags + law;  the true order ' + word(fT),
+    draw: function (g, p) {
+      base(g, Wf, { alpha: seg(p, 0, 0.4) });
+      g.path([[-1, -1], [1, -1], [1, 1], [-1, 1], [-1, -1]], 'rgba(255,210,122,0.6)', 1.5, seg(p, 0.2, 0.5), [6, 4]);
+      [[1, 1], [1, -1], [-1, 1], [-1, -1]].forEach(function (q, i) { var ok = q[0] * q[1] === Wf.land.lawSign; g.dot(q, 5, ok ? C.blue : C.orange, seg(p, 0.4 + 0.08 * i, 0.5 + 0.08 * i)); g.label(q, word(q) + (ok ? ' lawful' : ' broken'), ok ? C.blue : C.orange, { dx: q[0] > 0 ? 9 : -9, dy: q[1] > 0 ? -13 : 14, align: q[0] > 0 ? 'left' : 'right', p: seg(p, 0.45 + 0.08 * i, 0.6 + 0.08 * i), size: 12 }); });
+      star(g, fT, seg(p, 0.8, 1), 'the true order');
+    } });
+  var Df = Math.min(60, Math.max(fDays.pg, fDays.lb, fDays.tw) + 1);
+  out.push({ id: 'fortwalks', chapter: CH.fort, title: 'Who reaches the true order?', layout: 'map', view: [-1.3, 1.3, -1.3, 1.3], dur: 6,
+    text: 'All three heroes start from what the lanterns suggest and all three reach the true order ' + word(fT) + '. They settle on day ' + fDays.lb + ' (the Cartographer), ' + fDays.tw + ' (the Twins) and ' + fDays.pg + ' (the Pilgrim). Here the law is part of the height for the Pilgrim and the Cartographer, while the Twins hand it to the Warden, who walks only on the lawful line.',
+    math: 'settled on day:  Cartographer ' + fDays.lb + ',  Twins ' + fDays.tw + ',  Pilgrim ' + fDays.pg,
+    draw: function (g, p) {
+      base(g, Wf); star(g, fT, 1); var up = seg(p, 0, 0.95) * Df;
+      var a = walkTo(g, fw.pg, up, C.orange, 2), b = walkTo(g, fw.lb, up, C.blue, 2.5), z = walkTo(g, fw.tw, up, '#9ec5f3', 2, 'z');
+      g.hero(a, 'pg', 1); g.hero(b, 'lb', 1); g.dot(z, 6, '#6aa2e3', 1); g.labelPx(g.mapR[0] + 12, g.mapR[1] + 30, 'day ' + Math.floor(up), C.gold, { size: 14 });
+    } });
+
+  // The fort is an analogy for one parity check. These pages state exactly what full CAJODE adds, and keep
+  // acceptance of a decoded word separate from convergence of its continuous optimisation variables.
+  out.push({ id: 'cajode-copies', chapter: CH.cajode, title: 'One tower becomes many checks', layout: 'side', dur: 4.8,
+    text: 'A real LDPC code has many overlapping parity checks. CAJODE keeps one shared variable bᵢ ∈ [0, 1] for each coded bit. Every check keeps its own replica variables zₐ, constrained to that check’s parity polytope. Every occurrence of a bit in a check has its own scaled dual variable uₐ,ᵢ: its ledger entry for signed disagreement. The two-bit fort is only an analogy for one of those checks.',
+    math: 'shared variable bᵢ ↔ check replica zₐ,ᵢ;  ledger entry uₐ,ᵢ',
+    draw: function (g, p) {
+      var R = g.sideR, c = g.ctx, x = R[0] + R[2] * 0.28, xr = R[0] + R[2] * 0.72, ys = [R[1] + R[3] * 0.27, R[1] + R[3] * 0.50, R[1] + R[3] * 0.73];
+      g.panel(R, 'Shared variables and check replicas');
+      g.labelPx(x, R[1] + 50, 'shared coded bit bᵢ', C.gold, { align: 'center', plain: true, p: seg(p, 0.05, 0.25) });
+      ys.forEach(function (y, i) {
+        var q = seg(p, 0.2 + 0.14 * i, 0.42 + 0.14 * i); if (!(q > 0)) return;
+        c.globalAlpha = q; c.strokeStyle = C.violet; c.lineWidth = 2; c.beginPath(); c.moveTo(x + 12, R[1] + R[3] * 0.48); c.lineTo(xr - 38, y); c.stroke(); c.globalAlpha = 1;
+        g.labelPx(xr, y, 'check ' + (i + 1) + ': zₐ,ᵢ   uₐ,ᵢ', i === 1 ? C.blue : C.ink, { align: 'center', plain: true, p: q });
+      });
+      g.labelPx(xr, R[1] + R[3] - 28, 'each zₐ stays in its parity polytope', C.dim, { align: 'center', plain: true, p: seg(p, 0.72, 0.9), size: 12.5 });
+    } });
+  out.push({ id: 'cajode-circuit', chapter: CH.cajode, title: 'One full CAJODE circuit', layout: 'side', dur: 5.6,
+    text: 'At the old fort, the lantern readings are fixed because the channel is known. Full CAJODE also updates the channel. One circuit computes one weight for each received sample, updates all shared bit values, recomputes those weights, updates the channel coefficients, projects each check’s replica variables onto its parity polytope, and then updates every scaled dual variable.',
+    math: 'weights → shared bits → weights → channel → parity-polytope projections → scaled dual variables',
+    draw: function (g, p) {
+      var R = g.sideR, rows = ['1  one weight per received sample', '2  all shared variables bᵢ', '3  recompute those weights', '4  all channel coefficients', '5  every check projection', '6  every scaled dual variable'];
+      g.panel(R, 'One circuit, in order');
+      rows.forEach(function (t, i) {
+        var q = seg(p, 0.08 + 0.12 * i, 0.25 + 0.12 * i), y = R[1] + 52 + i * Math.min(42, (R[3] - 80) / rows.length);
+        g.labelPx(R[0] + 28, y, t, i === 3 ? C.gold : i >= 4 ? C.blue : C.ink, { plain: true, p: q, size: 14 });
+        if (i < rows.length - 1) g.labelPx(R[0] + 15, y + 20, '↓', C.dim, { plain: true, p: q, size: 15 });
+      });
+    } });
+  out.push({ id: 'cajode-done', chapter: CH.cajode, title: 'Two different meanings of “done”', layout: 'side', dur: 5.2,
+    text: 'After a complete circuit, CAJODE forms a binary word. It may accept the first decoded word that satisfies every parity check and passes the CRC. Accepting that word is not proof that the continuous variables converged: the primal and dual residuals can still be nonzero, and stationarity is not established. The wall teaches the ADMM pattern; CAJODE applies it to a nonconvex optimization problem, so the wall’s standard convergence story does not transfer automatically.',
+    math: 'accepted word: parity checks + CRC   ≠   continuous convergence or stationarity',
+    draw: function (g, p) {
+      var R = g.sideR, mid = R[0] + R[2] / 2;
+      g.panel(R, 'Do not merge these tests');
+      g.labelPx(R[0] + R[2] * 0.25, R[1] + 68, 'accepting a decoded word', C.blue, { align: 'center', plain: true, p: seg(p, 0.05, 0.25), size: 15 });
+      g.labelPx(R[0] + R[2] * 0.25, R[1] + 112, 'all parity checks', C.ink, { align: 'center', plain: true, p: seg(p, 0.18, 0.38) });
+      g.labelPx(R[0] + R[2] * 0.25, R[1] + 142, '+ CRC', C.ink, { align: 'center', plain: true, p: seg(p, 0.3, 0.5) });
+      g.labelPx(mid, R[1] + 122, '≠', C.orange, { align: 'center', plain: true, p: seg(p, 0.45, 0.6), size: 28 });
+      g.labelPx(R[0] + R[2] * 0.75, R[1] + 68, 'continuous checks', C.gold, { align: 'center', plain: true, p: seg(p, 0.55, 0.7), size: 15 });
+      g.labelPx(R[0] + R[2] * 0.75, R[1] + 112, 'primal + dual residuals', C.ink, { align: 'center', plain: true, p: seg(p, 0.65, 0.8) });
+      g.labelPx(R[0] + R[2] * 0.75, R[1] + 142, '+ stationarity', C.ink, { align: 'center', plain: true, p: seg(p, 0.75, 0.9) });
+    } });
+
+  // 8. the misty hills
+  var mT = Wm.T, mw = Wm.walks, holes = Wm.land.holes, Dm = Math.min(40, Math.max(mw.pg.length, mw.lb.length, mw.tw.length) - 1);
+  out.push({ id: 'misty', chapter: CH.misty, title: 'The misty hills', layout: 'map', view: Wm.view, dur: 4.6,
+    text: 'The hardest land. Six random waves ripple it, a haze makes every tap of the staff a little wrong, and three black holes, narrow and deep, hide in it. The treasure lies at the bottom of the deepest hole.',
+    math: 'J(x) = valley + ripples R(x) + black holes B(x), and every tap is off by about σ = ' + num(Wm.land.sigma, 4),
+    draw: function (g, p) {
+      base(g, Wm, { alpha: seg(p, 0, 0.5) });
+      holes.at.forEach(function (q, k) { g.halo(q, Math.max(6, 2 * holes.w * g.s), C.red, seg(p, 0.4 + 0.1 * k, 0.55 + 0.1 * k), 2); });
+      star(g, mT, seg(p, 0.75, 0.95), 'the treasure, in the deepest hole'); g.flag(Wm.x0, seg(p, 0.6, 0.75));
+    } });
+  out.push({ id: 'mistywalks', chapter: CH.misty, title: 'Nobody finds the treasure', layout: 'map', view: Wm.view, dur: 6.4,
+    text: 'The Cartographer’s long strides drop it into one of the holes, where the haze makes every stride look too high: it stalls on day ' + (mw.lb.length - 1) + '. The Pilgrim and the Twins settle in the valley’s lowest hollow and never meet a hole. No hero finds the treasure: from local measurements, a narrow pit is found only by stepping into it.',
+    math: 'the Cartographer stops on day ' + (mw.lb.length - 1) + ';  nobody reaches ' + pair(mT, 2),
+    draw: function (g, p) {
+      base(g, Wm); holes.at.forEach(function (q) { g.halo(q, Math.max(6, 2 * holes.w * g.s), C.red, 1, 1.5); }); star(g, mT, 1);
+      var up = seg(p, 0, 0.95) * Dm, a = walkTo(g, mw.pg, up, C.orange, 2), b = walkTo(g, mw.lb, Math.min(up, mw.lb.length - 1), C.blue, 2.5), x = walkTo(g, mw.tw, up, '#e6e9ee', 2);
+      g.hero(a, 'pg', 1); g.hero(b, 'lb', 1, up >= mw.lb.length - 1 ? 'stalled' : ''); g.hero(x, 'tw', 1);
+      g.labelPx(g.mapR[0] + 12, g.mapR[1] + 30, 'day ' + Math.floor(up), C.gold, { size: 14 });
+    } });
+
+  // 9. what we learned
+  var cards = [
+    ['pg', 'The Pilgrim · gradient descent', 'Needs only the slope. Simple and sure on a gentle land, slow in a narrow valley, and flung away when its stride is too long.'],
+    ['lb', 'The Cartographer · L-BFGS', 'Keeps m pages of memory, learns the land’s shape and tests each stride. Fastest on smooth land; haze can stall it.'],
+    ['tw', 'The Twins · ADMM', 'Give two copies different jobs, then use the rope and scaled dual variable to restore agreement. Stop when both residuals are small.']];
+  out.push({ id: 'summary', chapter: CH.end, title: 'Three ways down', layout: 'side', dur: 5,
+    text: cards.map(function (cd) { return '<b>' + cd[1] + '.</b> ' + cd[2]; }).join('<br><br>'),
+    math: 'canyon: Pilgrim ' + pgDays + ' days, Cartographer ' + lbDays + ';  wall: Cartographer ' + dLb + ', Twins ' + dTw + ', Pilgrim ' + dPg,
+    draw: function (g, p) {
+      var R = g.sideR, wd = (R[2] - 16) / 3;
+      cards.forEach(function (cd, i) {
+        var q = seg(p, 0.1 + 0.25 * i, 0.4 + 0.25 * i); if (!(q > 0)) return;
+        var Rr = [R[0] + i * (wd + 8), R[1], wd, R[3]], keep = g.mapR; g.mapR = [Rr[0] + 4, Rr[1] + 34, Rr[2] - 8, Rr[3] - 40];
+        var W = i === 2 ? Ww : Wc, v = i === 2 ? [0.0, 1.6, -0.1, 1.5] : [-0.1, 1.0, -0.15, 0.95];
+        g.panel(Rr, cd[1]); g.view(v); g.ctx.globalAlpha = q; g.land(W.land.J, { id: W.shade.id + 'mini' + i, lo: W.shade.lo, hi: W.shade.hi, rings: 10, cell: 5 });
+        if (W.land.box) g.path([[0, 0], [1, 0], [1, 1], [0, 1], [0, 0]], C.blue, 1.5, 1);
+        g.ctx.globalAlpha = 1; star(g, W.T, q);
+        var w = W.walks[cd[0]], key = cd[0] === 'tw' ? 'z' : 'x', n = Math.min(w.length - 1, 30);
+        var qq = walkTo(g, w, q * n, COL[cd[0]], 2, key); g.hero(qq, cd[0], q);
+        g.mapR = keep;
+      });
+    } });
+  out.push({ id: 'end', chapter: CH.end, title: 'The end of the tale', layout: 'map', view: Wc.view, dur: 6,
+    text: 'That is the tale of three heroes downhill: three ways to find the lowest spot of a land you cannot see. The Pilgrim follows the slope, the Cartographer learns the shape of the land, and the Twins share the work when the King adds a law. Use Back, or the contents, to visit any step again.',
+    math: '',
+    draw: function (g, p) {
+      base(g, Wc); star(g, T, 1); var up = seg(p, 0, 0.95) * 24;
+      var a = walkTo(g, wp, up, C.orange, 2), b = walkTo(g, wc2, up, C.blue, 2.5), x = walkTo(g, Wc.walks.tw, up, '#e6e9ee', 2);
+      g.hero(a, 'pg', 1); g.hero(b, 'lb', 1); g.hero(x, 'tw', 1);
+    } });
+
+  // ------------------------------------------------------------ the page: the player, the chapter bar
+  var chapters = [];
+  out.forEach(function (s, i) { if (!chapters.length || chapters[chapters.length - 1].name !== s.chapter) chapters.push({ name: s.chapter, start: i, n: 0 }); chapters[chapters.length - 1].n++; });
+  var bar = document.getElementById('progress');
+  if (bar) {
+    bar.innerHTML = chapters.map(function (ch, k) { return '<button type="button" class="seg" data-k="' + k + '" style="flex-grow:' + ch.n + '" title="' + ch.name + '"><span class="fill"></span><span class="name">' + ch.name + '</span></button>'; }).join('');
+    bar.addEventListener('click', function (e) { var b = e.target.closest ? e.target.closest('[data-k]') : null; if (b) B.go(chapters[+b.getAttribute('data-k')].start); });
+  }
+  B.onStep(function (i) {
+    if (!bar) return;
+    Array.prototype.forEach.call(bar.querySelectorAll('[data-k]'), function (b, k) {
+      var ch = chapters[k], f = clamp((i - ch.start + 1) / ch.n, 0, 1); b.querySelector('.fill').style.width = Math.round(f * 100) + '%'; b.classList.toggle('on', i >= ch.start && i < ch.start + ch.n);
+    });
+  });
+  document.addEventListener('keydown', function (e) { if (e.ctrlKey || e.metaKey || e.altKey) return; if (e.target && /^(INPUT|SELECT|TEXTAREA|BUTTON|SUMMARY)$/.test(e.target.tagName) && (e.key === ' ' || e.key === 'Enter')) return; B.key(e); });
+  B.openSteps(out, { embedded: true });
+  window.course = { steps: out, chapters: chapters };
+})();
+</script>
+</body>
+</html>

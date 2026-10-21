@@ -1,0 +1,673 @@
+<!-- The page of the simulation; build_page.py inlines the four scripts at the end and adds the document's
+     html, head and body tags.  Everything above the body marker goes into the head. -->
+<title>King's Land Descent</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=IBM+Plex+Mono:wght@400;500&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&family=VT323&display=swap">
+<style>
+/* Layout: the game first, full width, with its own bar, menu and numbers chip; under it the day bar,
+   the map and its relief side by side, and the heroes' status windows. */
+:root {
+  --paper: #ffffff;
+  --sheet: #f4f7fb;
+  --ink: #17212b;
+  --ink-2: #2b3a4a;
+  --blue: #003d7c;
+  --orange: #c45100;
+  --rule: #d5dfea;
+  --chip: #e8eef6;
+  --contour: rgba(0, 61, 124, 0.26);
+  --facet: rgba(23, 33, 43, 0.10);
+  --low: #c4daf1;
+  --mid: #f8f8f6;
+  --high: #f3cdb0;
+  --relief-low: #8fb7e3;
+  --relief-mid: #eef1f5;
+  --relief-high: #eba878;
+  --halo: #ffffff;
+  --twin: #17212b;
+  --fog: #d6e0e9;
+  --sky: #93b0cc;
+  --nightfog: #10161d;
+  --nightsky: #05080c;
+  --display: 'Cinzel', 'Trajan Pro', Georgia, serif;
+  --body: 'Source Sans 3', 'Segoe UI', Arial, sans-serif;
+  --mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
+  --radius: 6px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #0c141d; --sheet: #121e2b; --ink: #e7edf4; --ink-2: #c9d5e2; --blue: #8ab8ef; --orange: #f2924a;
+    --rule: #26384b; --chip: #1a2a3b; --contour: rgba(138, 184, 239, 0.24); --facet: rgba(231, 237, 244, 0.08);
+    --low: #10304f; --mid: #18232f; --high: #4b2a15; --relief-low: #1f5287; --relief-mid: #2b3846; --relief-high: #8a4a1f;
+    --halo: #0c141d; --twin: #e7edf4; --fog: #232d39; --sky: #0f151d; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #0c141d; --sheet: #121e2b; --ink: #e7edf4; --ink-2: #c9d5e2; --blue: #8ab8ef; --orange: #f2924a;
+  --rule: #26384b; --chip: #1a2a3b; --contour: rgba(138, 184, 239, 0.24); --facet: rgba(231, 237, 244, 0.08);
+  --low: #10304f; --mid: #18232f; --high: #4b2a15; --relief-low: #1f5287; --relief-mid: #2b3846; --relief-high: #8a4a1f;
+  --halo: #0c141d; --twin: #e7edf4; --fog: #232d39; --sky: #0f151d; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body {
+  margin: 0; background: var(--paper); color: var(--ink); font-family: var(--body); font-size: 16px; line-height: 1.5;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 0 48px;
+}
+.wrap { max-width: 1260px; margin: 0 auto; display: grid; gap: 22px; }
+h1, h2, h3 { text-wrap: balance; margin: 0; }
+button, select, input { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--orange); outline-offset: 2px; }
+
+/* header */
+.top { display: grid; gap: 14px; padding-block: 26px 4px; border-bottom: 1px solid var(--rule); padding-bottom: 18px; }
+.rule { height: 4px; display: grid; grid-template-columns: 3fr 1fr; border-radius: 2px; overflow: hidden; }
+.rule span:first-child { background: var(--blue); } .rule span:last-child { background: var(--orange); }
+.eyebrow { font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--blue); font-weight: 600; }
+.top h1 { font-family: var(--display); font-weight: 700; font-size: clamp(30px, 4.4vw, 46px); letter-spacing: 0.02em; color: var(--blue); line-height: 1.1; }
+.lede { max-width: 72ch; color: var(--ink-2); margin: 0; }
+.cast { display: inline-flex; gap: 6px; align-items: baseline; white-space: nowrap; }
+.tabs { display: flex; flex-wrap: wrap; gap: 8px; }
+.tab {
+  border: 1px solid var(--rule); background: var(--paper); border-radius: 999px; padding: 7px 16px; cursor: pointer;
+  font-family: var(--display); font-weight: 600; font-size: 15px; letter-spacing: 0.02em; color: var(--ink);
+}
+.tab[aria-selected="true"] { background: var(--blue); border-color: var(--blue); color: var(--paper); }
+.tab:hover:not([aria-selected="true"]) { border-color: var(--blue); }
+
+.note { display: flex; gap: 16px; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; }
+.note p { margin: 0; max-width: 88ch; min-width: 0; flex: 1 1 420px; }
+.note strong { color: var(--blue); }
+
+.btn {
+  border: 1px solid var(--rule); background: var(--paper); border-radius: var(--radius); padding: 6px 12px; cursor: pointer;
+  display: inline-flex; gap: 6px; align-items: center; font-size: 15px; white-space: nowrap;
+}
+.btn:hover { border-color: var(--blue); }
+.btn.primary { background: var(--blue); color: var(--paper); border-color: var(--blue); font-weight: 600; min-width: 112px; justify-content: center; }
+.btn svg { width: 14px; height: 14px; fill: currentColor; }
+
+/* stage */
+.stage { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; }
+figure { margin: 0; display: grid; gap: 8px; min-width: 0; }
+.panel-title { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.panel-title h2 { font-family: var(--display); font-size: 17px; font-weight: 600; color: var(--blue); letter-spacing: 0.03em; }
+.hint { font-size: 14px; color: var(--ink-2); }
+canvas.view {
+  display: block; width: min(100%, 70vh); aspect-ratio: 1 / 1; max-width: 100%; margin: 0 auto;
+  background: var(--paper); border: 1px solid var(--rule); border-radius: var(--radius); touch-action: none;
+}
+#map { cursor: crosshair; }
+#relief { cursor: grab; }
+#relief.dragging { cursor: grabbing; }
+.legend { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip {
+  display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px 3px 8px; border-radius: 999px; font-size: 14px;
+  background: var(--chip); border: 1px solid transparent; cursor: pointer; user-select: none;
+}
+.chip input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.chip:has(input:not(:checked)) { opacity: 0.45; text-decoration: line-through; }
+.chip:has(input:focus-visible) { outline: 2px solid var(--orange); outline-offset: 2px; }
+.chip svg { width: 14px; height: 14px; flex: none; }
+.chip.static { cursor: default; }
+.switches { display: flex; flex-wrap: wrap; gap: 14px; font-size: 14px; }
+.switches label { display: inline-flex; gap: 6px; align-items: center; cursor: pointer; }
+
+/* transport */
+.transport {
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 14px; align-items: center;
+  background: var(--sheet); border: 1px solid var(--rule); border-radius: var(--radius); padding: 10px 14px;
+}
+.transport .buttons { display: flex; gap: 6px; flex-wrap: wrap; }
+.dayline { display: grid; gap: 2px; min-width: 0; }
+.dayline input { width: 100%; accent-color: var(--blue); }
+.dayread { font-family: var(--mono); font-size: 14px; font-variant-numeric: tabular-nums; display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.speed { display: flex; gap: 6px; align-items: center; font-size: 14px; }
+.speed select { border: 1px solid var(--rule); background: var(--paper); border-radius: var(--radius); padding: 4px 6px; }
+
+/* status windows */
+.heroes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.hero { border: 1.5px solid var(--blue); border-radius: var(--radius); background: var(--paper); display: grid; grid-template-rows: auto 1fr auto; overflow: hidden; min-width: 0; }
+.hero header { display: flex; align-items: center; gap: 8px; padding: 7px 12px; color: #fff; }
+.hero[data-hero="pg"] { border-color: var(--orange); } .hero[data-hero="pg"] header { background: var(--orange); }
+.hero[data-hero="lb"] header { background: var(--blue); }
+.hero[data-hero="tw"] { border-color: var(--twin); } .hero[data-hero="tw"] header { background: var(--twin); color: var(--paper); }
+:root[data-theme="dark"] .hero header, :root[data-theme="dark"] .hero[data-hero="tw"] header { color: var(--paper); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .hero header { color: var(--paper); } }
+.hero h3 { font-family: var(--display); font-size: 17px; font-weight: 700; letter-spacing: 0.03em; }
+.hero .method { margin-left: auto; font-size: 13px; opacity: 0.92; }
+.hero .body { padding: 10px 12px; display: grid; gap: 8px; align-content: start; }
+.hero dl { margin: 0; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 3px 12px; font-size: 14px; }
+.hero dt { color: var(--ink-2); }
+.hero dd { margin: 0; font-family: var(--mono); font-size: 13.5px; font-variant-numeric: tabular-nums; text-align: right; overflow-wrap: anywhere; }
+.hero .today { margin: 0; font-size: 14px; color: var(--ink); min-height: 2.9em; }
+.hero .verdict { margin: 0; padding: 8px 12px; border-top: 1px solid var(--rule); font-size: 14px; font-weight: 600; background: var(--sheet); }
+.verdict .bad { color: var(--orange); } .verdict .good { color: var(--blue); }
+
+/* desk */
+.desk { display: grid; grid-template-columns: minmax(0, 360px) minmax(0, 1fr); gap: 22px; align-items: start; }
+.controls { display: grid; gap: 18px; }
+fieldset { border: 1px solid var(--rule); border-radius: var(--radius); padding: 12px 14px 14px; margin: 0; display: grid; gap: 12px; min-width: 0; }
+legend { font-family: var(--display); font-weight: 600; color: var(--blue); padding: 0 6px; font-size: 16px; letter-spacing: 0.03em; }
+.param { display: grid; grid-template-columns: minmax(0, 1fr) 5.6em; gap: 2px 10px; align-items: center; }
+.param label { grid-column: 1 / -1; font-size: 14px; display: flex; gap: 8px; align-items: baseline; }
+.param .sym { font-family: var(--mono); font-weight: 500; color: var(--blue); min-width: 2.2em; }
+.param input[type="range"] { width: 100%; accent-color: var(--blue); }
+.param input[type="number"] {
+  width: 100%; border: 1px solid var(--rule); border-radius: 4px; padding: 3px 6px; background: var(--paper);
+  font-family: var(--mono); font-size: 13.5px; font-variant-numeric: tabular-nums; text-align: right;
+}
+.seg { display: inline-flex; border: 1px solid var(--rule); border-radius: var(--radius); overflow: hidden; }
+.seg button { border: 0; background: var(--paper); padding: 5px 12px; cursor: pointer; font-size: 14px; }
+.seg button[aria-pressed="true"] { background: var(--blue); color: var(--paper); }
+.startline { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 14px; }
+.startline output { font-family: var(--mono); font-size: 13.5px; }
+
+.study { display: grid; gap: 18px; min-width: 0; }
+.card { border: 1px solid var(--rule); border-radius: var(--radius); padding: 14px 16px; display: grid; gap: 10px; min-width: 0; background: var(--paper); }
+.card h2 { font-family: var(--display); font-size: 17px; font-weight: 600; color: var(--blue); letter-spacing: 0.03em; }
+#math { display: grid; gap: 4px; min-width: 0; }
+#math h3 { font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--blue); font-weight: 700; margin-top: 8px; }
+#math p { margin: 0; max-width: 80ch; }
+#math .eq { overflow-x: auto; overflow-y: hidden; padding: 2px 0; }
+#math .eq mjx-container { margin: 6px 0 !important; }
+#math .live { background: var(--sheet); border-radius: 4px; padding: 4px 10px; }
+.rules { display: grid; gap: 10px; }
+.rulebox { border-left: 3px solid var(--blue); padding: 2px 0 2px 12px; min-width: 0; }
+.rulebox.pg { border-color: var(--orange); } .rulebox.tw { border-color: var(--twin); }
+.rulebox b { font-family: var(--display); letter-spacing: 0.03em; }
+details summary { cursor: pointer; color: var(--blue); font-weight: 600; font-size: 14px; }
+.charts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+canvas.chart { display: block; width: 100%; height: 190px; }
+.charthead { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+.charthead h2 { font-size: 15px; }
+.foot { font-size: 14px; color: var(--ink-2); border-top: 1px solid var(--rule); padding-top: 14px; display: grid; gap: 6px; }
+.foot p { margin: 0; max-width: 100ch; }
+
+/* the game: a deliberately dark screen in either theme, like a game console's */
+.game { display: grid; gap: 12px; }
+.game-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.game-head h2 { font-family: var(--display); font-size: 22px; color: var(--blue); letter-spacing: 0.03em; }
+.game-grid { display: grid; gap: 16px; }
+.fog-wrap { background: #0a0e13; border-radius: 10px; padding: 8px; display: grid; gap: 8px; min-width: 0; }
+.fog-wrap:focus { outline: none; }
+.fog-wrap:focus-visible { outline: 2px solid var(--orange); outline-offset: 2px; }
+.fog-stage { position: relative; aspect-ratio: 16 / 10; overflow: hidden; border-radius: 6px; cursor: grab; touch-action: none; }
+#fog-screen { width: 100%; height: 100%; display: block; }
+#fog-screen.retro { image-rendering: pixelated; image-rendering: crisp-edges; }
+#fog-overlay { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+#fog-map { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; opacity: 0; }
+.caption { position: absolute; left: 10px; right: 10px; bottom: 10px; background: rgba(8, 12, 18, 0.8); color: #f2f5f8; font-size: 14px; line-height: 1.45; padding: 8px 12px; border-radius: 6px; max-height: 45%; overflow: auto; }
+.caption b { color: #ffb071; }
+.game kbd { font-family: var(--mono); font-size: 0.82em; border: 1px solid currentColor; border-radius: 3px; padding: 0 4px; margin: 0 1px; }
+.fog-view { position: relative; }
+.dialogue { position: absolute; left: 10px; right: 10px; bottom: 10px; background: rgba(9, 13, 19, 0.94); color: #f2f5f8; border: 2px solid #c45100; border-radius: 8px; padding: 12px 14px; max-height: 78%; overflow: auto; cursor: default; }
+.dlg-name { font-family: var(--display); font-weight: 700; letter-spacing: 0.04em; color: #ffb071; }
+.dlg-name[data-who="lb"], .dlg-name[data-who="wd"] { color: #a9cdf6; } .dlg-name[data-who="tw"] { color: #f2f5f8; } .dlg-name[data-who="king"] { color: #ffd27a; }
+.dialogue p { margin: 6px 0 8px; font-size: 15px; line-height: 1.5; max-width: 90ch; }
+.dlg-choices { display: grid; gap: 6px; }
+.dlg-choices button { text-align: left; background: rgba(255, 255, 255, 0.04); color: #f2f5f8; border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 6px; padding: 6px 10px; cursor: pointer; font-size: 14px; }
+.dlg-choices button:hover, .dlg-choices button:focus-visible { border-color: #ffb071; background: rgba(255, 176, 113, 0.08); }
+.statusbar { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
+.statusbar .cell { background: #141a21; border: 1px solid #27313c; border-radius: 4px; padding: 3px 8px; display: grid; min-width: 0; }
+.statusbar span { font-family: 'VT323', var(--mono); color: #c9d3dd; letter-spacing: 0.08em; font-size: 15px; line-height: 1.1; }
+.statusbar b { font-family: 'VT323', var(--mono); font-weight: 400; font-size: 27px; color: #ff9a52; line-height: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
+#hud-role[data-who="lb"], #hud-role[data-who="wd"] { color: #a9cdf6; } #hud-role[data-who="tw"], #hud-role[data-who="you"] { color: #f2f5f8; }
+.pad { display: none; position: absolute; left: 10px; top: 44px; grid-template-columns: repeat(3, 42px); gap: 5px; }
+.pad button { width: 42px; height: 42px; border-radius: 8px; background: rgba(8, 12, 18, 0.55); color: #fff; border: 1px solid rgba(255, 255, 255, 0.35); font-size: 18px; touch-action: none; }
+@media (pointer: coarse) { .pad { display: grid; } }
+.game-side { display: grid; gap: 12px; align-content: start; min-width: 0; }
+.game-side .actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+.game-side .actions .btn { justify-content: center; }
+.game-side .btn[disabled] { opacity: 0.45; cursor: not-allowed; }
+.game-side label { display: flex; gap: 8px; align-items: center; font-size: 14px; flex-wrap: wrap; }
+.game-side input[type="range"] { flex: 1 1 120px; accent-color: var(--blue); }
+.game-side select { border: 1px solid var(--rule); background: var(--paper); border-radius: var(--radius); padding: 3px 6px; }
+.ride { display: grid; gap: 6px; font-size: 14px; }
+.ride .seg { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.ride .seg button { padding: 5px 4px; }
+/* the bar under the view, the in-game menu and the numbers chip */
+.actionbar { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.actionbar button { background: #141a21; color: #f2f5f8; border: 1px solid #2c3743; border-radius: 6px; padding: 5px 10px; font-size: 14px; cursor: pointer; display: inline-flex; gap: 6px; align-items: center; }
+.actionbar button:hover, .actionbar button:focus-visible { border-color: #ffd27a; }
+.actionbar button:disabled { opacity: 0.45; cursor: not-allowed; }
+.actionbar button[aria-pressed="true"] { background: #2b3a4c; border-color: #a9cdf6; }
+.bar-eyes { display: inline-flex; align-items: center; gap: 3px; margin-left: auto; }
+.bar-label { color: #c9d3dd; font-family: 'VT323', var(--mono); font-size: 16px; letter-spacing: 0.08em; margin-right: 3px; }
+.bar-eyes button[aria-pressed="true"] { background: #ffd27a; color: #1b1406; border-color: #ffd27a; }
+.menu { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(560px, 92%); max-height: 88%; overflow: auto; z-index: 5; background: rgba(9, 13, 19, 0.96); color: #f2f5f8; border: 1px solid rgba(255, 210, 122, 0.5); border-radius: 10px; padding: 12px 14px; display: grid; gap: 10px; cursor: default; }
+.menu-head { display: flex; justify-content: space-between; align-items: center; font-family: var(--display); font-weight: 700; color: #ffd27a; letter-spacing: 0.04em; }
+.menu-head button { background: transparent; border: 1px solid rgba(255, 255, 255, 0.3); color: #f2f5f8; border-radius: 6px; padding: 2px 9px; cursor: pointer; }
+.menu-tabs { display: flex; gap: 4px; flex-wrap: wrap; }
+.menu-tabs button { background: transparent; color: #f2f5f8; border: 1px solid rgba(255, 255, 255, 0.25); border-radius: 999px; padding: 3px 12px; cursor: pointer; font-size: 13.5px; }
+.menu-tabs button[aria-selected="true"] { background: #ffd27a; color: #1b1406; border-color: #ffd27a; }
+.menu-body section { display: grid; gap: 10px; }
+.menu-body label { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: 14px; }
+.menu-body input[type="range"] { flex: 1 1 140px; accent-color: #ffd27a; }
+.menu-body fieldset { border-color: rgba(255, 255, 255, 0.2); color: #f2f5f8; }
+.menu-body legend { color: #ffd27a; }
+.menu-body .param .sym { color: #a9cdf6; }
+.menu-body .param input[type="number"], .menu-body select { background: #141a21; color: #f2f5f8; border-color: #2c3743; }
+.menu-body .btn { background: transparent; color: #f2f5f8; border-color: rgba(255, 255, 255, 0.3); }
+.menu-body .seg button { background: #141a21; color: #f2f5f8; }
+.menu-body .seg button[aria-pressed="true"] { background: #ffd27a; color: #1b1406; }
+.menu-body .hint { color: #c9d3dd; }
+.menu-keys { margin: 0; font-size: 13px; color: #d4dce5; line-height: 1.6; }
+.daysteps { position: absolute; left: 50%; bottom: 64px; transform: translateX(-50%); z-index: 1; display: flex; align-items: center; gap: 3px; background: rgba(8, 12, 18, 0.74); color: #f2f5f8; border-radius: 999px; padding: 4px 10px; font-size: 13px; white-space: nowrap; }
+.daysteps .dl-day { color: #ffd27a; font-weight: 700; margin-right: 5px; }
+.daysteps .dl-step { padding: 1px 8px; border-radius: 999px; opacity: 0.6; }
+.daysteps .dl-step.done { opacity: 0.85; }
+.daysteps .dl-step.on { opacity: 1; background: #ffd27a; color: #1b1406; font-weight: 700; }
+.daysteps .dl-sep { opacity: 0.45; }
+.daysteps .dl-hint { margin-left: 6px; color: #c9d3dd; }
+.quest-why { font-size: 12.5px; font-style: italic; color: #d4dce5; margin: 2px 0 5px; }
+.how p { margin: 0; line-height: 1.5; }
+.how table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+.how th, .how td { text-align: left; vertical-align: top; padding: 3px 8px 3px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.12); }
+.how th { color: #ffd27a; }
+.how h4 { margin: 4px 0 0; color: #ffd27a; font-family: var(--display); font-size: 14px; }
+.how ol { margin: 0; padding-left: 20px; line-height: 1.5; }
+.journal { position: absolute; left: 10px; top: 40px; width: min(46%, 430px); overflow: auto; z-index: 1; background: rgba(9, 13, 19, 0.88); color: #f2f5f8; border-left: 4px solid #a9cdf6; border-radius: 8px; padding: 8px 10px; font-size: 12.5px; }
+.journal h4 { margin: 0; font-family: var(--display); font-size: 13px; letter-spacing: 0.04em; color: #a9cdf6; }
+.journal .jq-def, .journal .why { color: #d4dce5; font-size: 12px; line-height: 1.45; margin: 3px 0; }
+.jq { border-collapse: collapse; font-family: var(--mono); font-size: 12px; width: 100%; }
+.jq th { text-align: left; color: #a9cdf6; font-weight: 600; padding: 2px 6px 2px 0; }
+.jq td { padding: 2px 6px 2px 0; white-space: nowrap; }
+.jq tr.end td { color: #c9d3dd; font-family: inherit; font-size: 11.5px; padding: 3px 0; }
+.jq tr.read td { background: rgba(255, 210, 122, 0.22); color: #ffd27a; }
+.jq tr.new td { color: #c8f2b8; animation: jq-in 0.6s ease-out; }
+.jq tr.out td { text-decoration: line-through; opacity: 0.55; }
+.jq tr.out td.jq-mark, .jq tr.new td.jq-mark { text-decoration: none; }
+.jq tr.empty td { opacity: 0.55; font-style: italic; }
+@keyframes jq-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .jq tr.new td { animation: none; } }
+.board { position: absolute; inset: 6px; z-index: 6; display: flex; flex-direction: column; gap: 8px; background: #0a1018; color: #f2f5f8; border: 1px solid rgba(255, 210, 122, 0.55); border-radius: 10px; padding: 8px 10px; }
+.board-head { display: flex; align-items: center; gap: 10px; }
+.board-title { font-family: var(--display); font-weight: 700; color: #ffd27a; letter-spacing: 0.03em; flex: 1; }
+.board-count { font-family: 'VT323', var(--mono); font-size: 16px; color: #c9d3dd; }
+.board-head button { background: transparent; border: 1px solid rgba(255, 255, 255, 0.3); color: #f2f5f8; border-radius: 6px; padding: 2px 9px; cursor: pointer; }
+.board-body { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(250px, 1fr); gap: 10px; }
+.board-stage { position: relative; min-height: 0; }
+.board-stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; border-radius: 8px; }
+.board-side { display: flex; flex-direction: column; gap: 6px; min-height: 0; }
+.board-chapter { font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: #a9cdf6; }
+.board-step { margin: 0; font-family: var(--display); font-size: 16px; color: #ffd27a; }
+.board-text { font-size: 14px; line-height: 1.5; }
+.board-math { font-family: var(--mono); font-size: 13px; line-height: 1.7; background: rgba(255, 255, 255, 0.05); border-left: 3px solid #ffd27a; border-radius: 6px; padding: 6px 9px; overflow-wrap: anywhere; }
+.board-math .bp, .board-text .bp { opacity: 0.12; transition: opacity 0.25s; }
+.board-math .bp.on, .board-text .bp.on { opacity: 1; }
+.board-ctrl { display: flex; gap: 6px; flex-wrap: wrap; }
+.board-ctrl button { background: #141a21; color: #f2f5f8; border: 1px solid #2c3743; border-radius: 6px; padding: 5px 11px; font-size: 14px; cursor: pointer; }
+.board-ctrl button:hover, .board-ctrl button:focus-visible { border-color: #ffd27a; }
+.board-ctrl button:disabled { opacity: 0.4; cursor: default; }
+.board-ctrl #board-next, .board-ctrl #board-play[aria-pressed="true"] { background: #ffd27a; color: #1b1406; border-color: #ffd27a; font-weight: 700; }
+.board-list { list-style: none; margin: 0; padding: 0; overflow: auto; flex: 1; min-height: 60px; font-size: 13px; border-top: 1px solid rgba(255, 255, 255, 0.12); }
+.board-list .bl-chap { color: #a9cdf6; font-size: 11.5px; letter-spacing: 0.08em; text-transform: uppercase; padding: 6px 4px 2px; }
+.board-list .bl-step { padding: 3px 6px; border-radius: 5px; cursor: pointer; display: flex; gap: 8px; color: #d4dce5; }
+.board-list .bl-step span { min-width: 1.6em; color: #8fa0b2; font-family: var(--mono); }
+.board-list .bl-step:hover { background: rgba(255, 255, 255, 0.06); }
+.board-list .bl-step.done { color: #9fb0c0; }
+.board-list .bl-step.on { background: rgba(255, 210, 122, 0.18); color: #ffd27a; font-weight: 700; }
+.rk-board { background: #ffd27a; color: #1b1406; border: 0; border-radius: 6px; padding: 2px 8px; font-size: 12.5px; font-weight: 700; cursor: pointer; }
+.reckon { position: absolute; right: 10px; top: 214px; max-width: min(46%, 330px); z-index: 1; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; background: rgba(9, 13, 19, 0.86); color: #f2f5f8; border-left: 3px solid #ffd27a; border-radius: 8px; padding: 6px 9px; font-size: 12.5px; line-height: 1.45; }
+.rk-nums { font-family: var(--mono); }
+.fr { display: inline-grid; vertical-align: middle; text-align: center; line-height: 1.15; margin: 0 2px; }
+.fr > span:first-child { border-bottom: 1px solid currentColor; padding: 0 3px; }
+.up { color: #ffb071; } .dn { color: #a9cdf6; }
+/* the King's Race: the turn panel, and the parts of the page that would give the land away are hidden */
+.race { position: absolute; left: 10px; top: 40px; width: min(44%, 300px); background: rgba(9, 13, 19, 0.9); color: #f2f5f8; border: 1px solid rgba(169, 205, 246, 0.45); border-left: 4px solid #a9cdf6; border-radius: 8px; padding: 8px 10px; display: grid; gap: 6px; font-size: 13px; z-index: 2; cursor: default; }
+.race-top { display: flex; justify-content: space-between; gap: 8px; font-family: var(--display); font-weight: 700; color: #a9cdf6; font-size: 12.5px; letter-spacing: 0.04em; }
+.race-top span:last-child, .race-ap b { font-family: 'VT323', var(--mono); font-size: 17px; font-weight: 400; color: #ffd27a; }
+.race-phase { font-weight: 700; }
+.race-ap { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.race-ap .pip { display: inline-block; width: 18px; height: 8px; border: 1px solid #ffd27a; border-radius: 2px; overflow: hidden; }
+.race-ap .pip span { display: block; height: 100%; background: #ffd27a; }
+.race-board { margin: 0; padding-left: 20px; display: grid; gap: 1px; }
+.race-board li { display: flex; justify-content: space-between; gap: 8px; }
+.race-board li b { font-family: 'VT323', var(--mono); font-size: 16px; font-weight: 400; }
+.race-board li[data-who="you"] { color: #ffd27a; font-weight: 700; } .race-board li[data-who="pg"] { color: #ffb071; } .race-board li[data-who="lb"] { color: #a9cdf6; }
+.race-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+.race-actions button { background: transparent; color: #f2f5f8; border: 1px solid rgba(255, 255, 255, 0.3); border-radius: 5px; padding: 2px 8px; font-size: 12.5px; cursor: pointer; }
+.race-actions button:disabled { opacity: 0.4; cursor: not-allowed; }
+.race-actions #race-end { background: #a9cdf6; color: #0b1a2c; border-color: #a9cdf6; font-weight: 700; }
+.race-help { font-size: 11.5px; color: #c9d3dd; line-height: 1.35; }
+body.racing #relief-fig, body.racing .heroes, body.racing .transport, body.racing .note, body.racing #fog-reckon, body.racing .bar-eyes, body.racing #fog-next, body.racing #fog-walk, body.racing #fog-day0 { display: none; }
+body.racing .stage { grid-template-columns: minmax(0, 1fr); }
+body.racing #map { cursor: pointer; }
+@media (max-width: 560px) { .race { width: auto; right: 10px; top: 34px; } .race-help { display: none; } }
+/* the Apprentice's Trial: highlights, callout, quest panel, title card */
+.tut-hl { outline: 3px solid #ffd27a !important; outline-offset: 3px; animation: tutpulse 1.1s ease-in-out infinite; position: relative; z-index: 3; }
+.fog-stage.tut-hl { z-index: auto; outline-offset: -3px; }     /* the lit view stays under its own panels and captions */
+@keyframes tutpulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(255, 210, 122, 0.7); } 50% { box-shadow: 0 0 0 10px rgba(255, 210, 122, 0); } }
+.callout { position: fixed; z-index: 60; max-width: 240px; background: #ffd27a; color: #1b1406; font-weight: 700; font-size: 14px; line-height: 1.3; padding: 6px 11px; border-radius: 8px; box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35); pointer-events: none; }
+.callout::after { content: ""; position: absolute; left: var(--arrow-x, 50%); bottom: -6px; width: 12px; height: 12px; background: #ffd27a; transform: translateX(-50%) rotate(45deg); }
+.callout.below::after { bottom: auto; top: -6px; }
+.quest { position: absolute; left: 10px; top: 40px; width: min(46%, 340px); background: rgba(9, 13, 19, 0.9); color: #f2f5f8; border: 1px solid rgba(255, 210, 122, 0.5); border-left: 4px solid #ffd27a; border-radius: 8px; padding: 8px 10px; display: grid; gap: 6px; font-size: 13.5px; line-height: 1.4; z-index: 2; cursor: default; }
+.quest-top { display: flex; justify-content: space-between; gap: 8px; font-family: var(--display); font-weight: 700; color: #ffd27a; font-size: 12.5px; letter-spacing: 0.04em; }
+.quest-top span:last-child { font-family: 'VT323', var(--mono); font-size: 16px; letter-spacing: 0.06em; }
+.quest.done .quest-goal { color: #c8f2b8; }
+.quest.listen .quest-goal { font-style: italic; color: #d4dce5; }
+.quest-hint { font-size: 12.5px; color: #d4dce5; }
+.quest-answers { display: grid; gap: 5px; }
+.quest-answers button { background: rgba(255, 255, 255, 0.06); color: #f2f5f8; border: 1px solid rgba(255, 255, 255, 0.3); border-radius: 5px; padding: 5px 8px; font-size: 12.5px; line-height: 1.3; text-align: left; cursor: pointer; }
+.quest-answers button:hover, .quest-answers button:focus-visible { border-color: #ffd27a; background: rgba(255, 210, 122, 0.12); }
+.quest-bar { height: 4px; background: rgba(255, 255, 255, 0.14); border-radius: 2px; overflow: hidden; }
+.quest-bar span { display: block; height: 100%; width: 0; background: #ffd27a; transition: width 0.4s ease; }
+.quest-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+.quest-actions button { background: transparent; color: #f2f5f8; border: 1px solid rgba(255, 255, 255, 0.3); border-radius: 5px; padding: 2px 9px; font-size: 12.5px; cursor: pointer; }
+.quest-actions button:hover, .quest-actions button:focus-visible { border-color: #ffd27a; }
+.quest-actions #quest-ok { background: #ffd27a; color: #1b1406; border-color: #ffd27a; font-weight: 700; }
+.title-card { position: absolute; inset: 0; z-index: 4; display: grid; place-items: center; padding: 16px; cursor: default; background: radial-gradient(ellipse at center, rgba(9, 13, 19, 0.7), rgba(9, 13, 19, 0.94)); }
+.tc-inner { max-width: 540px; text-align: center; color: #f2f5f8; display: grid; gap: 10px; }
+.tc-eyebrow { font-family: 'VT323', var(--mono); color: #ffd27a; letter-spacing: 0.2em; font-size: 18px; text-transform: uppercase; }
+.title-card h3 { font-family: var(--display); font-size: clamp(22px, 3.4vw, 36px); color: #ffffff; letter-spacing: 0.03em; }
+.title-card p { margin: 0; font-size: 15px; line-height: 1.55; }
+.tc-actions { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+.tc-actions .btn { background: transparent; color: #f2f5f8; border-color: rgba(255, 255, 255, 0.4); }
+.tc-actions .btn.primary { background: #ffd27a; color: #1b1406; border-color: #ffd27a; }
+.tc-keys { font-size: 13px; color: #d4dce5; }
+.trial-btn { width: 100%; justify-content: center; font-family: var(--display); font-weight: 700; letter-spacing: 0.03em; color: var(--blue); }
+@media (prefers-reduced-motion: reduce) { .tut-hl { animation: none; } .quest-bar span { transition: none; } }
+@media (max-width: 560px) {
+  .quest { width: auto; right: 10px; top: 34px; font-size: 12.5px; padding: 6px 8px; }
+  .title-card p { font-size: 13.5px; }
+}
+@media (max-width: 980px) {
+  .game-grid { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 560px) {
+  .fog-view { display: grid; gap: 8px; grid-template-columns: minmax(0, 1fr); }
+  .fog-view .journal, .fog-view .reckon { min-width: 0; overflow-x: auto; }
+  .fog-stage { aspect-ratio: 4 / 3; }
+  .fog-view .caption, .fog-view .dialogue, .fog-view .quest, .fog-view .race, .fog-view .title-card, .fog-view .reckon, .fog-view .menu, .fog-view .daysteps, .fog-view .journal, .fog-view .board { position: static; width: auto; max-height: none; inset: auto; transform: none; }
+  .bar-eyes { margin-left: 0; }
+  .jq { font-size: 10.5px; } .jq td, .jq th { padding-right: 4px; }
+  /* Keep the worked animation and its explanation together.  The board becomes a viewport dialog: the animation
+     keeps the upper part while the explanation, controls and contents can use the lower part independently. */
+  .fog-view .board {
+    position: fixed; z-index: 70; transform: none; width: auto; max-height: none; overflow: hidden;
+    top: max(8px, env(safe-area-inset-top, 0px)); right: max(8px, env(safe-area-inset-right, 0px));
+    bottom: max(8px, env(safe-area-inset-bottom, 0px)); left: max(8px, env(safe-area-inset-left, 0px));
+  }
+  .board-body { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(150px, 40%) minmax(0, 60%); overflow: hidden; }
+  .board-stage { aspect-ratio: auto; min-height: 0; }
+  .board-side { overflow-y: auto; overscroll-behavior: contain; padding-right: 2px; }
+  .board-ctrl { position: sticky; bottom: 0; z-index: 1; background: #0a1018; padding-block: 4px; }
+  .board-list { flex: 0 0 auto; max-height: 140px; min-height: 72px; }
+  .fog-view .daysteps { white-space: normal; flex-wrap: wrap; justify-content: center; border-radius: 8px; }
+  .fog-view .title-card { border-radius: 8px; padding: 14px 12px; }
+  .statusbar { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .statusbar .cell:nth-child(n+4) { display: none; }
+  .caption { font-size: 12.5px; }
+  .dialogue p { font-size: 14px; }
+}
+@media (min-width: 561px) and (max-height: 700px) {
+  /* The list yields space first on short laptops; the lesson controls remain reachable without guessing a key. */
+  .board { gap: 5px; padding-block: 6px; }
+  .board-side { overflow: hidden; }
+  .board-text, .board-math { min-height: 0; max-height: 24vh; overflow-y: auto; }
+  .board-ctrl { flex: 0 0 auto; }
+  .board-list { min-height: 32px; }
+}
+@media (max-width: 980px) {
+  .desk { grid-template-columns: minmax(0, 1fr); }
+  .charts { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 860px) {
+  .stage { grid-template-columns: minmax(0, 1fr); }
+  .heroes { grid-template-columns: minmax(0, 1fr); }
+  .transport { grid-template-columns: minmax(0, 1fr); }
+  canvas.view { width: 100%; }
+}
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+</style>
+<!-- body -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="g-pg" viewBox="0 0 14 14"><circle cx="7" cy="7" r="5.5" style="fill:var(--orange)"/></symbol>
+    <symbol id="g-lb" viewBox="0 0 14 14"><rect x="2" y="2" width="10" height="10" style="fill:var(--blue)"/></symbol>
+    <symbol id="g-tw" viewBox="0 0 14 14"><path d="M7 1.5 L12.5 12 L1.5 12 Z" style="fill:var(--twin)"/></symbol>
+    <symbol id="g-wd" viewBox="0 0 14 14"><circle cx="7" cy="7" r="5" style="fill:none;stroke:var(--blue)" stroke-width="1.6" stroke-dasharray="2.4 1.6"/></symbol>
+    <symbol id="g-ledger" viewBox="0 0 14 14"><path d="M1.5 7 H10.5 M8 4 L11.5 7 L8 10" style="fill:none;stroke:var(--orange)" stroke-width="1.6"/></symbol>
+    <symbol id="g-star" viewBox="0 0 14 14"><path d="M7 1 L8.6 5.3 L13 5.4 L9.5 8.2 L10.8 12.6 L7 10 L3.2 12.6 L4.5 8.2 L1 5.4 L5.4 5.3 Z" style="fill:var(--orange)"/></symbol>
+  </defs>
+</svg>
+<div class="wrap">
+  <header class="top">
+    <div class="rule" aria-hidden="true"><span></span><span></span></div>
+    <div class="eyebrow">A companion to the tale “Three heroes downhill”</div>
+    <h1>King's Land Descent</h1>
+    <p class="lede">Walk the King’s land in the fog among three heroes, talk to them, and watch them go down it one day at a time:
+      <span class="cast"><svg width="12" height="12"><use href="#g-pg"/></svg>the Pilgrim</span> (projected gradient),
+      <span class="cast"><svg width="12" height="12"><use href="#g-lb"/></svg>the Cartographer</span> (L-BFGS) and
+      <span class="cast"><svg width="12" height="12"><use href="#g-tw"/></svg>the Twins</span> (ADMM).</p>
+    <nav class="tabs" role="tablist" aria-label="Lands">
+      <button class="tab" role="tab" id="tab-canyon" data-land="canyon">The canyon</button>
+      <button class="tab" role="tab" id="tab-wall" data-land="wall">The kingdom wall</button>
+      <button class="tab" role="tab" id="tab-fort" data-land="fort">The old fort</button>
+      <button class="tab" role="tab" id="tab-ridge" data-land="ridge">Behind a ridge</button>
+      <button class="tab" role="tab" id="tab-misty" data-land="misty">The misty hills</button>
+    </nav>
+  </header>
+
+  <section class="note" aria-live="polite">
+    <p id="land-note"></p>
+    <button class="btn" id="reset-land" type="button"><svg viewBox="0 0 16 16"><path d="M8 2a6 6 0 1 1-5.66 4H.5L3.5 2.5 6.5 6H4.47A4 4 0 1 0 8 4V2z"/></svg>Restore this land</button>
+  </section>
+
+  <section class="game" aria-label="Into the fog">
+    <div class="game-head">
+      <h2>Into the fog</h2>
+      <span class="hint">You are the King’s apprentice. Click the view, then walk; talk to anyone you meet.</span>
+    </div>
+    <div class="fog-wrap" id="fog-wrap" aria-label="First-person view of the land. Click it, then walk with W A S D or the arrow keys.">
+        <div class="fog-view" id="fog-view">
+        <div class="fog-stage" id="fog-stage">
+          <canvas id="fog-screen" width="320" height="200"></canvas>
+          <canvas id="fog-map" aria-hidden="true" hidden></canvas>
+          <canvas id="fog-overlay" aria-hidden="true"></canvas>
+          <div class="pad" aria-label="Movement controls">
+            <button type="button" data-key="arrowleft" aria-label="Turn left">↶</button><button type="button" data-key="w" aria-label="Walk forward">▲</button><button type="button" data-key="arrowright" aria-label="Turn right">↷</button>
+            <button type="button" data-key="a" aria-label="Step left">◀</button><button type="button" data-key="s" aria-label="Walk backward">▼</button><button type="button" data-key="d" aria-label="Step right">▶</button>
+          </div>
+        </div>
+          <div class="caption" id="fog-caption" aria-live="polite"></div>
+          <div class="dialogue" id="fog-dialogue" hidden>
+            <div class="dlg-name" id="dlg-name"></div>
+            <p id="dlg-text"></p>
+            <div class="dlg-choices" id="dlg-choices"></div>
+          </div>
+          <div class="quest" id="quest" hidden aria-live="polite">
+            <div class="quest-top"><span id="quest-lesson"></span><span id="quest-count"></span></div>
+            <div class="quest-why" id="quest-why"></div>
+            <div class="quest-goal" id="quest-goal"></div>
+            <div class="quest-hint" id="quest-hint" hidden></div>
+            <div class="quest-answers" id="quest-answers" hidden></div>
+            <div class="quest-bar"><span id="quest-fill"></span></div>
+            <div class="quest-actions"><button type="button" id="quest-ok" hidden>Got it</button><button type="button" id="quest-skip">Skip</button><button type="button" id="quest-quit">Leave the trial</button></div>
+          </div>
+          <div class="race" id="race" hidden aria-live="polite">
+            <div class="race-top"><span>The King’s Race</span><span id="race-turn"></span></div>
+            <div class="race-phase" id="race-phase"></div>
+            <div class="race-ap"><span>Action points</span><span id="race-ap"></span></div>
+            <ol class="race-board" id="race-board"></ol>
+            <div class="race-actions"><button type="button" id="race-scout"><kbd>Q</kbd> Scout (2)</button><button type="button" id="race-end"><kbd>T</kbd> End turn</button><button type="button" id="race-quit">Leave</button></div>
+            <div class="race-help">Walking costs 1 point per stride of the map’s width × 0.07; feeling the slope costs 1. Click the tactical map below to walk there.</div>
+          </div>
+          <div class="title-card" id="title-card" hidden>
+            <div class="tc-inner">
+              <div class="tc-eyebrow">King’s Land Descent</div>
+              <h3>The Apprentice’s Trial</h3>
+              <p>The King has summoned you. Fog lies on his land, and three heroes must find its lowest places: the Pilgrim, the Cartographer and the Twins. Walk with them, learn one complete ADMM circuit, connect the Old Fort to CAJODE, and diagnose the misty hills.</p>
+              <div class="tc-actions">
+                <button type="button" class="btn primary" id="trial-begin">Begin the trial</button>
+                <button type="button" class="btn" id="trial-race">Race the heroes</button>
+                <button type="button" class="btn" id="trial-resume" hidden>Continue the trial</button>
+                <button type="button" class="btn" id="trial-free">Explore freely</button>
+                <button type="button" class="btn" id="trial-how">How it works</button>
+              </div>
+              <p class="tc-keys">Nine short lessons, about twelve minutes. Keyboard and mouse, or touch.</p>
+            </div>
+          </div>
+          <div class="daysteps" id="daysteps" hidden aria-live="off"></div>
+          <div class="journal" id="journal" hidden></div>
+          <div class="reckon" id="reckon" hidden></div>
+          <div class="board" id="board" hidden role="dialog" aria-label="Step by step">
+            <div class="board-head"><span class="board-title" id="board-title">Step by step</span><span class="board-count" id="board-count"></span><button type="button" id="board-close" aria-label="Close the board">✕</button></div>
+            <div class="board-body">
+              <div class="board-stage"><canvas id="board-canvas"></canvas></div>
+              <div class="board-side">
+                <div class="board-chapter" id="board-chapter"></div>
+                <h4 class="board-step" id="board-step"></h4>
+                <div class="board-text" id="board-text"></div>
+                <div class="board-math" id="board-math"></div>
+                <div class="board-ctrl"><button type="button" id="board-prev">◀ Back</button><button type="button" id="board-replay" title="Play this step again (R)">↻</button><button type="button" id="board-play" aria-pressed="false">⏵ Play</button><button type="button" id="board-next">Next ▶</button></div>
+                <ol class="board-list" id="board-list"></ol>
+              </div>
+            </div>
+          </div>
+          <div class="menu" id="fog-menu" hidden role="dialog" aria-label="Menu">
+            <div class="menu-head"><span>Menu</span><button type="button" id="menu-close" aria-label="Close the menu">✕</button></div>
+            <div class="menu-tabs" role="tablist">
+              <button type="button" role="tab" data-tab="how" aria-selected="true">How it works</button><button type="button" role="tab" data-tab="play" aria-selected="false">Play</button><button type="button" role="tab" data-tab="land">Land</button><button type="button" role="tab" data-tab="weather">Weather</button><button type="button" role="tab" data-tab="heroes">Heroes</button><button type="button" role="tab" data-tab="view">View</button>
+            </div>
+            <div class="menu-body">
+              <section data-tab="how" class="how">
+                <p><b>The idea.</b> The King’s land is a cost function J(x) of a position x = (x₁, x₂). Height is cost, and the treasure is the lowest spot, the minimiser x*. In the fog nobody sees the whole land: each hero learns the height only where it taps, as an optimiser learns J only at the points it tries.</p>
+                <table>
+                  <tr><th>In the game</th><th>In the maths</th></tr>
+                  <tr><td>where you stand</td><td>x = (x₁, x₂)</td></tr>
+                  <tr><td>your height</td><td>the cost J(x)</td></tr>
+                  <tr><td>the treasure</td><td>the minimiser x*</td></tr>
+                  <tr><td>four taps of the staff, h away</td><td>J(x ± h e₁) and J(x ± h e₂)</td></tr>
+                  <tr><td>the slope they give</td><td>∇J ≈ ((J<sub>E</sub> − J<sub>W</sub>)/2h, (J<sub>N</sub> − J<sub>S</sub>)/2h), pointing uphill</td></tr>
+                  <tr><td>one day (<kbd>N</kbd>)</td><td>one iteration</td></tr>
+                  <tr><td>the wall, the tower’s law</td><td>a constraint x ∈ C</td></tr>
+                  <tr><td>ripples, haze, black holes</td><td>extra local hollows, noisy repeated measurements, narrow pits that give no clue until sampled</td></tr>
+                </table>
+                <h4>The Pilgrim: gradient descent</h4>
+                <ol><li>Feel: four taps.</li><li>Reckon: the slope ∇J from the taps.</li><li>Turn to −∇J, downhill.</li><li>Stride: x ← x − α∇J, set back inside the wall if it steps out.</li></ol>
+                <h4>The Cartographer: L-BFGS</h4>
+                <ol><li>Feel: four taps, the slope ∇J.</li><li>Journal: its last m strides, and how the slope changed over each, tell it how the land curves; it bends its course to d = −H∇J.</li><li>Test strides: 1, ½, ¼, … until the height falls by enough (the Armijo test).</li><li>Turn and stride.</li></ol>
+                <h4>The Twins: ADMM</h4>
+                <p>ADMM temporarily makes two copies of one decision because the cost and the law are easier to handle separately. The Wanderer updates x; the Warden updates z; the scaled dual variable u records signed disagreement.</p>
+                <ol><li>Aim: v = z − u, the Warden’s spot corrected by the ledger.</li><li>Wanderer: lower f(x) + ρ/2·|x − v|². On the wall f = J; at the fort f omits the law term because the Warden enforces that law.</li><li>Warden: take the lawful spot nearest x + u. This projection is the constraint form shown here; general ADMM may give the second copy another cost.</li><li>Ledger: u ← u + x − z.</li><li>Stop only when both are small: the primal residual |x − z| (agreement) and the dual residual ρ|z<sub>new</sub> − z<sub>old</sub>| (the lawful copy has nearly stopped moving).</li></ol>
+                <h4>From the Old Fort to CAJODE</h4>
+                <p>The fort is a toy with two bits, one parity check, and a known channel. CAJODE has one shared variable for each coded bit, replica variables constrained to each check’s parity polytope, and a scaled dual variable for every bit occurrence in a check. A full circuit computes one weight for every received sample, updates all shared variables, recomputes the weights, updates all channel coefficients, projects every check’s replicas, and then updates every scaled dual variable. Passing every parity check and the CRC can accept a decoded word; it does not prove continuous convergence or stationarity.</p>
+                <h4>How to play</h4>
+                <p><b>The Apprentice’s Trial</b> teaches all of this in nine short lessons. <b>The King’s Race</b> takes turns: each turn you spend 4 action points (walk, feel, scout), then each hero lives one day; the first to the treasure, or the lowest after 25 turns, wins. Or explore freely: walk, feel the slope (<kbd>F</kbd>), talk (<kbd>E</kbd>), and click a hero under View to follow its days. The chip under the ground plot (<kbd>J</kbd>) gives the day’s key numbers, and ▶ Step by step (<kbd>B</kbd>) works every one of them out in small animated steps, in a scene of its own.</p>
+              </section>
+              <section data-tab="play" hidden>
+                <button class="btn trial-btn" type="button" id="trial-start">★ The Apprentice’s Trial</button>
+                <button class="btn trial-btn" type="button" id="race-start">⚔ The King’s Race (turn-based)</button>
+                <p class="menu-keys">Keys: <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> or arrows to walk, <kbd>Shift</kbd> to run, drag to look. <kbd>F</kbd> feel the slope, <kbd>E</kbd> talk, number keys answer, <kbd>N</kbd> next day, <kbd>P</kbd> walk on, <kbd>R</kbd> day 0, <kbd>J</kbd> numbers chip, <kbd>B</kbd> step by step, <kbd>C</kbd> map or 3D view while you follow a hero, <kbd>H</kbd> how it works, <kbd>M</kbd> menu, <kbd>Esc</kbd> step off or close.</p>
+              </section>
+              <section data-tab="land" hidden><fieldset id="land-params"><legend>Shape the land</legend></fieldset></section>
+              <section data-tab="weather" hidden><fieldset id="weather-params"><legend>Weather</legend></fieldset></section>
+              <section data-tab="heroes" hidden><fieldset id="hero-params"><legend>Tune the heroes</legend></fieldset></section>
+              <section data-tab="view" hidden>
+                <label for="fog-fog">How far anyone can see <input type="range" id="fog-fog" min="0.2" max="1.6" step="0.05" value="0.6"></label>
+                <label><input type="checkbox" id="fog-captions" checked> Show the caption line</label>
+                <label><input type="checkbox" id="fog-night"> Night</label>
+                <label for="fog-quality">Picture <select id="fog-quality"><option value="refined">Refined</option><option value="balanced">Balanced (faster)</option><option value="retro">Retro (Doom pixels)</option></select></label>
+              </section>
+            </div>
+          </div>
+        </div>
+        <div class="actionbar" id="fog-bar">
+          <button type="button" id="fog-feel"><kbd>F</kbd> Feel</button>
+          <button type="button" id="fog-talk"><kbd>E</kbd> Talk</button>
+          <button type="button" id="fog-next"><kbd>N</kbd> Next day</button>
+          <button type="button" id="fog-walk"><kbd>P</kbd> <span id="fog-walk-label">Walk on</span></button>
+          <button type="button" id="fog-day0"><kbd>R</kbd> Day 0</button>
+          <button type="button" id="fog-leave" hidden><kbd>Esc</kbd> Step off</button>
+          <button type="button" id="fog-cam" hidden><kbd>C</kbd> <span id="fog-cam-label">From behind</span></button>
+          <span class="bar-eyes" role="group" aria-label="Whom the view follows"><span class="bar-label">View</span><button type="button" data-ride="you">You</button><button type="button" data-ride="pg">Pilgrim</button><button type="button" data-ride="lb">Cartog.</button><button type="button" data-ride="tw">Wanderer</button></span>
+          <button type="button" id="fog-reckon" aria-pressed="true"><kbd>J</kbd> Reckoning</button>
+          <button type="button" id="fog-menu-btn"><kbd>M</kbd> ☰ Menu</button>
+        </div>
+        <div class="statusbar">
+          <div class="cell"><span id="hud-day-k">DAY</span><b id="hud-day">0</b></div>
+          <div class="cell"><span>HEIGHT J</span><b id="hud-height">0</b></div>
+          <div class="cell"><span>SLOPE |∇J|</span><b id="hud-slope">0</b></div>
+          <div class="cell"><span>VIEW</span><b id="hud-role" data-who="you">You</b></div>
+          <div class="cell"><span>NEAREST</span><b id="hud-near">—</b></div>
+      </div>
+      </div>
+    <div class="callout" id="callout" hidden role="status"><span id="callout-text"></span></div>
+  </section>
+
+  <section class="transport" aria-label="Days">
+    <div class="buttons">
+      <button class="btn" id="to-start" type="button" title="Back to day 0"><svg viewBox="0 0 16 16"><path d="M3 2h2v12H3zM14 2v12L6 8z"/></svg>Day 0</button>
+      <button class="btn" id="back" type="button" title="One day back"><svg viewBox="0 0 16 16"><path d="M12 2v12L4 8z"/></svg>Back</button>
+      <button class="btn primary" id="play" type="button"><svg viewBox="0 0 16 16" id="play-icon"><path d="M4 2v12l10-6z"/></svg><span id="play-label">Walk</span></button>
+      <button class="btn" id="next" type="button" title="One day forward">Next<svg viewBox="0 0 16 16"><path d="M4 2v12l8-6z"/></svg></button>
+    </div>
+    <div class="dayline">
+      <input type="range" id="day" min="0" max="120" value="0" aria-label="Day">
+      <div class="dayread"><span id="day-read">Day 0</span><span id="day-note"></span></div>
+    </div>
+    <label class="speed">Pace <select id="speed">
+      <option value="0.25">¼ day/s</option><option value="0.5">½ day/s</option><option value="1" selected>1 day/s</option><option value="3">3 days/s</option><option value="6">6 days/s</option><option value="15">15 days/s</option><option value="40">40 days/s</option>
+    </select></label>
+  </section>
+
+  <section class="stage">
+    <figure>
+      <div class="panel-title"><h2>The map</h2><span class="hint" id="map-hint">Click or drag on the map to move the start flag</span></div>
+      <canvas class="view" id="map" role="img" aria-label="Contour map of the land with the heroes' paths"></canvas>
+      <div class="legend" id="legend">
+        <label class="chip"><input type="checkbox" id="show-pg" checked><svg><use href="#g-pg"/></svg>Pilgrim</label>
+        <label class="chip"><input type="checkbox" id="show-lb" checked><svg><use href="#g-lb"/></svg>Cartographer</label>
+        <label class="chip"><input type="checkbox" id="show-tw" checked><svg><use href="#g-tw"/></svg>Wanderer</label>
+        <span class="chip static"><svg><use href="#g-wd"/></svg>Warden</span>
+        <span class="chip static"><svg><use href="#g-ledger"/></svg>ledger</span>
+        <span class="chip static"><svg><use href="#g-star"/></svg><span id="treasure-name">treasure</span></span>
+      </div>
+    </figure>
+    <figure id="relief-fig">
+      <div class="panel-title"><h2>The land in relief</h2><span class="hint">Drag to turn the land</span></div>
+      <canvas class="view" id="relief" role="img" aria-label="The land drawn in three dimensions with the heroes' paths"></canvas>
+      <div class="switches">
+        <label><input type="checkbox" id="sqrt-heights"> Square-root heights (flattens tall walls)</label>
+        <label id="landof-wrap"><input type="checkbox" id="twins-land"> Draw the Twins' land (no law hill)</label>
+      </div>
+    </figure>
+  </section>
+
+
+  <section class="heroes" aria-label="Status windows">
+    <article class="hero" data-hero="pg">
+      <header><svg width="14" height="14"><circle cx="7" cy="7" r="5.5" fill="currentColor"/></svg><h3>The Pilgrim</h3><span class="method">projected gradient</span></header>
+      <div class="body"><dl id="pg-stats"></dl><p class="today" id="pg-today"></p></div>
+      <p class="verdict" id="pg-verdict"></p>
+    </article>
+    <article class="hero" data-hero="lb">
+      <header><svg width="14" height="14"><rect x="2" y="2" width="10" height="10" fill="currentColor"/></svg><h3>The Cartographer</h3><span class="method">L-BFGS</span></header>
+      <div class="body"><dl id="lb-stats"></dl><p class="today" id="lb-today"></p></div>
+      <p class="verdict" id="lb-verdict"></p>
+    </article>
+    <article class="hero" data-hero="tw">
+      <header><svg width="14" height="14"><path d="M7 1.5 L12.5 12 L1.5 12 Z" fill="currentColor"/></svg><h3>The Twins</h3><span class="method">ADMM</span></header>
+      <div class="body"><dl id="tw-stats"></dl><p class="today" id="tw-today"></p></div>
+      <p class="verdict" id="tw-verdict"></p>
+    </article>
+  </section>
+
+
+  <footer class="foot">
+    <p>The rules are the tale's. The Pilgrim takes a fixed stride and is set back inside the box. The Cartographer is deck p9's L-BFGS: a two-loop recursion over the last m pages, strides halved from 1 until the height falls enough. On a boxed land it walks on x = tanh t. The Twins show scaled-form ADMM with penalty ρ, the Warden’s nearest-lawful-point step, and both residual stopping tests.</p>
+    <p>In the view through the fog the land is drawn one screen column at a time, near to far, the way 1990s games drew terrain (Retro shows it at Doom’s 320 × 200), with heights on a square-root scale (downhill stays downhill). The misty hills add six random waves and haze to every tap of the ground; the Weather settings add them to any land. With ripples or haze, this game approximately solves the Wanderer’s update with small downhill steps.</p>
+    <p>With their first settings, the canyon and the wall give the tale's own numbers. In the canyon, the Pilgrim comes within 0.01 of the spring after 21 strides and the Cartographer after 4. At the wall, the Pilgrim comes within 0.001 of the treasure after 10 strides, the Twins after 9 days and the Cartographer after 6. The fort and the ridge use CORAL's three terms (deck p5) on two sentries under one tower.</p>
+  </footer>
+</div>
+<script src="engine.js"></script>
+<script src="fog.js"></script>
+<script src="board.js"></script>
+<script src="board_parts.js"></script>
+<script src="game.js"></script>
+<script src="app.js"></script>
