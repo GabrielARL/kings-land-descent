@@ -1,6 +1,6 @@
 # King's Land Descent
 
-An interactive browser game for learning gradient descent, L-BFGS, and ADMM.
+An interactive browser game with a 50-step guided tutorial for learning gradient descent, L-BFGS, and ADMM.
 
 - [Play King's Land Descent](https://gabrielarl.github.io/kings-land-descent/)
 - [Open the guided tutorial](https://gabrielarl.github.io/kings-land-descent/tutorial.html)
@@ -23,7 +23,7 @@ node source/simulator/test_learning_flow.js
 sha256sum -c SHA256SUMS
 ```
 
-The first suite checks the terrain and optimization engine. The second protects the teaching sequence, including the guided ADMM walkthrough.
+The first suite checks the terrain and optimization engine. The second protects the 50-step teaching sequence, including the Cartographer's day-2 L-BFGS derivation and the expanded ADMM walkthrough. That walkthrough introduces the Wanderer \(x\), Warden \(z\), scaled dual variable or ledger \(u\), and derived rope target or aim \(v=z-u\) before showing a complete update circuit. Its no-ledger comparison is explicitly marked as a counterfactual, not ADMM.
 
 ## Repository contents
 

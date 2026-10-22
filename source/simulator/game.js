@@ -784,7 +784,7 @@ var Game = (function () {
           (rec.wrote ? 'I write it in my journal as a new page' + (rec.dropped && rec.dropped.length ? '; the journal was full, so the oldest page, from day ' + rec.dropped[0].day + ', leaves.' : '.') : Math.round(m.p.m) ? 'No new page today: the slope did not grow along this stride.' : '');
       }
       // the Wanderer
-      if (o.phase === 'anchor') return '<b>Aim.</b> My twin the Warden stands at z = ' + pair(rec.zFrom, 3) + ' and the ledger reads u = ' + pair(rec.uFrom, 3) + '. I aim for v = z − u = ' + pair(rec.v, 3) + '.';
+      if (o.phase === 'anchor') return '<b>Rope target.</b> The game calls the derived point v my “aim”; it is not another copy. My twin the Warden stands at z = ' + pair(rec.zFrom, 3) + ' and the ledger reads u = ' + pair(rec.uFrom, 3) + ', so the rope target is v = z − u = ' + pair(rec.v, 3) + '.';
       if (o.phase === 'walk') return '<b>Walk.</b> I seek the lowest spot of my height plus the rope’s pull, ρ/2·|x − v|² with ρ = ' + num(p.rho, 2) + '. ' +
         (rec.exact ? 'On this land the formula gives it: ' + pair(rec.x, 3) + '.' : 'I walk down that sum in ' + Math.max(rec.path.length - 1, 0) + ' small steps to ' + pair(rec.x, 3) + '.');
       if (o.phase === 'warden') return '<b>Warden.</b> My twin takes the lawful spot nearest x + u: z = Π<sub>C</sub>' + pair([rec.x[0] + rec.uFrom[0], rec.x[1] + rec.uFrom[1]], 3) + ' = ' + pair(rec.z, 3) + '.';
@@ -1072,12 +1072,12 @@ var Game = (function () {
         done: function (b) { var w = api.model().walks.pg; return !dialog && ((w.lost != null && today() >= w.length) || today() >= b.day + 12); },
         praise: 'Its stride was longer than this canyon allows (α above 2/λₘₐₓ), so each overshoot grew until it left the map. I have given it back its old stride.',
         after: function () { var k = api.model().key; api.setParam('alpha', E.PRESETS[k].alpha); api.restart(); } },
-      { lesson: 6, king: 'One answer must do two jobs: make the land low and obey the wall. ADMM temporarily gives those jobs to two copies. The Wanderer x lowers the land cost; the Warden z obeys the law. The rope and ledger drive the two copies toward one answer. Come, ask me for my kingdom wall.',
+      { lesson: 6, king: 'One answer must do two jobs: make the land low and obey the wall. ADMM temporarily gives those jobs to two copies. The game calls the cost copy x the Wanderer and the lawful copy z the Warden. They are not two final answers: they must come back to x = z. Come, ask me for my kingdom wall; we will meet each role before adding the ledger and rope.',
         goal: 'Talk to the King, choose “Show me another land…”, then “the kingdom wall”.', target: { npc: 'king', choice: ['Show me another land', 'the kingdom wall'], text: 'Talk' },
         done: function () { return api.model().key === 'wall'; } },
       { lesson: 6, goal: 'Close the dialogue and click Wanderer, under View, to follow the Wanderer.', target: { dom: '[data-ride="tw"]', text: 'Follow the Wanderer' }, done: function () { return ride === 'tw'; } },
-      { lesson: 6, boardIds: ['twins', 'wander', 'warden', 'ledger', 'again'], boardTitle: 'ADMM: two copies, one circuit',
-        goal: 'Open ▶ Step by step (or press B). Use Next through all five ADMM pages, then press Done.', target: { dom: ['.rk-board'], text: 'Open the five-step ADMM guide' },
+      { lesson: 6, boardIds: ['twins', 'wanderer-role', 'warden-role'], boardTitle: 'ADMM: one answer, two temporary copies',
+        goal: 'Open ▶ Step by step (or press B). Meet the Wanderer and Warden on all three pages, then press Done.', target: { dom: ['.rk-board'], text: 'Meet the two ADMM copies' },
         done: function (b) { return stats.boardCompletions > b.boardCompletions; } },
       { lesson: 6, goal: 'Why does ADMM temporarily make two copies of one decision?',
         quiz: { options: [
@@ -1087,6 +1087,9 @@ var Game = (function () {
         ], correct: 0, retry: 'Not quite. The split gives one final decision two different temporary jobs.' } },
       { lesson: 6, goal: 'Live four days with N. Watch the rope, the Warden and the ledger. B now opens the full derivation. On day 4 the Wanderer steps outside the wall and the Warden remains lawful.', target: { dom: ['#fog-next', '#reckon'], text: 'Next day' },
         done: function (b) { return today() >= b.day + 4 && !api.playing(); } },
+      { lesson: 6, boardIds: ['ledger-role', 'without-ledger', 'aim', 'rope', 'wander', 'warden', 'ledger', 'again'], boardTitle: 'ADMM: why the ledger changes the next aim',
+        goal: 'Now open ▶ Step by step again. Follow all eight pages from the first signed gap through the next aim and complete circuit.', target: { dom: ['.rk-board'], text: 'See the ledger change the aim' },
+        done: function (b) { return stats.boardCompletions > b.boardCompletions; } },
       { lesson: 6, goal: 'Step off, walk to the Warden (the blue figure) and ask what is in the ledger.', target: { npc: 'wd', choice: 'What is in the ledger?', text: 'Talk' },
         done: function () { return chose('wd', 'What is in the ledger?'); },
         praise: 'The scaled dual variable records signed disagreement. The Twins stop only when they agree and the Warden’s copy has nearly stopped moving.' },

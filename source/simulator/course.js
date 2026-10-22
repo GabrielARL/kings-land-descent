@@ -22,7 +22,7 @@
     W.Jstar = land.J(W.T);
     return W;
   }
-  function ctxOf(W, hero, day) { return { hero: hero, name: NAMES[hero], key: W.key, L: { view: W.view, kind: W.K.kind }, land: W.land, p: W.p, x0: W.x0, day: day, walk: W.walks[hero] }; }
+  function ctxOf(W, hero, day) { return { hero: hero, name: NAMES[hero], key: W.key, L: { view: W.view, kind: W.K.kind }, land: W.land, p: W.p, x0: W.x0, day: day, walk: W.walks[hero], tutorial: true }; }
   // steps of the day-by-day board, renamed into the course's chapter
   function pick(W, hero, day, ids, chapter) {
     var all = B.plan(ctxOf(W, hero, day)).steps;
@@ -165,10 +165,13 @@
   // 4. the Cartographer
   var wc2 = Wc.walks.lb, lbDays = firstWithin(wc2, T, 0.01);
   out.push({ id: 'carto', chapter: CH.lb, title: 'The Cartographer', layout: 'map', view: around([x0, wc2[1].x, wc2[2].x, T], 0.5, 0.5), dur: 4.4,
-    text: 'The Cartographer also feels the slope with a staff, but it keeps a journal: its last m = ' + Math.round(Wc.p.m) + ' strides, each with how the slope changed over it. From those pages it learns the shape of the land, and bends its course toward the bottom instead of going straight downhill. It also tests every stride before it trusts it. This is L-BFGS, a quasi-Newton method.',
+    text: 'The Cartographer also feels the slope with a staff, but it keeps a journal: its last m = ' + Math.round(Wc.p.m) + ' strides, each with how the slope changed over it. From those pages it learns the shape of the land, and bends its course toward the bottom instead of going straight downhill. It also tests candidate step lengths before it moves. This is L-BFGS, a quasi-Newton method.',
     math: 'x<sub>k+1</sub> = x<sub>k</sub> + t·d,  d = −H∇J',
     draw: function (g, p) { base(g, Wc); g.flag(x0, 1); star(g, T, 1); var up = seg(p, 0.1, 0.9) * 2, q = walkTo(g, wc2, up, C.blue, 3); g.hero(q, 'lb', 1, 'the Cartographer'); } });
-  out = out.concat(pick(Wc, 'lb', 2, ['journal', 'page', 'read', 'tests', 'newpage'], CH.lb));
+  // Follow one complete day in causal order.  Day 2 starts at x_1, uses the first
+  // journal page to choose d_1, accepts t_1, and creates the page (s_1, y_1).
+  out = out.concat(pick(Wc, 'lb', 1,
+    ['journal', 'read', 'tests', 'stride', 'page-stride', 'page-slopes', 'page-change', 'page-curve', 'newpage'], CH.lb));
   out.push({ id: 'race1', chapter: CH.lb, title: 'The Cartographer against the Pilgrim', layout: 'map+side', view: around(wp.slice(0, pgDays + 1).map(function (q) { return q.x; }), 0.3, 0.5), dur: 6,
     text: 'On the canyon the Cartographer is within 0.01 of the treasure on day ' + lbDays + '; the Pilgrim needs ' + pgDays + ' days. After a couple of strides its journal has learned the canyon’s shape, so it stops zigzagging and heads along the floor.',
     math: 'days to within 0.01 of x*:  Pilgrim ' + at(0.5, String(pgDays)) + ',  Cartographer ' + at(0.8, String(lbDays)),
@@ -199,15 +202,19 @@
       for (var k = 1; k <= Math.min(n, wpw.length - 1); k++) if (wpw[k].clipped) { g.dot(wpw[k].raw, 3.5, C.red, 1); g.line(wpw[k].raw, wpw[k].x, C.red, 1.5, 1, [3, 3]); }
       var q = walkTo(g, wpw, up, C.orange, 2.5); g.hero(q, 'pg', 1, 'day ' + Math.min(n, dPg + 1));
     } });
-  out.push({ id: 'twins', chapter: CH.tw, title: 'The Twins', layout: 'map', view: wallView, dur: 4.4,
-    text: 'ADMM temporarily makes two copies of one final decision. The Wanderer x handles the land cost; the Warden z handles the law; and the scaled dual variable u keeps the running sum of their signed gaps. Day by day the rope and ledger restore agreement. This is the alternating direction method of multipliers.',
-    math: 'one final decision, two temporary copies:  x for the cost,  z ∈ C for the law',
+  out.push({ id: 'twins', chapter: CH.tw, title: 'One answer, two jobs', layout: 'map', view: wallView, dur: 4.4,
+    text: 'The King still wants one answer: the lowest point that obeys the wall. The alternating direction method of multipliers—ADMM—temporarily writes that answer as two copies. The game calls the cost copy x the Wanderer and the lawful copy z the Warden. Those are teaching names; standard ADMM uses x and z. They must ultimately agree, x = z. We now meet each role before adding the ledger and rope.',
+    math: 'minimise f(q), q ∈ C' + at(0.38, '<br>split the jobs: minimise f(x), z ∈ C, x = z'),
     draw: function (g, p) {
       base(g, Ww); star(g, Tw, 1); var up = seg(p, 0.1, 0.9) * 5;
       var qx = walkTo(g, wtw, up, '#e6e9ee', 2.5, 'x'), qz = walkTo(g, wtw, up, C.blue, 2.5, 'z');
       g.hero(qx, 'tw', 1, 'the Wanderer'); g.dot(qz, 7, C.blue, 1); g.label(qz, 'the Warden', C.blue, { dx: 10, dy: 14 });
+      g.line(qx, qz, C.violet, 2, seg(p, 0.65, 0.88), [5, 4]);
     } });
-  out = out.concat(pick(Ww, 'tw', 3, ['aim', 'rope', 'wander', 'warden', 'ledger', 'again'], CH.tw));
+  // Work the transition from day 4 to day 5: day 4 created the first nonzero ledger entry, so the next aim
+  // visibly differs from the Warden's point.  Earlier versions used day 3, where u = 0 and v = z hid the mechanism.
+  out = out.concat(pick(Ww, 'tw', 4,
+    ['wanderer-role', 'warden-role', 'ledger-role', 'without-ledger', 'aim', 'rope', 'wander', 'warden', 'ledger', 'again'], CH.tw));
   var Dw = Math.max(dPg, dLb, dTw) + 1;
   out.push({ id: 'race2', chapter: CH.tw, title: 'Three heroes at the wall', layout: 'map+side', view: [0.0, 1.6, -0.2, 1.4], dur: 6,
     text: 'At the wall the Cartographer is within 0.001 of the treasure on day ' + dLb + ', the Twins’ Warden on day ' + dTw + ' and the Pilgrim on day ' + dPg + '. At the Twins’ settled endpoint, both tests are small: the primal residual is ' + num(primalEnd, 5) + ' and the dual residual is ' + num(dualEnd, 5) + '. The ledger is the scaled dual variable u = ' + pair(uEnd) + '; there it approaches −∇J(x*)/ρ = ' + pair(uTheory) + '.',
