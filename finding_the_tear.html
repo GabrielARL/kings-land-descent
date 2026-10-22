@@ -1,0 +1,1639 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!-- The tutorial page "Finding the tear"; build_net.py inlines its scripts and adds the document's html, head and
+     body tags.  Everything above the body marker goes into the head.  The styles and the player are those of the
+     King's Land tutorials (paper/lbgfs_admm_diff_no_math/.../simulator/tutorial.html and board.js). -->
+<title>Finding the Tear</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IM+Fell+English+SC&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one screen of a storybook lesson; the night map (the stage) on the left, the story and its formula on the
+   right with one big Next; the chapters as a bar that fills along the bottom. */
+:root {
+  --bg: #edf1f5;
+  --surface: #ffffff;
+  --ink: #17212c;
+  --muted: #546273;
+  --line: #d3dbe4;
+  --accent: #8f5a00;
+  --accent-fill: #f5c25c;
+  --accent-ink: #1b1406;
+  --math-bg: #f4f6f9;
+  --stage: #0b121b;
+  --display: 'IM Fell English SC', 'Iowan Old Style', Georgia, serif;
+  --body: 'Atkinson Hyperlegible', 'Segoe UI', system-ui, sans-serif;
+  --mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --bg: #0c1218; --surface: #131b24; --ink: #e6ebf0; --muted: #9aa8b6; --line: #253242; --accent: #ffd27a; --accent-fill: #ffd27a; --accent-ink: #1b1406; --math-bg: #0f161e; color-scheme: dark; }
+}
+:root[data-theme="dark"] { --bg: #0c1218; --surface: #131b24; --ink: #e6ebf0; --muted: #9aa8b6; --line: #253242; --accent: #ffd27a; --accent-fill: #ffd27a; --accent-ink: #1b1406; --math-bg: #0f161e; color-scheme: dark; }
+html, body { height: 100%; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 16px; line-height: 1.55;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 14px;
+}
+.course { max-width: 1320px; margin: 0 auto; display: grid; gap: 14px; }
+.course-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.eyebrow { font-size: 12.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+.course-head h1 { margin: 0; font-family: var(--display); font-weight: 400; font-size: clamp(26px, 3.4vw, 38px); line-height: 1.1; text-wrap: balance; }
+.count { font-family: var(--mono); font-size: 13.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.course-body { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(300px, 1fr); gap: 16px; align-items: start; }
+.stage { position: relative; aspect-ratio: 16 / 11; max-width: 100%; background: var(--stage); border-radius: 12px; overflow: hidden; }
+.stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.story { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px 18px 14px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.chapter { font-size: 12.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); font-weight: 700; }
+.story h2 { margin: 0; font-family: var(--display); font-weight: 400; font-size: 26px; line-height: 1.15; text-wrap: balance; }
+.text { max-width: 65ch; }
+.text kbd { font-family: var(--mono); font-size: 0.85em; border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; }
+.math { font-family: var(--mono); font-size: 14px; line-height: 1.75; background: var(--math-bg); border-left: 3px solid var(--accent); border-radius: 6px; padding: 8px 12px; overflow-wrap: anywhere; }
+.bp { opacity: 0.15; transition: opacity 0.3s; }
+.bp.on { opacity: 1; }
+.fr { display: inline-grid; vertical-align: middle; text-align: center; line-height: 1.15; margin: 0 2px; }
+.fr > span:first-child { border-bottom: 1px solid currentColor; padding: 0 3px; }
+.controls { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.controls button { font: inherit; font-size: 15px; border-radius: 8px; padding: 8px 14px; cursor: pointer; background: transparent; color: var(--ink); border: 1px solid var(--line); }
+.controls button:hover { border-color: var(--accent); }
+.controls button:disabled { opacity: 0.4; cursor: default; }
+.controls #board-next { margin-left: auto; background: var(--accent-fill); color: var(--accent-ink); border-color: var(--accent-fill); font-weight: 700; padding: 10px 26px; font-size: 17px; }
+.controls #board-next:disabled { opacity: 0.55; }
+button:focus-visible, summary:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.contents summary { cursor: pointer; color: var(--muted); font-size: 14px; }
+.contents ol { list-style: none; margin: 8px 0 0; padding: 0; max-height: 240px; overflow: auto; font-size: 14px; border-top: 1px solid var(--line); }
+.contents .bl-chap { color: var(--accent); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; padding: 8px 4px 2px; }
+.contents .bl-step { display: flex; gap: 8px; padding: 3px 6px; border-radius: 6px; cursor: pointer; }
+.contents .bl-step span { min-width: 1.8em; color: var(--muted); font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.contents .bl-step:hover { background: var(--math-bg); }
+.contents .bl-step.on { background: var(--math-bg); font-weight: 700; }
+.progress { display: flex; gap: 4px; }
+.progress .seg { position: relative; flex-basis: 0; min-width: 0; height: 36px; border: 0; border-radius: 6px; background: var(--line); cursor: pointer; overflow: hidden; padding: 0 8px; text-align: left; color: var(--ink); font: inherit; }
+.progress .fill { position: absolute; inset: 0 auto 0 0; width: 0; background: var(--accent-fill); opacity: 0.55; transition: width 0.3s; }
+.progress .seg.on .fill { opacity: 0.9; }
+.progress .name { position: relative; font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+.progress .seg.on .name { font-weight: 700; }
+@media (max-width: 820px) {
+  .course-body { grid-template-columns: minmax(0, 1fr); }
+  .stage { aspect-ratio: 4 / 5; }
+  .story h2 { font-size: 23px; }
+  .progress .name { display: none; }
+  .progress .seg { height: 12px; padding: 0; }
+}
+@media (prefers-reduced-motion: reduce) { .bp, .progress .fill { transition: none; } }
+</style>
+</head>
+<body>
+<main class="course" id="board">
+  <header class="course-head">
+    <div>
+      <div class="eyebrow">Joint estimation with constraints · a synthetic case study</div>
+      <h1 id="board-title">Finding the tear</h1>
+    </div>
+    <span class="count" id="board-count"></span>
+  </header>
+  <div class="course-body">
+    <div class="stage"><canvas id="board-canvas" aria-label="Animated illustration for the current tutorial step" aria-describedby="board-step board-text board-math"></canvas></div>
+    <section class="story" aria-live="polite">
+      <div class="chapter" id="board-chapter"></div>
+      <h2 id="board-step"></h2>
+      <div class="text" id="board-text"></div>
+      <div class="math" id="board-math"></div>
+      <div class="controls">
+        <button type="button" id="board-prev">← Back</button>
+        <button type="button" id="board-replay" title="Play this step’s animation again">↻ Replay</button>
+        <button type="button" id="board-play" aria-pressed="false">⏵ Play</button>
+        <button type="button" id="board-next">Next →</button>
+      </div>
+      <details class="contents"><summary>Contents</summary><ol id="board-list"></ol></details>
+    </section>
+  </div>
+  <nav class="progress" id="progress" aria-label="Chapters"></nav>
+</main>
+<script>
+// The step-by-step board of kings_land_descent.html.  It cuts one day's reckoning of a hero (or yours, after you feel
+// the slope) into small steps.  Each step has a few plain words, its formula with that day's numbers, and an
+// animation on a flat chart of the land: where the hero stands, how the height is made, the four taps, the slopes
+// they give, and the hero's move.  game.js opens the board with the day's context; Board.register adds the steps of
+// one part of the reckoning (this file holds the parts every hero shares, board_parts.js the others).
+//
+// A step is { id, chapter, title, text, math, layout, view, dur, draw }:
+//   layout  'map' (the land seen from above), 'map+side' (the map and a panel beside it) or 'side' (a panel only);
+//   view    the part of the land the map shows, [x1min, x1max, x2min, x2max]; the board glides from one view to the next;
+//   dur     seconds the animation takes; text and math are HTML, and a part wrapped by at(p, html) shows from
+//           progress p of the animation on;
+//   draw(g, p) draws the step at progress p in [0, 1] with the kit g (g.mapR and g.sideR are the two panels).
+var Board = (function () {
+  'use strict';
+  var TAU = 2 * Math.PI;
+  function $(id) { return document.getElementById(id); }
+  function clamp(v, a, b) { return v < a ? a : v > b ? b : v; }
+  function ease(t) { t = clamp(t, 0, 1); return t * t * (3 - 2 * t); }
+  // the progress of a part of a step's animation that runs from a to b
+  function seg(p, a, b) { return ease((p - a) / (b - a)); }
+  function mix(a, b, t) { return a + (b - a) * t; }
+  function lerp2(a, b, t) { return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t]; }
+  function add(a, b, s) { s = s == null ? 1 : s; return [a[0] + s * b[0], a[1] + s * b[1]]; }
+  function sub(a, b) { return [a[0] - b[0], a[1] - b[1]]; }
+  function dot(a, b) { return a[0] * b[0] + a[1] * b[1]; }
+  function len(a) { return Math.hypot(a[0], a[1]); }
+  function scale(a, s) { return [a[0] * s, a[1] * s]; }
+  function backOut(t) { var s = 1.6; t = clamp(t, 0, 1) - 1; return t * t * ((s + 1) * t + s) + 1; }
+  function num(v, d) {
+    if (v == null || !isFinite(v)) return '—';
+    var s = v.toFixed(d == null ? 3 : d);
+    if (/^-0(\.0*)?$/.test(s)) s = s.slice(1);
+    return s.replace('-', '−');
+  }
+  function pair(v, d) { return '(' + num(v[0], d) + ', ' + num(v[1], d) + ')'; }
+  // a number ready to be multiplied: negative numbers in brackets
+  function par(v, d) { var t = num(v, d); return v < 0 && t !== '0.000' ? '(' + t + ')' : t; }
+  function at(p, html) { return '<span class="bp" data-at="' + p + '">' + html + '</span>'; }
+  function frac(a, b) { return '<span class="fr"><span>' + a + '</span><span>' + b + '</span></span>'; }
+  // a view around some points: their box, widened by a share of its size, at least `least` wide
+  function around(pts, grow, least) {
+    var x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+    pts.forEach(function (q) { if (!q) return; x0 = Math.min(x0, q[0]); x1 = Math.max(x1, q[0]); y0 = Math.min(y0, q[1]); y1 = Math.max(y1, q[1]); });
+    var cx = (x0 + x1) / 2, cy = (y0 + y1) / 2, w = Math.max((x1 - x0) * (1 + grow), (y1 - y0) * (1 + grow), least);
+    return [cx - w / 2, cx + w / 2, cy - w / 2, cy + w / 2];
+  }
+
+  var C = { bg: '#0b121b', ink: '#f2f5f8', dim: 'rgba(242,245,248,0.6)', faint: 'rgba(242,245,248,0.22)', gold: '#ffd27a',
+            orange: '#ffb071', blue: '#a9cdf6', green: '#b9f0a8', red: '#ff9a8a', violet: '#d9c2ff', box: 'rgba(8,12,18,0.82)' };
+  var HERO = { pg: { col: '#ffb071', letter: 'P' }, lb: { col: '#a9cdf6', letter: 'C' }, tw: { col: '#e6e9ee', letter: 'W' }, you: { col: '#ffd27a', letter: 'Y' } };
+
+  // ------------------------------------------------------------ the drawing kit
+  // Drawings in world spots keep inside the map's panel when a side panel shares the canvas.
+  function mapOnly(fn) { return function () { if (!this.sideR || !this.mapR) return fn.apply(this, arguments); var c = this.ctx, R = this.mapR; c.save(); c.beginPath(); c.rect(R[0], R[1], R[2], R[3]); c.clip(); try { return fn.apply(this, arguments); } finally { c.restore(); } }; }
+  function Kit(canvas) { this.cv = canvas; this.ctx = canvas.getContext('2d'); this.W = 0; this.H = 0; this.grid = null; this.lines = {}; }
+  Kit.prototype.fit = function () {
+    var r = this.cv.getBoundingClientRect(), dpr = Math.min(window.devicePixelRatio || 1, 2);
+    var W = Math.max(240, Math.round(r.width)), H = Math.max(180, Math.round(r.height));
+    if (this.cv.width !== Math.round(W * dpr) || this.cv.height !== Math.round(H * dpr)) { this.cv.width = Math.round(W * dpr); this.cv.height = Math.round(H * dpr); }
+    this.W = W; this.H = H; this.dpr = dpr;
+    this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    this.sans = getComputedStyle(document.body).fontFamily || 'sans-serif';
+    this.mono = (getComputedStyle(document.documentElement).getPropertyValue('--mono') || '').trim() || 'monospace';
+  };
+  Kit.prototype.clear = function () { var c = this.ctx; c.globalAlpha = 1; c.setLineDash([]); c.fillStyle = C.bg; c.fillRect(0, 0, this.W, this.H); };
+  Kit.prototype.layout = function (kind) {
+    var W = this.W, H = this.H, m = 8;
+    this.mapR = this.sideR = null;
+    if (kind === 'side') this.sideR = [m, m, W - 2 * m, H - 2 * m];
+    else if (kind === 'map+side') {
+      if (W >= H * 1.1) { var w = Math.round((W - 3 * m) * 0.54); this.mapR = [m, m, w, H - 2 * m]; this.sideR = [2 * m + w, m, W - 3 * m - w, H - 2 * m]; }
+      else { var h = Math.round((H - 3 * m) * 0.55); this.mapR = [m, m, W - 2 * m, h]; this.sideR = [m, 2 * m + h, W - 2 * m, H - 3 * m - h]; }
+    } else this.mapR = [m, m, W - 2 * m, H - 2 * m];
+  };
+  // The map: world spot q = (x1, x2) to canvas, x1 to the right and x2 up, one scale for both.
+  Kit.prototype.view = function (v) {
+    var R = this.mapR, vw = v[1] - v[0], vh = v[3] - v[2], s = Math.min(R[2] / vw, R[3] / vh);
+    this.s = s; this.ox = R[0] + R[2] / 2 - (v[0] + v[1]) / 2 * s; this.oy = R[1] + R[3] / 2 + (v[2] + v[3]) / 2 * s;
+    this.vis = [(R[0] - this.ox) / s, (R[0] + R[2] - this.ox) / s, (this.oy - R[1] - R[3]) / s, (this.oy - R[1]) / s];
+  };
+  Kit.prototype.P = function (q) { return [this.ox + q[0] * this.s, this.oy - q[1] * this.s]; };
+  Kit.prototype.clip = function (R) { var c = this.ctx; c.save(); c.beginPath(); rrect(c, R[0], R[1], R[2], R[3], 8); c.clip(); };
+  function rrect(c, x, y, w, h, r) { r = Math.min(r, w / 2, h / 2); c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r); c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath(); }
+  function ramp(t) {
+    var lo = [26, 58, 92], mid = [92, 112, 120], hi = [150, 98, 58], u = clamp(t, 0, 1);
+    return u < 0.5 ? [mix(lo[0], mid[0], u * 2), mix(lo[1], mid[1], u * 2), mix(lo[2], mid[2], u * 2)] : [mix(mid[0], hi[0], u * 2 - 1), mix(mid[1], hi[1], u * 2 - 1), mix(mid[2], hi[2], u * 2 - 1)];
+  }
+  // The land as shading and rings of equal height.  fn is the height; o.lo, o.hi fix the shading's range (else the
+  // range in view), o.rings the number of rings (spaced so that a bowl gets evenly spaced rings), o.id names fn.
+  Kit.prototype.land = function (fn, o) {
+    o = o || {};
+    var R = this.mapR, v = this.vis, cell = o.cell || 4, nx = Math.max(40, Math.round(R[2] / cell)), ny = Math.max(30, Math.round(R[3] / cell));
+    var key = (o.id || 'J') + '|' + v.map(function (a) { return a.toPrecision(7); }).join(',') + '|' + nx + 'x' + ny;
+    var g = this.grid && this.grid.key === key ? this.grid : null;
+    if (!g) {
+      var vals = new Float64Array((nx + 1) * (ny + 1)), lo = Infinity, hi = -Infinity;
+      for (var j = 0; j <= ny; j++) for (var i = 0; i <= nx; i++) {
+        var z = fn([v[0] + (v[1] - v[0]) * i / nx, v[2] + (v[3] - v[2]) * j / ny]); vals[j * (nx + 1) + i] = z;
+        if (isFinite(z)) { if (z < lo) lo = z; if (z > hi) hi = z; }
+      }
+      g = this.grid = { key: key, vals: vals, nx: nx, ny: ny, lo: lo, hi: hi, img: null, imgKey: '', rings: null, ringKey: '' };
+      this.lines = {};
+    }
+    var lo = o.lo != null ? o.lo : g.lo, hi = o.hi != null ? o.hi : g.hi; if (!(hi > lo)) hi = lo + 1;
+    var c = this.ctx;
+    if (g.imgKey !== lo + '|' + hi + '|' + !!o.pits) {
+      var cv = document.createElement('canvas'); cv.width = g.nx + 1; cv.height = g.ny + 1;
+      var cc = cv.getContext('2d'), im = cc.createImageData(cv.width, cv.height);
+      for (j = 0; j <= g.ny; j++) for (i = 0; i <= g.nx; i++) {
+        var t = (g.vals[j * (g.nx + 1) + i] - lo) / (hi - lo), col = ramp(Math.sqrt(clamp(t, 0, 1))), k4 = ((g.ny - j) * cv.width + i) * 4;
+        if (t < 0 && o.pits) { var b = clamp(-t * 4, 0, 1); col = [mix(26, 6, b), mix(58, 8, b), mix(92, 12, b)]; }
+        im.data[k4] = col[0]; im.data[k4 + 1] = col[1]; im.data[k4 + 2] = col[2]; im.data[k4 + 3] = 255;
+      }
+      cc.putImageData(im, 0, 0); g.img = cv; g.imgKey = lo + '|' + hi + '|' + !!o.pits; g.ringKey = '';
+    }
+    this.clip(R);
+    c.imageSmoothingEnabled = true; c.globalAlpha = o.alpha == null ? 1 : o.alpha;
+    var A = this.P([v[0], v[3]]), B = this.P([v[1], v[2]]);
+    c.drawImage(g.img, A[0], A[1], B[0] - A[0], B[1] - A[1]);
+    var n = o.rings == null ? 12 : o.rings, rk = lo + '|' + hi + '|' + n;
+    if (n > 0) {
+      if (g.ringKey !== rk) { g.rings = []; for (var q = 1; q <= n; q++) g.rings.push(this.contour(g, lo + (hi - lo) * Math.pow(q / (n + 1), 2))); g.ringKey = rk; }
+      c.strokeStyle = 'rgba(214,230,246,0.33)'; c.lineWidth = 1;
+      g.rings.forEach(function (sg) { strokeSegs(c, sg, this); }, this);
+    }
+    c.globalAlpha = 1; c.restore();
+  };
+  // One ring: the spots of the grid in view where the height is `level` (marching squares).
+  Kit.prototype.contour = function (g, level) {
+    var v = this.vis, nx = g.nx, ny = g.ny, out = [], vals = g.vals, w = nx + 1;
+    function X(i) { return v[0] + (v[1] - v[0]) * i / nx; } function Y(j) { return v[2] + (v[3] - v[2]) * j / ny; }
+    for (var j = 0; j < ny; j++) for (var i = 0; i < nx; i++) {
+      var a = vals[j * w + i], b = vals[j * w + i + 1], cc = vals[(j + 1) * w + i + 1], d = vals[(j + 1) * w + i];
+      var idx = (a > level ? 1 : 0) | (b > level ? 2 : 0) | (cc > level ? 4 : 0) | (d > level ? 8 : 0);
+      if (idx === 0 || idx === 15) continue;
+      var e = [];
+      if ((idx & 1) !== (idx >> 1 & 1)) e.push([X(i + (level - a) / (b - a)), Y(j)]);
+      if ((idx >> 1 & 1) !== (idx >> 2 & 1)) e.push([X(i + 1), Y(j + (level - b) / (cc - b))]);
+      if ((idx >> 2 & 1) !== (idx >> 3 & 1)) e.push([X(i + (level - d) / (cc - d)), Y(j + 1)]);
+      if ((idx >> 3 & 1) !== (idx & 1)) e.push([X(i), Y(j + (level - a) / (d - a))]);
+      if (e.length === 2) out.push(e[0], e[1]); else if (e.length === 4) out.push(e[0], e[1], e[2], e[3]);
+    }
+    return out;
+  };
+  function strokeSegs(c, sg, k) {
+    c.beginPath();
+    for (var i = 0; i + 1 < sg.length; i += 2) { var a = k.P(sg[i]), b = k.P(sg[i + 1]); c.moveTo(a[0], a[1]); c.lineTo(b[0], b[1]); }
+    c.stroke();
+  }
+  // The ring through one height, lit (uses the grid of the last land()).
+  Kit.prototype.ring = function (level, col, w, p) {
+    if (!this.grid || p <= 0) return;
+    var k = String(level), sg = this.lines[k] || (this.lines[k] = this.contour(this.grid, level)), c = this.ctx;
+    this.clip(this.mapR); c.globalAlpha = clamp(p, 0, 1); c.strokeStyle = col; c.lineWidth = w || 2.5; strokeSegs(c, sg, this); c.globalAlpha = 1; c.restore();
+  };
+  // Ticks along the map's bottom (x1) and left (x2) edges.
+  Kit.prototype.axes = function () {
+    var c = this.ctx, R = this.mapR, v = this.vis, step = nice((v[1] - v[0]) / 5), d = places(step);
+    c.font = '11px ' + this.mono; c.fillStyle = C.dim; c.strokeStyle = C.faint; c.lineWidth = 1;
+    c.textAlign = 'center'; c.textBaseline = 'bottom';
+    for (var t = Math.ceil(v[0] / step) * step; t <= v[1]; t += step) { var a = this.P([t, v[2]]); if (a[0] < R[0] + 18 || a[0] > R[0] + R[2] - 24) continue; c.beginPath(); c.moveTo(a[0], R[1] + R[3]); c.lineTo(a[0], R[1] + R[3] - 5); c.stroke(); c.fillText(num(t, d), a[0], R[1] + R[3] - 6); }
+    c.textAlign = 'left'; c.textBaseline = 'middle';
+    for (t = Math.ceil(v[2] / step) * step; t <= v[3]; t += step) { var b = this.P([v[0], t]); if (b[1] < R[1] + 22 || b[1] > R[1] + R[3] - 30) continue; c.beginPath(); c.moveTo(R[0], b[1]); c.lineTo(R[0] + 5, b[1]); c.stroke(); c.fillText(num(t, d), R[0] + 7, b[1]); }
+    c.font = '600 12px ' + this.sans; c.fillStyle = C.ink; c.textAlign = 'right'; c.textBaseline = 'bottom'; c.fillText('x₁ →', R[0] + R[2] - 6, R[1] + R[3] - 4);
+    c.textAlign = 'left'; c.textBaseline = 'top'; c.fillText('↑ x₂', R[0] + 6, R[1] + 5);
+  };
+  function places(step) { return clamp(Math.ceil(-Math.log(step) / Math.LN10 - 1e-9), 0, 7); }
+  function nice(x) { var e = Math.pow(10, Math.floor(Math.log(x) / Math.LN10)), f = x / e; return (f < 1.5 ? 1 : f < 3.5 ? 2 : f < 7.5 ? 5 : 10) * e; }
+  Kit.prototype.dot = mapOnly(function (q, r, col, p) {
+    if (!(p > 0)) return; var c = this.ctx, a = this.P(q);
+    c.beginPath(); c.arc(a[0], a[1], r * backOut(p), 0, TAU); c.fillStyle = col; c.fill(); c.lineWidth = 2; c.strokeStyle = C.bg; c.stroke();
+  });
+  Kit.prototype.halo = mapOnly(function (q, rPx, col, p, w, dash) {
+    if (!(p > 0)) return; var c = this.ctx, a = this.P(q);
+    c.globalAlpha = clamp(p, 0, 1); c.strokeStyle = col; c.lineWidth = w || 1.5; if (dash) c.setLineDash(dash);
+    c.beginPath(); c.arc(a[0], a[1], rPx, 0, TAU); c.stroke(); c.setLineDash([]); c.globalAlpha = 1;
+  });
+  // a ring spreading from a spot, as when the staff touches the ground
+  Kit.prototype.tap = mapOnly(function (q, col, p) {
+    if (!(p > 0) || p >= 1) return; var c = this.ctx, a = this.P(q);
+    c.globalAlpha = 1 - p; c.strokeStyle = col; c.lineWidth = 2; c.beginPath(); c.arc(a[0], a[1], 4 + 22 * p, 0, TAU); c.stroke(); c.globalAlpha = 1;
+  });
+  Kit.prototype.hero = mapOnly(function (q, who, p, label) {
+    if (!(p > 0)) return; var h = HERO[who] || HERO.you, c = this.ctx, a = this.P(q), r = 9 * backOut(p);
+    c.beginPath(); c.arc(a[0], a[1], r + 3, 0, TAU); c.fillStyle = 'rgba(8,12,18,0.85)'; c.fill();
+    c.beginPath(); c.arc(a[0], a[1], r, 0, TAU); c.fillStyle = h.col; c.fill();
+    if (p > 0.6) { c.fillStyle = '#1b1406'; c.font = '700 11px ' + this.sans; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(h.letter, a[0], a[1] + 0.5); }
+    if (label) this.labelPx(a[0] + 14, a[1] - 12, label, h.col, { p: seg(p, 0.5, 1) });
+  });
+  Kit.prototype.flag = mapOnly(function (q, p) {
+    if (!(p > 0)) return; var c = this.ctx, a = this.P(q), k = backOut(p);
+    c.strokeStyle = C.ink; c.lineWidth = 2; c.beginPath(); c.moveTo(a[0], a[1]); c.lineTo(a[0], a[1] - 22 * k); c.stroke();
+    c.fillStyle = '#f7f3ea'; c.beginPath(); c.moveTo(a[0], a[1] - 22 * k); c.lineTo(a[0] + 14 * k, a[1] - 17 * k); c.lineTo(a[0], a[1] - 12 * k); c.closePath(); c.fill();
+    c.fillStyle = '#c45100'; c.beginPath(); c.arc(a[0] + 5 * k, a[1] - 17 * k, 2.2 * k, 0, TAU); c.fill();
+  });
+  // an arrow from a to b (world spots), drawn as far as progress p
+  Kit.prototype.arrow = mapOnly(function (a, b, col, w, p, dash) { if (!(p > 0)) return; var A = this.P(a), B = this.P(b); this.arrowPx(A, [mix(A[0], B[0], p), mix(A[1], B[1], p)], col, w, dash); });
+  Kit.prototype.arrowPx = function (A, B, col, w, dash) {
+    var c = this.ctx, dx = B[0] - A[0], dy = B[1] - A[1], L = Math.hypot(dx, dy); if (L < 0.5) return;
+    var ux = dx / L, uy = dy / L, hl = Math.min(9 + 2 * w, L * 0.5), hw = hl * 0.55;
+    c.strokeStyle = col; c.fillStyle = col; c.lineWidth = w; c.lineCap = 'round'; if (dash) c.setLineDash(dash);
+    c.beginPath(); c.moveTo(A[0], A[1]); c.lineTo(B[0] - ux * hl * 0.7, B[1] - uy * hl * 0.7); c.stroke(); c.setLineDash([]);
+    c.beginPath(); c.moveTo(B[0], B[1]); c.lineTo(B[0] - ux * hl - uy * hw, B[1] - uy * hl + ux * hw); c.lineTo(B[0] - ux * hl + uy * hw, B[1] - uy * hl - ux * hw); c.closePath(); c.fill();
+  };
+  Kit.prototype.line = mapOnly(function (a, b, col, w, p, dash) {
+    if (!(p > 0)) return; var c = this.ctx, A = this.P(a), B = this.P(b);
+    c.strokeStyle = col; c.lineWidth = w || 1.5; c.lineCap = 'round'; if (dash) c.setLineDash(dash);
+    c.beginPath(); c.moveTo(A[0], A[1]); c.lineTo(mix(A[0], B[0], p), mix(A[1], B[1], p)); c.stroke(); c.setLineDash([]);
+  });
+  // a path through world spots, drawn as far as progress p of its length
+  Kit.prototype.path = mapOnly(function (pts, col, w, p, dash) {
+    if (!(p > 0) || pts.length < 2) return; var c = this.ctx, P = pts.map(this.P, this), L = 0, i;
+    for (i = 1; i < P.length; i++) L += Math.hypot(P[i][0] - P[i - 1][0], P[i][1] - P[i - 1][1]);
+    var left = L * clamp(p, 0, 1);
+    c.strokeStyle = col; c.lineWidth = w || 2; c.lineJoin = 'round'; c.lineCap = 'round'; if (dash) c.setLineDash(dash);
+    c.beginPath(); c.moveTo(P[0][0], P[0][1]);
+    for (i = 1; i < P.length && left > 0; i++) {
+      var l = Math.hypot(P[i][0] - P[i - 1][0], P[i][1] - P[i - 1][1]), t = l > left ? left / l : 1;
+      c.lineTo(mix(P[i - 1][0], P[i][0], t), mix(P[i - 1][1], P[i][1], t)); left -= l;
+    }
+    c.stroke(); c.setLineDash([]);
+  });
+  Kit.prototype.label = mapOnly(function (q, text, col, o) { var a = this.P(q); o = o || {}; this.labelPx(a[0] + (o.dx || 0), a[1] + (o.dy || 0), text, col, o); });
+  // a label: text on a dark rounded box; o: { p, size, align ('left', 'center', 'right'), mono, plain (no box), base }
+  Kit.prototype.labelPx = function (x, y, text, col, o) {
+    o = o || {}; var p = o.p == null ? 1 : o.p; if (!(p > 0)) return;
+    var c = this.ctx, size = o.size || 13; c.font = (o.mono ? '' : '600 ') + size + 'px ' + (o.mono ? this.mono : this.sans);
+    var w = c.measureText(text).width, align = o.align || 'left', x0 = align === 'center' ? x - w / 2 : align === 'right' ? x - w : x;
+    x0 = clamp(x0, 4, this.W - w - 4); var yc = clamp(y, size / 2 + 4, this.H - size / 2 - 4);
+    c.globalAlpha = clamp(p, 0, 1);
+    if (!o.plain) { c.fillStyle = C.box; c.beginPath(); rrect(c, x0 - 5, yc - size / 2 - 4, w + 10, size + 8, 5); c.fill(); }
+    c.fillStyle = col || C.ink; c.textAlign = 'left'; c.textBaseline = 'middle'; c.fillText(text, x0, yc + 0.5); c.globalAlpha = 1;
+    return [x0 - 5, yc - size / 2 - 4, w + 10, size + 8];
+  };
+  // a label just beyond the tip of an arrow pointing along dir (a world direction)
+  Kit.prototype.tipLabel = mapOnly(function (tip, dir, text, col, p) {
+    var a = this.P(tip), l = len(dir) || 1, ux = dir[0] / l, uy = -dir[1] / l;
+    return this.labelPx(a[0] + ux * 14, a[1] + uy * 14 + (Math.abs(ux) < 0.4 ? (uy < 0 ? -4 : 4) : 0), text, col, { p: p, align: ux > 0.35 ? 'left' : ux < -0.35 ? 'right' : 'center', size: 12.5 });
+  });
+  // a key in a corner of the map: rows of [colour, text, dash]
+  Kit.prototype.legend = function (rows, p) {
+    if (!(p > 0)) return; var c = this.ctx, R = this.mapR, x = R[0] + 10, y = R[1] + 26, w = 0;
+    c.font = '12px ' + this.mono; rows.forEach(function (r) { w = Math.max(w, c.measureText(r[1]).width); });
+    c.globalAlpha = clamp(p, 0, 1); c.fillStyle = C.box; c.beginPath(); rrect(c, x, y, w + 40, rows.length * 19 + 10, 6); c.fill();
+    rows.forEach(function (r, k) { c.strokeStyle = r[0]; c.lineWidth = 3; if (r[2]) c.setLineDash(r[2]); c.beginPath(); c.moveTo(x + 8, y + 15 + 19 * k); c.lineTo(x + 26, y + 15 + 19 * k); c.stroke(); c.setLineDash([]); c.fillStyle = C.ink; c.textAlign = 'left'; c.textBaseline = 'middle'; c.fillText(r[1], x + 32, y + 15 + 19 * k); });
+    c.globalAlpha = 1;
+  };
+  // A right angle marker at corner q between directions u and v (unit vectors), size in pixels.
+  Kit.prototype.square = mapOnly(function (q, u, v, size, col, p) {
+    if (!(p > 0)) return; var c = this.ctx, a = this.P(q), s = size, U = [u[0] * s, -u[1] * s], V = [v[0] * s, -v[1] * s];
+    c.globalAlpha = clamp(p, 0, 1); c.strokeStyle = col; c.lineWidth = 1.5;
+    c.beginPath(); c.moveTo(a[0] + U[0], a[1] + U[1]); c.lineTo(a[0] + U[0] + V[0], a[1] + U[1] + V[1]); c.lineTo(a[0] + V[0], a[1] + V[1]); c.stroke(); c.globalAlpha = 1;
+  });
+  Kit.prototype.panel = function (R, title) {
+    var c = this.ctx; c.fillStyle = 'rgba(255,255,255,0.035)'; c.beginPath(); rrect(c, R[0], R[1], R[2], R[3], 8); c.fill();
+    if (title) { c.font = '700 12.5px ' + this.sans; c.fillStyle = C.gold; c.textAlign = 'left'; c.textBaseline = 'top'; c.fillText(title, R[0] + 10, R[1] + 8); }
+  };
+  // A 2-by-2 table of numbers in brackets, with cells lit in turn; returns its width.  cells[i][j] are strings,
+  // lit(i, j) in [0, 1] how much cell (i, j) shows.
+  Kit.prototype.matrix = function (x, y, cells, lit, o) {
+    o = o || {}; var c = this.ctx, size = o.size || 14; c.font = size + 'px ' + this.mono;
+    var cw = Math.max.apply(null, cells.map(function (r) { return Math.max.apply(null, r.map(function (s) { return c.measureText(s).width; })); })) + 14;
+    var rows = cells.length, cols = cells[0].length, h = rows * (size + 10), w = cols * cw + 10;
+    c.strokeStyle = o.col || C.ink; c.lineWidth = 1.5;
+    c.beginPath(); c.moveTo(x + 6, y); c.lineTo(x, y); c.lineTo(x, y + h); c.lineTo(x + 6, y + h); c.stroke();
+    c.beginPath(); c.moveTo(x + w - 6, y); c.lineTo(x + w, y); c.lineTo(x + w, y + h); c.lineTo(x + w - 6, y + h); c.stroke();
+    c.textAlign = 'center'; c.textBaseline = 'middle';
+    for (var i = 0; i < rows; i++) for (var j = 0; j < cols; j++) {
+      var l = lit ? lit(i, j) : 1; if (!(l > 0)) continue;
+      c.globalAlpha = clamp(l, 0, 1); c.fillStyle = (o.colOf && o.colOf(i, j)) || C.ink; c.fillText(cells[i][j], x + 5 + cw * (j + 0.5), y + (size + 10) * (i + 0.5)); c.globalAlpha = 1;
+    }
+    return w;
+  };
+  // Bars for a sum: items [{ name, value, col }] grow in turn from a zero line; the last item may be the total.
+  Kit.prototype.bars = function (R, items, p, o) {
+    o = o || {}; var c = this.ctx, n = items.length, top = R[1] + (o.title ? 34 : 12), rowH = Math.min(46, (R[3] - (top - R[1]) - 10) / n);
+    var pos = 0, neg = 0; items.forEach(function (it) { if (it.value > 0) pos = Math.max(pos, it.value); else neg = Math.max(neg, -it.value); });
+    var whole = pos + neg || 1, nameW = Math.min(R[2] * 0.46, o.nameW || 200), x0 = R[0] + nameW + 14, x1 = R[0] + R[2] - 92;
+    var zero = x0 + (x1 - x0) * neg / whole, unit = (x1 - x0) / whole;
+    if (o.title) this.panel(R, o.title); else this.panel(R);
+    c.strokeStyle = C.faint; c.lineWidth = 1; c.beginPath(); c.moveTo(zero, top - 4); c.lineTo(zero, top + rowH * n); c.stroke();
+    items.forEach(function (it, i) {
+      var q = seg(p, i / (n + 0.3), (i + 1) / (n + 0.3)); if (!(q > 0)) return;
+      var y = top + rowH * i + rowH / 2, w = it.value * unit * q, total = o.total && i === n - 1;
+      if (total) { c.strokeStyle = C.faint; c.beginPath(); c.moveTo(R[0] + 8, y - rowH / 2); c.lineTo(R[0] + R[2] - 8, y - rowH / 2); c.stroke(); }
+      c.globalAlpha = clamp(q * 1.5, 0, 1);
+      c.font = (total ? '700 ' : '600 ') + '12.5px ' + this.sans; c.fillStyle = it.col || C.ink; c.textAlign = 'right'; c.textBaseline = 'middle'; c.fillText(it.name, R[0] + nameW, y);
+      c.fillStyle = it.col || C.ink; c.globalAlpha *= total ? 1 : 0.85; c.fillRect(Math.min(zero, zero + w), y - rowH * 0.28, Math.abs(w), rowH * 0.56); c.globalAlpha = clamp(q * 1.5, 0, 1);
+      c.font = (total ? '700 ' : '') + '12.5px ' + this.mono; c.fillStyle = C.ink; c.textAlign = 'right';
+      c.fillText(num(it.value * (q < 1 ? q : 1), o.d == null ? 4 : o.d), R[0] + R[2] - 10, y); c.globalAlpha = 1;
+    }, this);
+  };
+  // A side panel's plot: t across, v up.  Returns helpers in canvas pixels.
+  Kit.prototype.plot = function (R, tr, vr, o) {
+    o = o || {}; var k = this, c = this.ctx, L = R[0] + 44, Rt = R[0] + R[2] - 14, T = R[1] + (o.title ? 34 : 14), B = R[1] + R[3] - 30;
+    var X = function (t) { return L + (t - tr[0]) / (tr[1] - tr[0]) * (Rt - L); }, Y = function (v) { return B - (v - vr[0]) / (vr[1] - vr[0]) * (B - T); };
+    var P = {
+      X: X, Y: Y, box: [L, T, Rt - L, B - T],
+      frame: function (tl, vl) {
+        if (o.title) k.panel(R, o.title); else k.panel(R);
+        c.strokeStyle = C.faint; c.lineWidth = 1; c.beginPath(); c.moveTo(L, T); c.lineTo(L, B); c.lineTo(Rt, B); c.stroke();
+        c.font = '11px ' + k.mono; c.fillStyle = C.dim; c.textAlign = 'center'; c.textBaseline = 'top';
+        var st = nice((tr[1] - tr[0]) / 4), d = places(st);
+        if (o.tTicks !== false) for (var t = Math.ceil(tr[0] / st) * st; t <= tr[1] + 1e-12; t += st) c.fillText(num(t, d), X(t), B + 4);
+        var sv = nice((vr[1] - vr[0]) / 4), dv = places(sv); c.textAlign = 'right'; c.textBaseline = 'middle';
+        for (var v = Math.ceil(vr[0] / sv) * sv; v <= vr[1] + 1e-12; v += sv) c.fillText(num(v, dv), L - 4, Y(v));
+        c.font = '600 12px ' + k.sans; c.fillStyle = C.ink; c.textAlign = 'right'; c.textBaseline = 'bottom'; if (tl) c.fillText(tl, Rt, B - 4);
+        c.textAlign = 'left'; c.textBaseline = 'top'; if (vl) c.fillText(vl, L + 6, T);
+      },
+      curve: function (fn, col, w, p) {
+        if (!(p > 0)) return;
+        c.save(); c.beginPath(); c.rect(L, T - 6, Rt - L, B - T + 6); c.clip();
+        c.strokeStyle = col; c.lineWidth = w || 2; c.lineJoin = 'round'; c.beginPath();
+        var n = 160, last = Math.round(n * clamp(p, 0, 1));
+        for (var i = 0; i <= last; i++) { var t = tr[0] + (tr[1] - tr[0]) * i / n, y = clamp(Y(fn(t)), T - 40, B + 40); if (i) c.lineTo(X(t), y); else c.moveTo(X(t), y); }
+        c.stroke(); c.restore();
+      },
+      point: function (t, v, col, text, p, side) {
+        if (!(p > 0)) return; c.beginPath(); c.arc(X(t), Y(v), 5 * backOut(p), 0, TAU); c.fillStyle = col; c.fill(); c.lineWidth = 2; c.strokeStyle = C.bg; c.stroke();
+        if (text) k.labelPx(X(t) + (side === 'left' ? -10 : 10), Y(v) - 14, text, col, { p: seg(p, 0.4, 1), align: side === 'left' ? 'right' : 'left', size: 12 });
+      },
+      seg: function (t1, v1, t2, v2, col, w, p, dash) {
+        if (!(p > 0)) return; c.strokeStyle = col; c.lineWidth = w || 1.5; if (dash) c.setLineDash(dash);
+        c.beginPath(); c.moveTo(X(t1), Y(v1)); c.lineTo(mix(X(t1), X(t2), p), mix(Y(v1), Y(v2), p)); c.stroke(); c.setLineDash([]);
+      },
+      // a bracket along t at height v (run) or along v at t (rise), with its text
+      run: function (t1, t2, v, text, col, p) {
+        if (!(p > 0)) return; var y = Y(v) + 14; c.globalAlpha = clamp(p, 0, 1); c.strokeStyle = col; c.lineWidth = 1.5;
+        c.beginPath(); c.moveTo(X(t1), y - 5); c.lineTo(X(t1), y); c.lineTo(X(t2), y); c.lineTo(X(t2), y - 5); c.stroke(); c.globalAlpha = 1;
+        k.labelPx((X(t1) + X(t2)) / 2, y + 12, text, col, { p: p, align: 'center', size: 12 });
+      },
+      rise: function (t, v1, v2, text, col, p) {
+        if (!(p > 0)) return; var x = X(t) + 10; c.globalAlpha = clamp(p, 0, 1); c.strokeStyle = col; c.lineWidth = 1.5;
+        c.beginPath(); c.moveTo(x - 5, Y(v1)); c.lineTo(x, Y(v1)); c.lineTo(x, Y(v2)); c.lineTo(x - 5, Y(v2)); c.stroke(); c.globalAlpha = 1;
+        k.labelPx(x + 6, (Y(v1) + Y(v2)) / 2, text, col, { p: p, size: 12 });
+      }
+    };
+    return P;
+  };
+
+  // ------------------------------------------------------------ the parts of a day's reckoning
+  var parts = {};
+  function register(name, fn) { parts[name] = fn; }
+  // The day under study, from game.js's context: who, the day, where it stood, what it felt; the parts add their
+  // terms of the height (cx.parts) and of the slope (cx.gradParts) for the steps that add them up.
+  function study(ctx) {
+    var cx = {}, k;
+    for (k in ctx) cx[k] = ctx[k];
+    var land = ctx.land;
+    cx.J = land.J; cx.span = land.span; cx.landView = ctx.L.view; cx.h = land.h; cx.sigma = land.sigma || 0; cx.haze = cx.sigma > 0;
+    cx.you = ctx.hero === 'you';
+    cx.who = cx.you ? 'you' : ctx.name; cx.Who = cx.you ? 'You' : ctx.name.charAt(0).toUpperCase() + ctx.name.slice(1);
+    if (cx.you) {
+      cx.x = ctx.at.slice(); cx.path = [cx.x]; cx.k = ctx.day;
+      cx.taps = ctx.felt ? ctx.felt.taps : null; cx.gTaps = ctx.felt ? ctx.felt.g : null; cx.g = cx.gTaps;
+    } else {
+      var w = ctx.walk; cx.k = Math.max(0, Math.min(ctx.day, w.length - 2)); cx.last = ctx.day > w.length - 2;
+      cx.here = w[cx.k]; cx.rec = w.length > 1 ? w[cx.k + 1] : null;
+      cx.x = cx.rec && cx.rec.from ? cx.rec.from.slice() : cx.here.x.slice();
+      cx.path = w.slice(0, cx.k + 1).map(function (d) { return d.x; });
+      cx.taps = cx.rec && cx.rec.taps ? cx.rec.taps : null; cx.gTaps = cx.rec ? cx.rec.gFelt : null; cx.g = cx.rec ? cx.rec.g : null;
+    }
+    cx.gTrue = land.grad(cx.x); cx.F = ctx.hero === 'tw' ? land.f : land.J; cx.Jx = cx.F(cx.x);
+    // the shading's range: the land without its pits, over the whole map
+    var v = cx.landView, lo = Infinity, hi = -Infinity, sm = land.smooth || land.J;
+    for (var i = 0; i <= 40; i++) for (var j = 0; j <= 40; j++) { var z = sm([v[0] + (v[1] - v[0]) * i / 40, v[2] + (v[3] - v[2]) * j / 40]); if (z < lo) lo = z; if (z > hi) hi = z; }
+    cx.shade = { lo: lo, hi: hi, id: 'J', pits: !!land.holes };
+    cx.zoom = [cx.x[0] - 3.6 * cx.h, cx.x[0] + 3.6 * cx.h, cx.x[1] - 3.6 * cx.h, cx.x[1] + 3.6 * cx.h];
+    cx.parts = []; cx.gradParts = [];
+    return cx;
+  }
+  function plan(ctx) {
+    var cx = study(ctx), out = [];
+    function run(name) { if (parts[name]) parts[name](cx, out, H); }
+    run('where');
+    run(cx.land.kind === 'tower' ? 'towerHeight' : 'quadHeight');
+    run('weather');
+    if (cx.hero !== 'tw' && cx.taps) run('taps');
+    run({ pg: 'pgStride', lb: 'lbDay', tw: 'twDay', you: 'youDown' }[cx.hero]);
+    return { cx: cx, steps: out };
+  }
+
+  // ------------------------------------------------------------ the board: open, play, step, close
+  var embedded = false, stepHook = null, kit = null, cx = null, steps = [], visited = [], i = 0, t0 = 0, playing = false, raf = 0, opened = false, viewNow = null, viewFrom = null, closeHook = null, frozen = null;
+  function now() { return frozen != null ? frozen : performance.now(); }
+  function open(ctx, o) {
+    o = o || {}; var pl = plan(ctx); if (!pl.steps.length) return false;
+    cx = pl.cx; steps = pl.steps; embedded = false;
+    if (o.ids && o.ids.length) {
+      var all = steps;
+      steps = o.ids.map(function (id) { return all.filter(function (s) { return s.id === id; })[0]; }).filter(Boolean);
+      if (steps.length !== o.ids.length) return false;
+    }
+    visited = steps.map(function () { return false; });
+    if (!kit) { kit = new Kit($('board-canvas')); bind(); }
+    $('board').hidden = false; opened = true; playing = false; viewNow = null; playLabel();
+    $('board-title').textContent = o.title || (cx.you ? 'Your reckoning, step by step' : 'How ' + cx.who + ' reckons day ' + cx.k + ' → ' + (cx.k + 1) + (cx.last ? ' (its last step)' : ''));
+    list(); go(0);
+    return true;
+  }
+  function close() {
+    if (!opened || embedded) return; opened = false; playing = false; cancelAnimationFrame(raf); raf = 0; $('board').hidden = true;
+    if (closeHook) closeHook({ completed: visited.length === steps.length && visited.every(function (v) { return v; }), visited: visited.filter(Boolean).length, count: steps.length });
+  }
+  function go(n) {
+    if (!steps.length) return;
+    i = clamp(n, 0, steps.length - 1); visited[i] = true; viewFrom = viewNow; t0 = now();
+    var s = steps[i];
+    $('board-chapter').textContent = s.chapter || '';
+    $('board-step').textContent = s.title;
+    $('board-text').innerHTML = s.text || '';
+    $('board-math').innerHTML = s.math || ''; $('board-math').hidden = !s.math;
+    $('board-count').textContent = 'Step ' + (i + 1) + ' of ' + steps.length;
+    $('board-prev').disabled = i === 0;
+    $('board-next').textContent = i === steps.length - 1 ? (embedded ? 'The end' : 'Done ✓') : (embedded ? 'Next →' : 'Next ▶');
+    $('board-next').disabled = embedded && i === steps.length - 1;
+    if (stepHook) stepHook(i, steps[i], steps);
+    Array.prototype.forEach.call($('board-list').querySelectorAll('[data-i]'), function (li) {
+      var j = +li.getAttribute('data-i'); li.classList.toggle('on', j === i); li.classList.toggle('done', j < i);
+      if (j === i && li.scrollIntoView) { var box = $('board-list'); if (li.offsetTop < box.scrollTop || li.offsetTop + li.offsetHeight > box.scrollTop + box.clientHeight) box.scrollTop = li.offsetTop - box.clientHeight / 2; }
+    });
+    tick();
+  }
+  function list() {
+    var html = '', chap = null;
+    steps.forEach(function (s, j) {
+      if (s.chapter !== chap) { chap = s.chapter; html += '<li class="bl-chap">' + chap + '</li>'; }
+      html += '<li class="bl-step" data-i="' + j + '"><span>' + (j + 1) + '</span>' + s.title + '</li>';
+    });
+    $('board-list').innerHTML = html;
+  }
+  function hold(s) { var words = ((s.text || '') + ' ' + (s.math || '')).replace(/<[^>]*>/g, ' ').split(/\s+/).length; return clamp(1.6 + 0.07 * words, 3, 10); }
+  function glide(a, b, t) {
+    var ca = [(a[0] + a[1]) / 2, (a[2] + a[3]) / 2], cb = [(b[0] + b[1]) / 2, (b[2] + b[3]) / 2], wa = a[1] - a[0], wb = b[1] - b[0], ha = a[3] - a[2], hb = b[3] - b[2];
+    var c = lerp2(ca, cb, t), w = wa * Math.pow(wb / wa, t), h = ha * Math.pow(hb / ha, t);
+    return [c[0] - w / 2, c[0] + w / 2, c[1] - h / 2, c[1] + h / 2];
+  }
+  function render(p, tSec) {
+    var s = steps[i];
+    kit.fit(); kit.clear(); kit.layout(s.layout || 'map');
+    if (kit.mapR) {
+      var target = s.view || viewNow || cx.landView, v = target;
+      if (viewFrom && tSec < 0.9) v = glide(viewFrom, target, ease(tSec / 0.9));
+      viewNow = v; kit.view(v);
+    }
+    try { s.draw(kit, p); } catch (e) { (window.kingsLandErrors = window.kingsLandErrors || []).push('board ' + s.id + ': ' + (e && e.stack || e)); }
+    if (tSec < 0.3) { kit.ctx.globalAlpha = 1 - tSec / 0.3; kit.ctx.fillStyle = C.bg; kit.ctx.fillRect(0, 0, kit.W, kit.H); kit.ctx.globalAlpha = 1; }
+    Array.prototype.forEach.call(document.querySelectorAll('#board .bp'), function (el) { el.classList.toggle('on', p >= +el.getAttribute('data-at') - 1e-9); });
+  }
+  function tick() {
+    if (!opened) return;
+    cancelAnimationFrame(raf); raf = 0;
+    var s = steps[i], tSec = (now() - t0) / 1000, dur = s.dur || 3, p = clamp(tSec / dur, 0, 1);
+    render(p, tSec);
+    if (playing && tSec > dur + hold(s)) { if (i < steps.length - 1) { go(i + 1); return; } playing = false; playLabel(); }
+    if (frozen == null && (p < 1 || tSec < 0.9 || playing)) raf = requestAnimationFrame(tick);
+  }
+  function playLabel() { var b = $('board-play'); if (b) { b.textContent = playing ? '⏸ Pause' : '⏵ Play'; b.setAttribute('aria-pressed', String(playing)); } }
+  function play() { playing = !playing; if (playing && i === steps.length - 1 && (now() - t0) / 1000 > (steps[i].dur || 3)) go(0); playLabel(); tick(); }
+  function next() { if (i < steps.length - 1) go(i + 1); else close(); }
+  function bind() {
+    if ($('board-close')) $('board-close').addEventListener('click', close);
+    $('board-prev').addEventListener('click', function () { playing = false; playLabel(); go(i - 1); });
+    $('board-next').addEventListener('click', function () { playing = false; playLabel(); next(); });
+    $('board-replay').addEventListener('click', function () { go(i); });
+    $('board-play').addEventListener('click', play);
+    $('board-list').addEventListener('click', function (e) { var li = e.target.closest ? e.target.closest('[data-i]') : null; if (li) { playing = false; playLabel(); go(+li.getAttribute('data-i')); } });
+    window.addEventListener('resize', function () { if (opened) tick(); });
+  }
+  // Keys while the board is open; true when the board used the key.
+  function key(e) {
+    if (!opened) return false;
+    var k = e.key;
+    if (k === 'ArrowRight' || k === 'Enter') { playing = false; playLabel(); next(); }
+    else if (k === 'ArrowLeft') { playing = false; playLabel(); go(i - 1); }
+    else if (k === ' ') play();
+    else if (k === 'r' || k === 'R') go(i);
+    else if (!embedded && (k === 'Escape' || k === 'b' || k === 'B')) close();
+    else return false;
+    e.preventDefault(); return true;
+  }
+  // A course: a list of prepared steps played inside the page itself (no close; the last step is the end).
+  function openSteps(list0, o) {
+    o = o || {}; embedded = !!o.embedded; cx = o.cx || { landView: [-1, 1, -1, 1] }; steps = list0; visited = steps.map(function () { return false; });
+    if (!steps.length) return false;
+    if (!kit) { kit = new Kit($('board-canvas')); bind(); }
+    $('board').hidden = false; opened = true; playing = false; viewNow = null; playLabel();
+    if (o.title && $('board-title')) $('board-title').textContent = o.title;
+    list(); go(o.start || 0);
+    return true;
+  }
+  // For tests: show step n (an index or an id) at progress p, with time stopped.
+  function debug(o) {
+    o = o || {};
+    if (o.step != null && steps.length) {
+      var n = typeof o.step === 'number' ? o.step : steps.map(function (s) { return s.id; }).indexOf(o.step);
+      if (n >= 0) { frozen = 0; viewNow = null; viewFrom = null; go(n); }
+    }
+    if (o.p != null && opened) { frozen = 1e9; t0 = frozen - 1000 * (o.p * (steps[i].dur || 3)) - 1000; render(o.p, 5); }
+    if (o.live) frozen = null;
+    return { open: opened, i: i, n: steps.length, id: steps[i] && steps[i].id, title: steps[i] && steps[i].title };
+  }
+
+  var H = { C: C, HERO: HERO, clamp: clamp, ease: ease, seg: seg, mix: mix, lerp2: lerp2, add: add, sub: sub, dot: dot, len: len, scale: scale,
+            num: num, pair: pair, par: par, at: at, frac: frac, around: around, nice: nice, backOut: backOut };
+
+  // ------------------------------------------------------------ where the hero stands
+  register('where', function (cx, out) {
+    var x = cx.x, x0 = cx.x0, moved = cx.path.length > 1, col = HERO[cx.hero].col;
+    out.push({ id: 'where', chapter: 'Where', title: cx.you ? 'Where you stand: x' : 'Where ' + cx.who + ' stands: x', layout: 'map', view: cx.landView, dur: 3.6,
+      text: 'A spot on the King’s map is a pair of numbers, x = (x₁, x₂): x₁ grows to the east, x₂ to the north. ' +
+        (cx.you ? 'You stand at x = ' + pair(x) + '.' : 'Every hero sets out from the start flag, x₀ = ' + pair(x0) + ', on day 0. ' +
+          (cx.k === 0 ? 'Today is day 0, so ' + cx.who + ' is still at the flag: x = x₀.' : 'After ' + cx.k + (cx.k === 1 ? ' day' : ' days') + ' of walking, ' + cx.who + ' stands at x = ' + pair(x) + '.')),
+      math: (cx.you ? '' : at(0.15, 'x₀ = ' + pair(x0)) + '<br>') + at(0.7, 'x = (x₁, x₂) = ' + pair(x)),
+      draw: function (g, p) {
+        g.land(cx.J, cx.shade); g.axes();
+        if (!cx.you) { g.flag(x0, seg(p, 0, 0.2)); g.label(x0, 'x₀, the start flag', C.ink, { dx: 18, dy: -22, p: seg(p, 0.1, 0.3) }); }
+        if (moved) g.path(cx.path, col, 2.5, seg(p, 0.25, 0.55));
+        g.hero(x, cx.hero, seg(p, moved ? 0.5 : 0.3, moved ? 0.62 : 0.45));
+        var q = seg(p, 0.62, 0.86), v = g.vis, foot = [x[0], v[2]], side = [v[0], x[1]];
+        g.line(x, foot, C.gold, 1.5, q, [5, 4]); g.line(x, side, C.gold, 1.5, q, [5, 4]);
+        g.label(foot, 'x₁ = ' + num(x[0]), C.gold, { dx: 6, dy: -34, p: seg(p, 0.8, 1) });
+        g.label(side, 'x₂ = ' + num(x[1]), C.gold, { dx: 34, dy: -14, p: seg(p, 0.8, 1) });
+      } });
+  });
+
+  // ------------------------------------------------------------ the height of a valley land: ½(x − c)ᵀA(x − c)
+  register('quadHeight', function (cx, out) {
+    var land = cx.land, P = cx.p, x = cx.x, c = land.c, A = land.A, d = sub(x, c), th = (P.theta || 0) * Math.PI / 180;
+    var u1 = [Math.cos(th), Math.sin(th)], u2 = [-Math.sin(th), Math.cos(th)], l1 = P.l1, l2 = P.l2, round = Math.abs(l1 - l2) < 1e-9;
+    var Ad = [A[0][0] * d[0] + A[0][1] * d[1], A[1][0] * d[0] + A[1][1] * d[1]], q = dot(d, Ad), val = q / 2, a = dot(d, u1), b = dot(d, u2);
+    var valley = land.base.J, weather = !!(land.ripples || land.holes), view = around([x, c], 0.7, 0.3 * cx.span);
+    var box = land.box, cOut = box && (c[0] < box[0] || c[0] > box[1] || c[1] < box[0] || c[1] > box[1]);
+    var vshade = { id: 'valley', lo: 0, rings: 10 };
+    cx.parts.push({ name: 'valley', value: val, col: C.gold });
+    cx.gradParts.push({ name: 'valley A(x − c)', vec: Ad, col: C.gold });
+    function base(g, p, noX) { g.land(valley, vshade); g.axes(); g.dot(c, 6, C.blue, 1); g.label(c, 'c', C.blue, { dx: 10, dy: 12 }); if (!noX) g.hero(x, cx.hero, 1); }
+    var who = cx.you ? 'you' : cx.who;
+    out.push({ id: 'formula', chapter: 'The height', title: 'The King’s formula for the height', layout: 'map', view: cx.landView, dur: 3.4,
+      text: 'The height of a spot is the King’s formula, J(x). On this land it is a smooth valley, ½(x − c)ᵀA(x − c)' +
+        (land.ripples ? ', plus ripples R(x)' : '') + (land.holes ? ', plus black holes B(x)' : '') +
+        '. Dark is low and warm is high; each ring joins spots of the same height. We build the valley first, one symbol at a time.',
+      math: 'J(x) = ' + at(0.3, '½(x − c)ᵀA(x − c)') + (land.ripples ? at(0.55, ' + R(x)') : '') + (land.holes ? at(0.7, ' + B(x)') : ''),
+      draw: function (g, p) { g.land(cx.J, { lo: cx.shade.lo, hi: cx.shade.hi, alpha: seg(p, 0, 0.6) }); g.axes(); g.hero(x, cx.hero, seg(p, 0.5, 0.7)); } });
+    out.push({ id: 'c', chapter: 'The height', title: 'c, the bottom of the valley', layout: 'map', view: view, dur: 3.4,
+      text: 'Here is the valley alone, without ' + (weather ? 'its weather' : 'anything else') + '. c = (c₁, c₂) = ' + pair(c) + ' is its lowest spot: there x − c = 0, so the valley’s height is 0. ' +
+        (cOut ? 'This c lies outside the wall, so no lawful spot reaches it. ' : weather ? 'Ripples and pits move the land’s true lowest spot a little away from c. ' : 'With no weather, c is the treasure. ') +
+        'The rings around c are spots of equal height, higher and higher outward.',
+      math: at(0.6, 'c = ' + pair(c)),
+      draw: function (g, p) {
+        g.land(valley, vshade); g.axes(); g.hero(x, cx.hero, 1);
+        g.ring(val * Math.pow(1 - seg(p, 0.05, 0.6), 2) + 1e-9 * val, C.gold, 2.5, seg(p, 0, 0.1) * (1 - seg(p, 0.6, 0.75)));
+        g.dot(c, 6, C.blue, seg(p, 0.55, 0.7)); g.halo(c, 10 + 10 * seg(p, 0.6, 1), C.blue, seg(p, 0.6, 0.7) * (1 - seg(p, 0.85, 1)));
+        g.label(c, 'c = ' + pair(c), C.blue, { dx: 10, dy: 14, p: seg(p, 0.65, 0.85) });
+      } });
+    out.push({ id: 'd', chapter: 'The height', title: 'x − c: from the bottom to ' + who, layout: 'map', view: view, dur: 3.6,
+      text: 'Subtract c from x, part by part. The result, x − c = ' + pair(d) + ', is the arrow from the bottom c to ' + who + ': ' +
+        num(Math.abs(d[0])) + (d[0] < 0 ? ' to the west' : ' to the east') + ' and ' + num(Math.abs(d[1])) + (d[1] < 0 ? ' to the south.' : ' to the north.'),
+      math: 'x − c = (' + at(0.35, num(x[0]) + ' − ' + par(c[0])) + ', ' + at(0.6, num(x[1]) + ' − ' + par(c[1])) + ')' + at(0.85, ' = ' + pair(d)),
+      draw: function (g, p) {
+        base(g, p);
+        var corner = [x[0], c[1]];
+        g.line(c, corner, C.violet, 2, seg(p, 0.2, 0.45), [6, 4]); g.label(lerp2(c, corner, 0.5), 'x₁ − c₁ = ' + num(d[0]), C.violet, { dy: 18, dx: -30, p: seg(p, 0.35, 0.5) });
+        g.line(corner, x, C.violet, 2, seg(p, 0.45, 0.7), [6, 4]); g.label(lerp2(corner, x, 0.5), 'x₂ − c₂ = ' + num(d[1]), C.violet, { dx: 10, p: seg(p, 0.6, 0.75) });
+        g.arrow(c, x, C.gold, 3, seg(p, 0.72, 0.95)); g.label(lerp2(c, x, 0.5), 'x − c', C.gold, { dx: -50, dy: -16, p: seg(p, 0.85, 1) });
+      } });
+    if (!round) {
+      var thDeg = num(P.theta, 0), Lr = 0.42 * (view[1] - view[0]);
+      out.push({ id: 'axes', chapter: 'The height', title: 'The valley’s two directions', layout: 'map', view: view, dur: 3.8,
+        text: 'This valley is long and narrow. Along its floor, in direction u₁ (θ = ' + thDeg + '° turned from east), it rises slowly: steepness λ₁ = ' + num(l1, 2) + '. ' +
+          'Across it, in direction u₂, it rises with steepness λ₂ = ' + num(l2, 2) + ', ' + num(Math.max(l1, l2) / Math.min(l1, l2), 1) + ' times as steep' + (l2 > l1 ? '' : ' the other way') + '. That is why the rings are long ovals: far apart along the valley, close together across it.',
+        math: at(0.3, 'u₁ = (cos θ, sin θ) = ' + pair(u1) + ',  λ₁ = ' + num(l1, 2)) + '<br>' + at(0.6, 'u₂ = (−sin θ, cos θ) = ' + pair(u2) + ',  λ₂ = ' + num(l2, 2)),
+        draw: function (g, p) {
+          base(g, p);
+          var t = th * seg(p, 0.1, 0.5), e1 = [Math.cos(t), Math.sin(t)], e2 = [-Math.sin(t), Math.cos(t)], r = Lr;
+          g.line(add(c, e1, -r), add(c, e1, r), C.green, 1.5, 1, [8, 6]); g.line(add(c, e2, -r * 0.6), add(c, e2, r * 0.6), C.orange, 1.5, 1, [8, 6]);
+          g.arrow(c, add(c, e1, r * 0.55), C.green, 3, seg(p, 0.45, 0.65)); g.arrow(c, add(c, e2, r * 0.35), C.orange, 3, seg(p, 0.55, 0.75));
+          g.tipLabel(add(c, e1, r * 0.55), e1, 'u₁: gentle, λ₁ = ' + num(l1, 2), C.green, seg(p, 0.6, 0.8));
+          g.tipLabel(add(c, e2, r * 0.35), e2, 'u₂: steep, λ₂ = ' + num(l2, 2), C.orange, seg(p, 0.7, 0.9));
+          if (th > 0.01) { var ctx = g.ctx, C0 = g.P(c), rr = 34; ctx.strokeStyle = C.ink; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(C0[0], C0[1], rr, -t, 0); ctx.stroke(); g.labelPx(C0[0] + rr + 6, C0[1] - 10, 'θ = ' + thDeg + '°', C.ink, { p: seg(p, 0.4, 0.6), size: 12 }); }
+        } });
+    }
+    var a11 = A[0][0], a12 = A[0][1], a22 = A[1][1], cs = Math.cos(th), sn = Math.sin(th);
+    out.push({ id: 'A', chapter: 'The height', title: 'A: the valley’s shape in four numbers', layout: 'map+side', view: view, dur: 4.2,
+      text: round ? 'This valley is round: it is equally steep every way, λ₁ = λ₂ = ' + num(l1, 2) + '. Then A = ' + num(l1, 2) + '·I, a table with ' + num(l1, 2) + ' on its diagonal and 0 elsewhere, and the rings are circles.'
+        : 'A puts the two directions and their steepness into one table of four numbers, A = λ₁u₁u₁ᵀ + λ₂u₂u₂ᵀ. Its diagonal says how steep the valley is due east (a₁₁) and due north (a₂₂); a₁₂ mixes the two, because the valley runs at a slant. ' +
+          'Steeper means closer rings: a circle of the gentle valley is squeezed across into the oval of this one.',
+      math: round ? 'A = ' + at(0.5, '[[' + num(a11) + ', ' + num(a12) + '], [' + num(a12) + ', ' + num(a22) + ']]') :
+        at(0.3, 'a₁₁ = λ₁cos²θ + λ₂sin²θ = ' + num(l1, 2) + '·' + num(cs * cs) + ' + ' + num(l2, 2) + '·' + num(sn * sn) + ' = ' + num(a11)) + '<br>' +
+        at(0.5, 'a₁₂ = (λ₁ − λ₂)·cos θ·sin θ = ' + par(l1 - l2, 2) + '·' + num(cs) + '·' + num(sn) + ' = ' + num(a12)) + '<br>' +
+        at(0.7, 'a₂₂ = λ₁sin²θ + λ₂cos²θ = ' + num(l1, 2) + '·' + num(sn * sn) + ' + ' + num(l2, 2) + '·' + num(cs * cs) + ' = ' + num(a22)),
+      draw: function (g, p) {
+        base(g, p);
+        // a ring of the valley through x, from the circle it would be if the valley were gentle every way
+        var r1 = Math.sqrt(2 * val / Math.min(l1, l2)), r2 = Math.sqrt(2 * val / Math.max(l1, l2)), sq = seg(p, 0.2, 0.75), pts = [];
+        var ua = l1 <= l2 ? u1 : u2, ub = l1 <= l2 ? u2 : u1;
+        for (var k = 0; k <= 72; k++) { var t = k / 72 * TAU; pts.push(add(add(c, ua, r1 * Math.cos(t)), ub, mix(r1, r2, sq) * Math.sin(t))); }
+        g.path(pts, C.gold, 2.5, 1);
+        var R = g.sideR, cells = [[num(a11), num(a12)], [num(a12), num(a22)]];
+        g.panel(R, 'A, the valley’s shape');
+        var lit = function (r, s) { return seg(p, r === 0 && s === 0 ? 0.25 : r !== s ? 0.45 : 0.65, (r === 0 && s === 0 ? 0.25 : r !== s ? 0.45 : 0.65) + 0.12); };
+        g.ctx.font = '600 16px ' + g.sans; g.ctx.fillStyle = C.ink; g.ctx.textAlign = 'right'; g.ctx.textBaseline = 'middle'; g.ctx.fillText('A =', R[0] + 70, R[1] + 66);
+        g.matrix(R[0] + 80, R[1] + 42, cells, lit, { size: 15, colOf: function (r, s) { return r === s ? C.gold : C.violet; } });
+        var y = R[1] + 118, rows = round ? ['every way: λ = ' + num(l1, 2)] : ['a₁₁: steepness due east', 'a₂₂: steepness due north', 'a₁₂: how east and north mix'];
+        rows.forEach(function (t, k) { g.labelPx(R[0] + 14, y + 24 * k, t, k === 2 ? C.violet : C.gold, { p: seg(p, 0.3 + 0.2 * k, 0.45 + 0.2 * k), plain: true, size: 13 }); });
+        if (!round) g.labelPx(R[0] + 14, y + 86, 'gentle λ₁ = ' + num(l1, 2) + ' along u₁, steep λ₂ = ' + num(l2, 2) + ' along u₂', C.dim, { p: seg(p, 0.8, 1), plain: true, size: 12 });
+      } });
+    out.push({ id: 'Ad', chapter: 'The height', title: 'Multiply: A(x − c)', layout: 'map+side', view: view, dur: 4.4,
+      text: 'A times x − c gives a new arrow, one row of A at a time. ' + (round ? 'A round valley just scales x − c by λ = ' + num(l1, 2) + '.' :
+        'Seen along the valley’s directions, A stretches the part of x − c across the valley by λ₂ = ' + num(l2, 2) + ' and the part along it by λ₁ = ' + num(l1, 2) + ', so the new arrow swings toward the steep direction.'),
+      math: 'A(x − c) = (' + at(0.3, num(a11) + '·' + par(d[0]) + ' + ' + par(a12) + '·' + par(d[1])) + ', ' + at(0.5, par(a12) + '·' + par(d[0]) + ' + ' + num(a22) + '·' + par(d[1])) + ')' + at(0.85, ' = ' + pair(Ad)),
+      draw: function (g, p) {
+        base(g, p);
+        g.arrow(c, x, C.gold, 2.5, 1);
+        var R = g.sideR; g.panel(R, round ? 'A scales the arrow' : 'What A does to x − c');
+        // a small diagram of its own: x − c, its parts along u₁ and u₂, the parts stretched by λ, and their sum
+        var pa = scale(u1, a), pb = scale(u2, b), sa = scale(u1, l1 * a), sb = scale(u2, l2 * b), pts = [[0, 0], d, Ad, pa, pb, sa, sb];
+        var bx0 = Math.min.apply(null, pts.map(function (v) { return v[0]; })), bx1 = Math.max.apply(null, pts.map(function (v) { return v[0]; }));
+        var by0 = Math.min.apply(null, pts.map(function (v) { return v[1]; })), by1 = Math.max.apply(null, pts.map(function (v) { return v[1]; }));
+        var mx = Math.min(70, R[2] * 0.2), my = Math.min(44, R[3] * 0.16), inner = [R[0] + mx, R[1] + my, R[2] - 2 * mx, R[3] - my - 26], k = Math.min(inner[2] / Math.max(bx1 - bx0, 1e-9), inner[3] / Math.max(by1 - by0, 1e-9));
+        var O = [inner[0] + (inner[2] - (bx1 - bx0) * k) / 2 - bx0 * k, inner[1] + (inner[3] - (by1 - by0) * k) / 2 + by1 * k];
+        function Q(v) { return [O[0] + v[0] * k, O[1] - v[1] * k]; }
+        function tip(v, text, col, q) { var A0 = Q(v), l = len(v) || 1; g.labelPx(A0[0] + v[0] / l * 12, A0[1] - v[1] / l * 12, text, col, { p: q, size: 12, align: v[0] > 0.3 * l ? 'left' : v[0] < -0.3 * l ? 'right' : 'center' }); }
+        var ctx = g.ctx; ctx.strokeStyle = C.faint; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(R[0] + 10, O[1]); ctx.lineTo(R[0] + R[2] - 10, O[1]); ctx.moveTo(O[0], R[1] + 30); ctx.lineTo(O[0], R[1] + R[3] - 8); ctx.stroke();
+        g.arrowPx(O, Q(d), C.blue, 2.5); tip(d, 'x − c', C.blue, 1);
+        if (!round) {
+          var grow = seg(p, 0.35, 0.75), la = scale(u1, a * mix(1, l1, grow)), lb = scale(u2, b * mix(1, l2, grow));
+          ctx.globalAlpha = seg(p, 0.1, 0.3) * 0.8; g.arrowPx(O, Q(pa), C.green, 1.5, [4, 3]); g.arrowPx(O, Q(pb), C.orange, 1.5, [4, 3]); ctx.globalAlpha = 1;
+          g.arrowPx(O, Q(la), C.green, 2.5); g.arrowPx(O, Q(lb), C.orange, 2.5);
+          tip(sa, 'along × λ₁ = ' + num(l1, 2), C.green, seg(p, 0.45, 0.65)); tip(sb, 'across × λ₂ = ' + num(l2, 2), C.orange, seg(p, 0.45, 0.65));
+          var s2 = seg(p, 0.75, 0.95);
+          if (s2 > 0) { ctx.globalAlpha = s2; ctx.setLineDash([3, 3]); ctx.strokeStyle = C.faint; ctx.beginPath(); ctx.moveTo(Q(sa)[0], Q(sa)[1]); ctx.lineTo(Q(Ad)[0], Q(Ad)[1]); ctx.lineTo(Q(sb)[0], Q(sb)[1]); ctx.stroke(); ctx.setLineDash([]); g.arrowPx(O, Q(Ad), C.gold, 3); ctx.globalAlpha = 1; tip(Ad, 'A(x − c) = ' + pair(Ad), C.gold, s2); }
+        } else { var s3 = seg(p, 0.4, 0.9); g.arrowPx(O, Q(scale(d, mix(1, l1, s3))), C.gold, 3); tip(Ad, 'A(x − c) = ' + pair(Ad), C.gold, s3); }
+      } });
+    out.push({ id: 'dot', chapter: 'The height', title: 'Then (x − c)ᵀ times A(x − c)', layout: 'side', dur: 3.6,
+      text: '(x − c)ᵀ is x − c laid on its side, ready to multiply A(x − c) part by part: the first parts together, the second parts together, then add. This is called a dot product, and it gives a single number.',
+      math: '(x − c)ᵀA(x − c) = ' + at(0.3, par(d[0]) + '·' + par(Ad[0])) + at(0.55, ' + ' + par(d[1]) + '·' + par(Ad[1])) + at(0.8, ' = ' + num(d[0] * Ad[0]) + ' + ' + par(d[1] * Ad[1]) + ' = ' + num(q)),
+      draw: function (g, p) {
+        g.bars(g.sideR, [
+          { name: 'first parts: ' + num(d[0]) + ' × ' + num(Ad[0]), value: d[0] * Ad[0], col: C.blue },
+          { name: 'second parts: ' + num(d[1]) + ' × ' + num(Ad[1]), value: d[1] * Ad[1], col: C.violet },
+          { name: '(x − c)ᵀA(x − c)', value: q, col: C.gold }], p, { total: true, title: 'Multiply part by part, then add', nameW: 260, d: 3 });
+      } });
+    out.push({ id: 'half', chapter: 'The height', title: 'Half of it: the valley’s height', layout: 'map', view: view, dur: 3.2,
+      text: 'Halve it: ½·' + num(q) + ' = ' + num(val) + '. That is the valley’s height at x, and every spot on the lit ring has the same height. ' +
+        '(The ½ is there so that the slope of the valley comes out as exactly A(x − c), the arrow of the last steps.)',
+      math: '½(x − c)ᵀA(x − c) = ½·' + num(q) + at(0.5, ' = ' + num(val)),
+      draw: function (g, p) {
+        base(g, p, true); g.ring(val, C.gold, 3, seg(p, 0.3, 0.6)); g.hero(x, cx.hero, 1);
+        g.label(x, 'valley height ' + num(val), C.gold, { dx: 14, dy: -16, p: seg(p, 0.5, 0.7) });
+      } });
+    if (!round) {
+      var T = Math.max(Math.abs(a), Math.abs(b)) * 1.35 || 1, top = 0.5 * Math.max(l1, l2) * T * T;
+      out.push({ id: 'parts', chapter: 'The height', title: 'Why it is a valley', layout: 'side', dur: 4.2,
+        text: 'The same number another way. x − c goes a = ' + num(a) + ' along the valley (u₁) and b = ' + num(b) + ' across it (u₂). Each part costs height like a parabola, ½·λ·(part)²: ' +
+          'along, ½·' + num(l1, 2) + '·' + par(a) + '² = ' + num(0.5 * l1 * a * a) + '; across, ½·' + num(l2, 2) + '·' + par(b) + '² = ' + num(0.5 * l2 * b * b) + '. ' +
+          'Together ' + num(val) + ', as before. A step across the valley costs ' + num(Math.max(l1, l2) / Math.min(l1, l2), 1) + ' times the height of the same step along it.',
+        math: '½(λ₁a² + λ₂b²) = ' + at(0.45, num(0.5 * l1 * a * a)) + at(0.7, ' + ' + num(0.5 * l2 * b * b)) + at(0.9, ' = ' + num(val)),
+        draw: function (g, p) {
+          var R = g.sideR, h2 = (R[3] - 8) / 2, top1 = [R[0], R[1], R[2], h2], bot = [R[0], R[1] + h2 + 8, R[2], h2];
+          [[top1, l1, a, C.green, 'along the valley: ½·λ₁·a²', 0.1], [bot, l2, b, C.orange, 'across the valley: ½·λ₂·b²', 0.35]].forEach(function (row) {
+            var pl = g.plot(row[0], [-T, T], [0, top], { title: row[4] }), lam = row[1], t1 = row[2], s0 = row[5];
+            pl.frame('', ''); pl.curve(function (t) { return 0.5 * lam * t * t; }, row[3], 2, seg(p, s0, s0 + 0.2));
+            var tt = t1 * seg(p, s0 + 0.2, s0 + 0.45); pl.point(tt, 0.5 * lam * tt * tt, row[3], seg(p, s0 + 0.2, s0 + 0.3) > 0 ? num(0.5 * lam * tt * tt) : '', seg(p, s0 + 0.2, s0 + 0.3), tt < 0 ? 'left' : 'right');
+          });
+        } });
+    }
+  });
+
+  // ------------------------------------------------------------ the weather: ripples, black holes, and the sum
+  register('weather', function (cx, out) {
+    var land = cx.land, x = cx.x, W = land.weather || {}, rip = land.ripples, hol = land.holes;
+    if (rip) {
+      var rx = rip.R(x), view = around([x], 0, Math.min(cx.span, 5 * W.L));
+      out.push({ id: 'ripples', chapter: 'The weather', title: 'Ripples: R(x)', layout: 'map', view: view, dur: 4.6,
+        text: 'Ripples are six waves laid over the land, each running its own way with its own start. Each wave is about L = ' + num(W.L) + ' long (ripple length ' + num(cx.p.ripL, 2) + ' × map width ' + num(cx.span, 2) + ') ' +
+          'and together they are about A = ' + num(W.A) + ' high (ripple height ' + num(cx.p.ripA, 2) + ' × the land’s height range ' + num(land.heightRange, 2) + '). At x they add R(x) = ' + num(rx, 4) + '.',
+        math: 'R(x) = ' + frac('A', '√6') + '·Σₖ sin(ωₖ·x + φₖ)' + at(0.85, ' = ' + num(rx, 4)),
+        draw: function (g, p) {
+          g.land(rip.R, { id: 'R', rings: 0, alpha: seg(p, 0.7, 0.95) });
+          g.axes();
+          var v = g.vis, ctx = g.ctx;
+          rip.waves.forEach(function (wv, k) {
+            var q = seg(p, 0.05 + k * 0.1, 0.15 + k * 0.1) * (1 - 0.7 * seg(p, 0.7, 0.9)); if (!(q > 0)) return;
+            var wl = len(wv.w), n = scale(wv.w, 1 / wl), tdir = [-n[1], n[0]], cen = [(v[0] + v[1]) / 2, (v[2] + v[3]) / 2], reach = (v[1] - v[0]) * 0.8;
+            var s0 = dot(cen, n), first = Math.ceil(((s0 - reach) * wl + wv.phi - Math.PI / 2) / TAU), last = Math.floor(((s0 + reach) * wl + wv.phi - Math.PI / 2) / TAU);
+            g.clip(g.mapR); ctx.globalAlpha = q * 0.75;
+            for (var m = first; m <= last; m++) { var off = (Math.PI / 2 + TAU * m - wv.phi) / wl, base = add(scale(n, off), tdir, dot(cen, tdir)); g.line(add(base, tdir, -reach), add(base, tdir, reach), k % 2 ? C.blue : C.violet, 1.2, 1); }
+            ctx.globalAlpha = 1; ctx.restore();
+          });
+          g.hero(x, cx.hero, 1);
+          g.label(x, 'R(x) = ' + num(rx, 4), C.gold, { dx: 14, dy: -16, p: seg(p, 0.85, 1) });
+        } });
+    }
+    if (hol) {
+      var bx = hol.B(x), near = hol.at.map(function (q) { return { q: q, d: len(sub(x, q)) }; }).sort(function (a, b) { return a.d - b.d; })[0];
+      out.push({ id: 'holes', chapter: 'The weather', title: 'Black holes: B(x)', layout: 'map+side', view: cx.landView, dur: 4.4,
+        text: 'Black holes are narrow, deep pits: each is a bell-shaped dip of depth D = ' + num(hol.D, 3) + ' and width w = ' + num(hol.w, 3) + ' at its spot pⱼ. ' +
+          'Far from them B is almost 0. The nearest hole is ' + num(near.d) + ' away (' + num(near.d / hol.w, 1) + ' widths), so at x, B(x) = ' + num(bx, 4) + '.',
+        math: 'B(x) = −Σⱼ D·exp(−' + frac('|x − pⱼ|²', '2w²') + ')' + at(0.85, ' = ' + num(bx, 4)),
+        draw: function (g, p) {
+          g.land(cx.J, cx.shade); g.axes();
+          hol.at.forEach(function (q, k) { g.halo(q, Math.max(4, hol.w * g.s), C.red, seg(p, 0.1 + 0.1 * k, 0.2 + 0.1 * k), 2); g.halo(q, Math.max(7, 2 * hol.w * g.s), C.red, seg(p, 0.15 + 0.1 * k, 0.25 + 0.1 * k), 1, [3, 3]); });
+          g.hero(x, cx.hero, 1); g.line(x, near.q, C.red, 1.5, seg(p, 0.45, 0.65), [5, 4]); g.label(lerp2(x, near.q, 0.5), num(near.d) + ' away', C.red, { dy: -14, p: seg(p, 0.6, 0.75) });
+          var R = g.sideR, rmax = Math.max(4 * hol.w, Math.min(near.d * 1.15, 12 * hol.w)), pl = g.plot(R, [0, rmax], [-hol.D * 1.08, hol.D * 0.15], { title: 'one pit, seen from the side' });
+          pl.frame('distance from its centre', 'B'); pl.curve(function (r) { return -hol.D * Math.exp(-r * r / (2 * hol.w * hol.w)); }, C.red, 2.2, seg(p, 0.3, 0.6));
+          var dd = Math.min(near.d, rmax); pl.point(dd, -hol.D * Math.exp(-dd * dd / (2 * hol.w * hol.w)), cx.hero === 'you' ? C.gold : HERO[cx.hero].col, near.d > rmax ? 'x is farther out' : 'x', seg(p, 0.6, 0.75));
+        } });
+    }
+    var items = cx.parts.slice();
+    if (rip) items.push({ name: 'ripples R(x)', value: rip.R(x), col: C.blue });
+    if (hol) items.push({ name: 'black holes B(x)', value: hol.B(x), col: C.red });
+    if (items.length > 1) {
+      items.push({ name: cx.hero === 'tw' ? 'f(x)' : 'J(x)', value: cx.Jx, col: C.ink });
+      out.push({ id: 'total', chapter: 'The weather', title: 'Add the parts: the height J(x)', layout: 'side', dur: 3.4,
+        text: (cx.hero === 'tw' ? 'Add the parts: the Wanderer’s height at x is f(x) = ' : 'Add the parts: the height at x is J(x) = ') + num(cx.Jx, 4) + '.' + (cx.haze ? ' In this haze nobody can know this number exactly: every tap of the ground carries an error of about σ = ' + num(cx.sigma, 4) + '.' : ''),
+        math: (cx.hero === 'tw' ? 'f(x) = ' : 'J(x) = ') + items.slice(0, -1).map(function (it, k) { return at(0.2 + 0.5 * k / items.length, (k ? ' + ' : '') + par(it.value, 4)); }).join('') + at(0.85, ' = ' + num(cx.Jx, 4)),
+        draw: function (g, p) { g.bars(g.sideR, items, p, { total: true, title: 'The height, part by part', nameW: 220 }); } });
+    }
+  });
+
+  // ------------------------------------------------------------ feeling the slope: the staff, the four taps, the slopes
+  register('taps', function (cx, out) {
+    var x = cx.x, h = cx.h, taps = cx.taps, J = cx.J, land = cx.land, names = ['East', 'West', 'North', 'South'], dirs = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+    var gT = [(taps[0].J - taps[1].J) / (2 * h), (taps[2].J - taps[3].J) / (2 * h)], mid = (taps[0].J + taps[1].J + taps[2].J + taps[3].J) / 4;
+    var who = cx.you ? 'you' : cx.who, has = cx.you ? 'have' : 'has', zoom = cx.zoom;
+    function ground(g) { g.land(J, { id: 'J', rings: 9 }); g.axes(); }
+    function tapCol(k) { return taps[k].J > mid ? C.orange : C.blue; }
+    out.push({ id: 'staff', chapter: 'Feeling the slope', title: 'The staff: h', layout: 'map', view: zoom, dur: 3.4,
+      text: 'In the fog nobody can see the land. A hero learns heights only by tapping the ground with a staff, a length h from where it stands: ' +
+        'h = staff share × map width = ' + num(cx.p.staff || 0.01, 3) + ' × ' + num(cx.span, 2) + ' = ' + num(h, 4) + '. We zoom in to look closely at the ground around x.',
+      math: 'h = ' + num(cx.p.staff || 0.01, 3) + ' × ' + num(cx.span, 2) + ' = ' + at(0.5, num(h, 4)),
+      draw: function (g, p) {
+        ground(g); g.hero(x, cx.hero, 1);
+        g.halo(x, h * g.s, C.gold, seg(p, 0.35, 0.55), 1.5, [5, 4]);
+        dirs.forEach(function (dv, k) { g.line(x, add(x, dv, h), C.faint, 1.5, seg(p, 0.45 + 0.08 * k, 0.6 + 0.08 * k)); });
+        g.label(add(x, [0.5, 0.5], h * 0.72), 'h = ' + num(h, 4), C.gold, { dx: 8, p: seg(p, 0.7, 0.9) });
+      } });
+    out.push({ id: 'four', chapter: 'Feeling the slope', title: 'Four taps, four heights', layout: 'map', view: zoom, dur: 4.2,
+      text: 'The staff touches the ground four times: east, west, north and south of x, each h away. Each tap gives the height there, worked out with the same formula J. ' +
+        (cx.haze ? 'In this haze every tap is off by a random amount of about σ = ' + num(cx.sigma, 4) + ', and nobody can tell by how much. ' : '') +
+        'Orange taps are higher than the average of the four, blue ones lower.',
+      math: taps.map(function (tp, k) { return at(0.15 + 0.2 * k, names[k] + ' ' + pair(tp.at) + ': J = ' + num(tp.J, 4)); }).join('<br>'),
+      draw: function (g, p) {
+        ground(g); g.hero(x, cx.hero, 1); g.halo(x, h * g.s, C.faint, 1, 1, [5, 4]);
+        taps.forEach(function (tp, k) {
+          var s = seg(p, 0.1 + 0.2 * k, 0.25 + 0.2 * k); g.tap(tp.at, C.gold, seg(p, 0.1 + 0.2 * k, 0.35 + 0.2 * k)); g.dot(tp.at, 6, tapCol(k), s);
+          g.label(tp.at, names[k] + ' ' + num(tp.J, 4), tapCol(k), { dx: k === 1 ? -110 : 10, dy: k === 2 ? -16 : k === 3 ? 16 : -14, p: s });
+        });
+      } });
+    function slopeStep(id, i1, i2, axis) {
+      var a = taps[i1], b = taps[i2], s = (a.J - b.J) / (2 * h), along = axis === 0 ? [1, 0] : [0, 1], nm = axis === 0 ? ['East', 'West'] : ['North', 'South'];
+      var line = function (t) { var q = x.slice(); q[axis] = t; return J(q); }, t0 = x[axis], tr = [t0 - 2.6 * h, t0 + 2.6 * h];
+      var vs = [], k; for (k = 0; k <= 40; k++) vs.push(line(tr[0] + (tr[1] - tr[0]) * k / 40)); vs.push(a.J, b.J);
+      var vlo = Math.min.apply(null, vs), vhi = Math.max.apply(null, vs), pad = (vhi - vlo) * 0.25 || 1e-3;
+      var fall = s < 0, dirWord = axis === 0 ? (fall ? 'east' : 'west') : (fall ? 'north' : 'south');
+      out.push({ id: id, chapter: 'Feeling the slope', title: nm[0] + ' minus ' + nm[1].toLowerCase() + ': the slope along x' + (axis ? '₂' : '₁'), layout: 'map+side', view: zoom, dur: 4.6,
+        text: 'Going from the ' + nm[1].toLowerCase() + ' tap to the ' + nm[0].toLowerCase() + ' tap moves 2h = ' + num(2 * h, 4) + (axis ? ' north' : ' east') + ' and changes the height by J' + (axis ? '<sub>North</sub> − J<sub>South</sub>' : '<sub>East</sub> − J<sub>West</sub>') + ' = ' + num(a.J, 4) + ' − ' + par(b.J, 4) + ' = ' + num(a.J - b.J, 4) + '. ' +
+          'Height change over distance is the slope: ' + num(a.J - b.J, 4) + '/' + num(2 * h, 4) + ' = ' + num(s) + '. ' + (Math.abs(s) < 1e-9 ? 'The land is level this way.' : 'The land falls toward the ' + dirWord + '.') +
+          (cx.haze ? ' The haze moved the taps off the true ground (the curve), so this slope is a little wrong.' : ''),
+        math: '∂J/∂x' + (axis ? '₂' : '₁') + ' ≈ ' + frac('J<sub>' + nm[0] + '</sub> − J<sub>' + nm[1] + '</sub>', '2h') + at(0.45, ' = ' + frac(num(a.J, 4) + ' − ' + par(b.J, 4), num(2 * h, 4))) + at(0.85, ' = ' + num(s)),
+        draw: function (g, p) {
+          ground(g); g.hero(x, cx.hero, 1);
+          g.line(b.at, a.at, C.gold, 2.5, seg(p, 0.05, 0.25)); g.dot(a.at, 6, tapCol(i1), 1); g.dot(b.at, 6, tapCol(i2), 1);
+          g.label(a.at, nm[0], tapCol(i1), { dx: 8, dy: -12 }); g.label(b.at, nm[1], tapCol(i2), { dx: axis ? 8 : -50, dy: axis ? 14 : -12 });
+          var pl = g.plot(g.sideR, tr, [vlo - pad, vhi + pad], { title: 'the ground along x' + (axis ? '₂' : '₁') + ', seen from the side' });
+          pl.frame('x' + (axis ? '₂' : '₁') + ' →', 'J');
+          pl.curve(line, C.dim, 1.8, seg(p, 0.05, 0.3));
+          pl.point(b.at[axis], b.J, tapCol(i2), nm[1] + ' ' + num(b.J, 4), seg(p, 0.25, 0.35), 'left');
+          pl.point(a.at[axis], a.J, tapCol(i1), nm[0] + ' ' + num(a.J, 4), seg(p, 0.35, 0.45), 'right');
+          pl.seg(b.at[axis], b.J, a.at[axis], a.J, C.gold, 2.5, seg(p, 0.45, 0.6));
+          pl.run(b.at[axis], a.at[axis], Math.min(a.J, b.J) - pad * 0.45, 'run 2h = ' + num(2 * h, 4), C.ink, seg(p, 0.55, 0.7));
+          pl.rise(Math.max(a.at[axis], b.at[axis]) + 0.15 * h, b.J, a.J, 'rise ' + num(a.J - b.J, 4), C.ink, seg(p, 0.65, 0.8));
+          g.labelPx(pl.box[0] + pl.box[2] / 2, pl.box[1] + 14, 'slope = rise/run = ' + num(s), C.gold, { align: 'center', p: seg(p, 0.85, 1), size: 13 });
+        } });
+      return s;
+    }
+    slopeStep('ew', 0, 1, 0); slopeStep('ns', 2, 3, 1);
+    var gl = len(gT), k0 = gl > 0 ? 0.32 * 7.2 * h / gl : 1;
+    out.push({ id: 'grad', chapter: 'Feeling the slope', title: 'The gradient ∇J: both slopes in one arrow', layout: 'map', view: zoom, dur: 4.4,
+      text: 'Put the two slopes together as one arrow, the gradient ∇J ≈ ' + pair(gT) + ': ' + num(Math.abs(gT[0])) + (gT[0] < 0 ? ' westward' : ' eastward') + ' and ' + num(Math.abs(gT[1])) + (gT[1] < 0 ? ' southward' : ' northward') + ', drawn shrunk to fit. ' +
+        'It points straight uphill, at right angles to the ring of equal height through x. Its length, ' + num(gl) + ', says how steep the ground is.',
+      math: '∇J ≈ (∂J/∂x₁, ∂J/∂x₂) = ' + at(0.75, pair(gT)),
+      draw: function (g, p) {
+        ground(g); g.ring(cx.Jx, C.ink, 2, seg(p, 0.05, 0.25)); g.hero(x, cx.hero, 1);
+        var e1 = add(x, [gT[0] * k0, 0]), tip = add(x, gT, k0);
+        g.arrow(x, e1, C.violet, 2.5, seg(p, 0.2, 0.4)); g.label(e1, num(gT[0]), C.violet, { dx: gT[0] < 0 ? -60 : 8, dy: 14, p: seg(p, 0.3, 0.45) });
+        g.arrow(e1, tip, C.violet, 2.5, seg(p, 0.4, 0.6)); g.label(lerp2(e1, tip, 0.5), num(gT[1]), C.violet, { dx: 8, p: seg(p, 0.5, 0.65) });
+        g.arrow(x, tip, C.orange, 3.5, seg(p, 0.62, 0.85)); g.tipLabel(tip, gT, '∇J, uphill', C.orange, seg(p, 0.8, 1));
+        if (gl > 0) g.square(x, scale(gT, 1 / gl), [-gT[1] / gl, gT[0] / gl], 12, C.ink, seg(p, 0.85, 1));
+      } });
+    // the exact slope: the parts' slopes, tip to tail, beside the taps' arrow
+    var parts = cx.gradParts.slice(), gx = cx.gTrue;
+    if (land.ripples) parts.push({ name: 'ripples ∇R(x)', vec: land.ripples.grad(x), col: C.blue });
+    if (land.holes) parts.push({ name: 'black holes ∇B(x)', vec: land.holes.grad(x), col: C.red });
+    var top = Math.max(len(gx), gl, 1e-12), k1 = 0.32 * 7.2 * h / top;
+    var tapNote = cx.haze ? 'The taps can differ because haze perturbs every measured height' + (land.ripples || land.holes ? ', and finite spacing also averages the changing slope between the taps.' : '.') :
+      (land.ripples || land.holes ? 'The taps can differ because finite spacing averages a slope that changes between the taps.' : 'On this quadratic land, centred taps recover the exact slope; any displayed mismatch is only rounding.');
+    out.push({ id: 'exact', chapter: 'Feeling the slope', title: 'The slope, exactly', layout: 'map', view: zoom, dur: 4.4,
+      text: 'The formula also gives the slope exactly, with no taps: ' + parts.map(function (q) { return q.name + ' = ' + pair(q.vec); }).join(', ') + (parts.length > 1 ? ', together ' : ': ') + '∇J(x) = ' + pair(gx) + '. ' +
+        'The taps said ' + pair(gT) + '. ' + tapNote + ' ' +
+        (cx.haze ? 'In this haze the heroes cannot use the formula: they only have their taps.' : cx.you ? 'Your staff only ever gives the taps.' : 'In clear air the heroes use the exact slope.'),
+      math: '∇J(x) = ' + parts.map(function (q, k) { return at(0.15 + 0.25 * k, (k ? ' + ' : '') + pair(q.vec)); }).join('') + at(0.8, ' = ' + pair(gx)),
+      draw: function (g, p) {
+        ground(g); g.hero(x, cx.hero, 1);
+        var from = x;
+        parts.forEach(function (q, k) { var to = add(from, q.vec, k1), s = seg(p, 0.1 + 0.25 * k, 0.3 + 0.25 * k); g.arrow(from, to, q.col, 2.5, s); from = to; });
+        g.arrow(x, add(x, gx, k1), C.ink, 3.5, seg(p, 0.7, 0.9));
+        g.arrow(x, add(x, gT, k1), C.orange, 2, seg(p, 0.85, 1), [6, 4]);
+        g.legend(parts.map(function (q) { return [q.col, q.name + ' = ' + pair(q.vec)]; }).concat([[C.ink, 'exact ∇J = ' + pair(gx)], [C.orange, 'taps ∇J ≈ ' + pair(gT), [6, 4]]]), seg(p, 0.05, 0.2));
+      } });
+  });
+
+  // ------------------------------------------------------------ the Pilgrim's stride
+  register('pgStride', function (cx, out) {
+    var rec = cx.rec; if (!rec) return;
+    var x = cx.x, g0 = rec.g, a = cx.p.alpha, stp = scale(g0, -a), raw = rec.raw, nx = rec.x, gl = len(g0), k0 = gl > 0 ? 0.32 * 7.2 * cx.h / gl : 1, land = cx.land;
+    out.push({ id: 'down', chapter: 'The stride', title: 'Downhill is −∇J', layout: 'map', view: cx.zoom, dur: 3.2,
+      text: 'The gradient points uphill, so the Pilgrim turns the other way: downhill is −∇J = ' + pair(scale(g0, -1)) + '.' + (cx.haze ? ' (In this haze it uses the slope its taps gave.)' : ''),
+      math: '−∇J = ' + at(0.6, pair(scale(g0, -1))),
+      draw: function (g, p) {
+        g.land(cx.J, { id: 'J', rings: 9 }); g.axes(); g.hero(x, 'pg', 1);
+        var ang = Math.atan2(g0[1], g0[0]) + Math.PI * seg(p, 0.2, 0.7), dir = [Math.cos(ang), Math.sin(ang)];
+        g.arrow(x, add(x, dir, gl * k0), p < 0.7 ? C.orange : C.ink, 3.5, 1); g.tipLabel(add(x, dir, gl * k0), dir, p < 0.7 ? '∇J' : 'downhill, −∇J', p < 0.7 ? C.orange : C.ink, 1);
+      } });
+    var v2 = around([x, raw, nx], 0.5, 12 * cx.h);
+    out.push({ id: 'alpha', chapter: 'The stride', title: 'How far: α times the slope', layout: 'map', view: v2, dur: 3.6,
+      text: 'The Pilgrim has no memory and no map. Its stride is always the same share α = ' + num(a) + ' of the slope: −α∇J = −' + num(a) + '·' + pair(g0) + ' = ' + pair(stp) + '. On steep ground the stride is long; on flat ground it is short.',
+      math: '−α∇J = −' + num(a) + '·' + pair(g0) + at(0.6, ' = ' + pair(stp)),
+      draw: function (g, p) {
+        g.land(cx.J, cx.shade); g.axes(); g.hero(x, 'pg', 1);
+        g.arrow(x, raw, C.ink, 3.5, seg(p, 0.2, 0.75)); g.label(lerp2(x, raw, 0.55), '−α∇J', C.ink, { dx: 10, dy: -14, p: seg(p, 0.6, 0.8) });
+        if (land.box) { var b = land.box; g.path([[b[0], b[0]], [b[1], b[0]], [b[1], b[1]], [b[0], b[1]], [b[0], b[0]]], C.blue, 2, 1); }
+      } });
+    out.push({ id: 'new', chapter: 'The stride', title: 'The new spot', layout: 'map', view: v2, dur: 3.6,
+      text: 'x ← x − α∇J = ' + pair(x) + ' + ' + pair(stp) + ' = ' + pair(raw) + '. ' + (rec.clipped ? 'That spot lies outside the ' + (cx.key === 'wall' ? 'wall' : 'realm') + ', so the Pilgrim is set back to the nearest spot inside, ' + pair(nx) + '. ' : '') +
+        'There the height is J = ' + num(rec.J, 4) + ', ' + (rec.J < cx.Jx ? 'down' : 'up') + ' from ' + num(cx.Jx, 4) + '.',
+      math: 'x ← x − α∇J = ' + at(0.4, pair(raw)) + (rec.clipped ? at(0.7, ' → set back to ' + pair(nx)) : '') + '<br>' + at(0.85, 'J: ' + num(cx.Jx, 4) + ' → ' + num(rec.J, 4)),
+      draw: function (g, p) {
+        g.land(cx.J, cx.shade); g.axes();
+        if (land.box) { var b = land.box; g.path([[b[0], b[0]], [b[1], b[0]], [b[1], b[1]], [b[0], b[1]], [b[0], b[0]]], C.blue, 2, 1); }
+        var m1 = seg(p, 0.1, 0.55), at1 = lerp2(x, raw, m1);
+        g.path([x, at1], 'rgba(255,176,113,0.6)', 2.5, 1);
+        if (rec.clipped) { var m2 = seg(p, 0.6, 0.8); g.line(raw, nx, C.blue, 2, m2, [5, 4]); g.hero(m2 > 0 ? lerp2(raw, nx, m2) : at1, 'pg', 1); }
+        else g.hero(at1, 'pg', 1);
+        g.label(x, 'J = ' + num(cx.Jx, 4), C.dim, { dx: 12, dy: 16 });
+        g.label(nx, 'J = ' + num(rec.J, 4), C.gold, { dx: 12, dy: -16, p: seg(p, 0.85, 1) });
+      } });
+    var w = cx.walk, ahead = w.slice(cx.k, Math.min(w.length, cx.k + 9)).map(function (d) { return d.x; });
+    if (ahead.length > 2) {
+      var turns = 0; for (var j = 2; j < ahead.length; j++) { var s1 = sub(ahead[j - 1], ahead[j - 2]), s2 = sub(ahead[j], ahead[j - 1]); if (dot(s1, s2) < -0.3 * len(s1) * len(s2)) turns++; }
+      out.push({ id: 'again', chapter: 'The stride', title: 'And again, day after day', layout: 'map', view: around(ahead, 0.35, 10 * cx.h), dur: 4.2,
+        text: 'Tomorrow the Pilgrim starts from the new spot and does it all again: four taps, the slope, one stride. Here are its next ' + (ahead.length - 1) + ' days.' +
+          (turns >= 2 ? ' Each stride overshoots the valley’s floor, so the Pilgrim zigzags from side to side: its fixed share α cannot tell a steep side from a long way down.' : ''),
+        math: 'x<sub>k+1</sub> = x<sub>k</sub> − α∇J(x<sub>k</sub>)',
+        draw: function (g, p) {
+          g.land(cx.J, cx.shade); g.axes();
+          var n = ahead.length - 1, s = seg(p, 0.05, 0.9) * n, kk = Math.floor(s), f = s - kk;
+          g.path(ahead.slice(0, kk + 1).concat(kk < n ? [lerp2(ahead[kk], ahead[kk + 1], ease(f))] : []), C.orange, 2.5, 1);
+          ahead.slice(1, kk + 1).forEach(function (q, m) { g.dot(q, 4, C.orange, 1); g.label(q, 'day ' + (cx.k + m + 1), C.dim, { dx: 8, dy: -10, size: 11 }); });
+          g.hero(kk < n ? lerp2(ahead[kk], ahead[kk + 1], ease(f)) : ahead[n], 'pg', 1);
+        } });
+    }
+  });
+
+  // ------------------------------------------------------------ your own move
+  register('youDown', function (cx, out) {
+    var x = cx.x, gT = cx.gTaps, gl = len(gT), k0 = gl > 0 ? 0.32 * 7.2 * cx.h / gl : 1, dn = scale(gT, -1), ang = Math.atan2(dn[1], dn[0]);
+    var names = ['east', 'north-east', 'north', 'north-west', 'west', 'south-west', 'south', 'south-east'], toward = names[Math.round(((ang % TAU) + TAU) % TAU / (Math.PI / 4)) % 8];
+    out.push({ id: 'walk', chapter: 'Your move', title: 'Downhill is −∇J: turn and walk', layout: 'map', view: cx.zoom, dur: 3.4,
+      text: 'Your taps say the land rises toward ∇J ≈ ' + pair(gT) + ', so downhill is −∇J = ' + pair(dn) + ', toward the ' + toward + '. ' +
+        'Turn to face it and walk (W). The slope changes as you go, so feel again (F) every few steps: that is gradient descent, done by hand.',
+      math: '−∇J = ' + at(0.6, pair(dn)),
+      draw: function (g, p) {
+        g.land(cx.J, { id: 'J', rings: 9 }); g.axes(); g.hero(x, 'you', 1);
+        var a0 = Math.atan2(gT[1], gT[0]) + Math.PI * seg(p, 0.2, 0.7), dir = [Math.cos(a0), Math.sin(a0)];
+        g.arrow(x, add(x, dir, gl * k0), p < 0.7 ? C.orange : C.ink, 3.5, 1); g.tipLabel(add(x, dir, gl * k0), dir, p < 0.7 ? '∇J' : 'downhill: walk this way', p < 0.7 ? C.orange : C.ink, 1);
+      } });
+  });
+
+  return { register: register, open: open, openSteps: openSteps, onStep: function (f) { stepHook = f; }, go: function (n) { playing = false; playLabel(); go(n); }, close: close, key: key, debug: debug, plan: plan, H: H, Kit: Kit,
+           isOpen: function () { return opened; }, onClose: function (f) { closeHook = f; },
+           steps: function () { return steps.map(function (s) { return { id: s.id, chapter: s.chapter, title: s.title, text: s.text, math: s.math, layout: s.layout }; }); } };
+})();
+</script>
+<script>
+// The torn-net case study of the tutorial "Finding the tear" (finding_the_tear.html): an ROV photographs a patch
+// of a salmon-cage net; the inspector must find the broken twines and say which meshes they open, counted from a
+// numbered tag on the side rope.  Unknowns: the image position of every knot (the net bellies in the current) and
+// the broken-or-intact state of every twine.  Soft terms: the knot detections (robust, pseudo-Huber), the twine
+// evidence read from the image along each predicted twine, a prior against breaks.  Geometric constraints: each
+// mesh is a parallelogram, the rope's column lies on the rope, and the tagged knot sits on the tag.  The positions
+// use an ADMM-style split into shared knots and one projected copy per geometric rule.  The binary twine states do
+// not have copies or parity constraints: each is updated by an LLR threshold.  Plain JavaScript without optional
+// chaining (Node 12).
+var Net = (function () {
+  var TAU = 2 * Math.PI;
+  function norm(a) { return Math.hypot(a[0], a[1]); }
+  function sub(a, b) { return [a[0] - b[0], a[1] - b[1]]; }
+  function add(a, b) { return [a[0] + b[0], a[1] + b[1]]; }
+  function scale(a, s) { return [a[0] * s, a[1] * s]; }
+  function copy(o, extra) { var r = {}, k; for (k in o) r[k] = o[k]; for (k in (extra || {})) r[k] = extra[k]; return r; }
+  function stream(seed) {
+    var a = (seed >>> 0) || 1;
+    function u() { a = (a + 0x6D2B79F5) >>> 0; var t = Math.imul(a ^ (a >>> 15), a | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }
+    return { u: u, normal: function () { return Math.sqrt(-2 * Math.log(1 - u())) * Math.cos(TAU * u()); } };
+  }
+
+  // ---------------------------------------------------------------- the lattice
+  // Model knots (i, j) for i, j in 0..n-1; twines between lattice neighbours; meshes (i, j) for i, j in 0..n-2
+  // with knots a = (i, j), b = (i+1, j), c = (i+1, j+1), d = (i, j+1), in that order round the mesh.
+  function lattice(n) {
+    var knots = [], index = {}, twines = [], meshes = [], i, j;
+    for (j = 0; j < n; j++) for (i = 0; i < n; i++) { index[i + ',' + j] = knots.length; knots.push({ i: i, j: j }); }
+    function K(i, j) { return index[i + ',' + j]; }
+    for (j = 0; j < n; j++) for (i = 0; i < n; i++) {
+      if (i + 1 < n) twines.push({ a: K(i, j), b: K(i + 1, j), i: i, j: j, dir: 'h' });
+      if (j + 1 < n) twines.push({ a: K(i, j), b: K(i, j + 1), i: i, j: j, dir: 'v' });
+    }
+    function T(i, j, dir) { for (var e = 0; e < twines.length; e++) if (twines[e].i === i && twines[e].j === j && twines[e].dir === dir) return e; return -1; }
+    for (j = 0; j + 1 < n; j++) for (i = 0; i + 1 < n; i++) meshes.push({ i: i, j: j, knots: [K(i, j), K(i + 1, j), K(i + 1, j + 1), K(i, j + 1)], twines: [T(i, j, 'h'), T(i + 1, j, 'v'), T(i, j + 1, 'h'), T(i, j, 'v')] });
+    var twinesOf = knots.map(function () { return []; }); twines.forEach(function (t, e) { twinesOf[t.a].push(e); twinesOf[t.b].push(e); });
+    var meshesOf = knots.map(function () { return []; }); meshes.forEach(function (m, k) { m.knots.forEach(function (kn) { meshesOf[kn].push(k); }); });
+    return { n: n, knots: knots, K: K, T: T, twines: twines, meshes: meshes, twinesOf: twinesOf, meshesOf: meshesOf };
+  }
+  // where the net really is: the column on the side rope is straight, and the rows sag more and more away from it
+  // (every column is shifted as a whole, so each mesh stays a parallelogram: the law holds exactly for the true net)
+  function trueKnot(p, i, j) { return [i, j - p.belly * Math.sin(Math.PI * i / (2 * (p.n - 1)))]; }
+
+  // ---------------------------------------------------------------- the image
+  // A raster of intensities over the region, with the real lattice drawn beyond the model's patch (the net goes on
+  // past the picture), the rope, the tag, two fish, and noise.  Read by bilinear interpolation: that rule is what
+  // makes the evidence a defined function of the knot positions.
+  function raster(p, broken, r) {
+    var N = p.pixels, R = p.region, w = R[1] - R[0], img = new Float32Array(N * N), lines = [];
+    var lo = -p.beyond, hi = p.n - 1 + p.beyond;
+    for (var j = lo; j <= hi; j++) for (var i = lo; i <= hi; i++) {
+      var a = trueKnot(p, i, j);
+      if (i + 1 <= hi) { var bb = trueKnot(p, i + 1, j); if (!isBroken(broken, i, j, 'h', p.n)) lines.push([a, bb]); }
+      if (j + 1 <= hi) { var cc = trueKnot(p, i, j + 1); if (!isBroken(broken, i, j, 'v', p.n)) lines.push([a, cc]); }
+    }
+    function segDist(q, s) { var d = sub(s[1], s[0]), L2 = d[0] * d[0] + d[1] * d[1], t = L2 ? Math.max(0, Math.min(1, ((q[0] - s[0][0]) * d[0] + (q[1] - s[0][1]) * d[1]) / L2)) : 0; return norm(sub(q, add(s[0], scale(d, t)))); }
+    var tag = trueKnot(p, 0, 0), fish = p.fish;
+    for (var y = 0; y < N; y++) for (var x = 0; x < N; x++) {
+      var q = [R[0] + w * (x + 0.5) / N, R[2] + w * (y + 0.5) / N], v = p.background;
+      for (var l = 0; l < lines.length; l++) { var dd = segDist(q, lines[l]); if (dd < 0.35) v += p.twineBright * Math.exp(-dd * dd / (2 * p.twineWidth * p.twineWidth)); }
+      var dr = Math.abs(q[0] - 0); if (q[1] > lo - 0.5 && q[1] < hi + 0.5) v += p.ropeBright * Math.exp(-dr * dr / (2 * p.ropeWidth * p.ropeWidth));
+      var dt = norm(sub(q, tag)); if (dt < p.tagRadius) v = Math.max(v, p.tagBright);
+      fish.forEach(function (f) { var fx = (q[0] - f[0]) / f[2], fy = (q[1] - f[1]) / f[3]; v += f[4] * Math.exp(-(fx * fx + fy * fy) / 2); });
+      img[y * N + x] = v + p.noise * r.normal();
+    }
+    return { N: N, region: R, data: img };
+  }
+  function isBroken(broken, i, j, dir, n) { for (var k = 0; k < broken.length; k++) if (broken[k].i === i && broken[k].j === j && broken[k].dir === dir) return true; return false; }
+  // the sampling rule: bilinear interpolation of the raster; outside the picture the background
+  function sample(im, q, background) {
+    var N = im.N, R = im.region, w = R[1] - R[0], fx = (q[0] - R[0]) / w * N - 0.5, fy = (q[1] - R[2]) / w * N - 0.5;
+    if (fx < 0 || fy < 0 || fx > N - 1 || fy > N - 1) return background;
+    var x0 = Math.floor(fx), y0 = Math.floor(fy), x1 = Math.min(N - 1, x0 + 1), y1 = Math.min(N - 1, y0 + 1), tx = fx - x0, ty = fy - y0, d = im.data;
+    return d[y0 * N + x0] * (1 - tx) * (1 - ty) + d[y0 * N + x1] * tx * (1 - ty) + d[y1 * N + x0] * (1 - tx) * ty + d[y1 * N + x1] * tx * ty;
+  }
+  // the evidence of a twine between knot positions a and b: the mean of nine samples along the predicted twine,
+  // turned into a log-likelihood ratio intact against broken under the two intensity models
+  function evidence(im, a, b, p, sigma) {
+    var s = sigma == null ? p.noise : sigma, mu1 = p.background + p.twineBright, mu0 = p.background, sum = 0, n = p.samples, vals = [];
+    for (var k = 0; k < n; k++) { var t = (k + 0.5) / n * 0.8 + 0.1, q = add(a, scale(sub(b, a), t)), v = sample(im, q, p.background); vals.push(v); sum += (mu1 - mu0) * (2 * v - mu0 - mu1) / (2 * s * s); }
+    // neighbouring samples see the same blur, so the nine count as p.effective independent looks
+    return { llr: sum * p.effective / n, mean: vals.reduce(function (x, y) { return x + y; }, 0) / n, samples: vals };
+  }
+
+  // ---------------------------------------------------------------- the knot detections and the tag
+  // The detector sees every knot in the picture, the model's patch and the net beyond it alike (knot: the model's
+  // index, -2 for a real knot outside the patch, -1 for a false detection); a few knots are missed.
+  function detections(p, lat, r) {
+    var out = [], miss = {}, m, R = p.region, lo = -p.beyond, hi = p.n - 1 + p.beyond;
+    for (m = 0; m < p.misses; m++) miss[Math.floor(r.u() * lat.knots.length)] = true;
+    for (var j = lo; j <= hi; j++) for (var i = lo; i <= hi; i++) {
+      var q = trueKnot(p, i, j); if (q[0] < R[0] + 0.2 || q[0] > R[1] - 0.2 || q[1] < R[2] + 0.2 || q[1] > R[3] - 0.2) continue;
+      var inside = i >= 0 && i < p.n && j >= 0 && j < p.n, idx = inside ? lat.K(i, j) : -2; if (inside && miss[idx]) continue;
+      out.push({ q: [q[0] + p.detectNoise * r.normal(), q[1] + p.detectNoise * r.normal()], knot: idx });
+    }
+    for (m = 0; m < p.spurious; m++) out.push({ q: [p.region[0] + 0.3 + (p.region[1] - p.region[0] - 0.6) * r.u(), p.region[2] + 0.3 + (p.region[3] - p.region[2] - 0.6) * r.u()], knot: -1 });
+    var tag = trueKnot(p, 0, 0);
+    return { knots: out, tag: [tag[0] + p.tagNoise * r.normal(), tag[1] + p.tagNoise * r.normal()], misses: Object.keys(miss).map(Number) };
+  }
+  function nearest(dets, q) { var best = -1, bd2 = Infinity; for (var k = 0; k < dets.length; k++) { var dx = dets[k].q[0] - q[0], dy = dets[k].q[1] - q[1], d2 = dx * dx + dy * dy; if (d2 < bd2) { bd2 = d2; best = k; } } return { k: best, d: Math.sqrt(bd2) }; }
+  function huberWeight(E, delta) { return 1 / Math.sqrt(1 + E / (delta * delta)); }
+  // phi(E) and its IRLS weight satisfy phi'(E) = weight(E)/2, so w*E/2 is the tangent quadratic surrogate.
+  function huber(E, delta) { return delta * delta * (Math.sqrt(1 + E / (delta * delta)) - 1); }
+
+  // ---------------------------------------------------------------- the case
+  function build(over) {
+    var p = copy(PRESET, over), r = stream(p.seed), lat = lattice(p.n);
+    var broken = p.broken.map(function (b) { return copy(b); });
+    var im = raster(p, broken, r), det = detections(p, lat, r);
+    var truth = lat.knots.map(function (k) { return trueKnot(p, k.i, k.j); });
+    var brokenIds = broken.map(function (b) { return lat.T(b.i, b.j, b.dir); });
+    var d = { p: p, lat: lat, image: im, det: det, truth: truth, broken: broken, brokenIds: brokenIds, ropeX: 0 };
+    d.closeup = raster(copy(p, { noise: p.closeNoise }), broken, stream(p.seed + 99));   // the close-up: a second, quieter look
+    d.solution = solve(d, p);
+    if (p.counterfactual) d.noTag = solve(d, copy(p, { anchors: false, startShift: [1, 0], maxRounds: p.maxRounds }));
+    return d;
+  }
+
+  // ---------------------------------------------------------------- the solver
+  // Laws, each with copies z and ledgers u of the knots it involves:
+  //   mesh        the four knots form a parallelogram: a + c = b + d
+  //   rope        a knot of column 0 has x = ropeX
+  //   tag         the knot (0, 0) sits on the rope at the tag's height
+  function laws(d, p) {
+    var lat = d.lat, out = [];
+    lat.meshes.forEach(function (m, k) { out.push({ kind: 'mesh', mesh: k, at: m.knots.slice() }); });
+    if (p.anchors !== false) {
+      for (var j = 0; j < lat.n; j++) out.push({ kind: 'rope', at: [lat.K(0, j)] });
+      out.push({ kind: 'tag', at: [lat.K(0, 0)] });
+    }
+    return out;
+  }
+  function project(law, pts, d) {
+    if (law.kind === 'mesh') { var g = scale(sub(add(pts[0], pts[2]), add(pts[1], pts[3])), 0.25); return [sub(pts[0], g), add(pts[1], g), sub(pts[2], g), add(pts[3], g)]; }
+    if (law.kind === 'rope') return [[d.ropeX, pts[0][1]]];
+    return [[d.ropeX, d.det.tag[1]]];   // the tag fixes the height of knot (0, 0) on the rope
+  }
+  // the cost of one knot's position at frozen weights, twine states and ropes: the detection fit, the evidence of
+  // its twines, and the ropes to its copies' aims
+  function knotCost(d, p, q, idx, b, pos, w, assoc, aims) {
+    var c = 0, det = d.det.knots;
+    if (assoc[idx] >= 0) { var r = sub(q, det[assoc[idx]].q); c += w[idx] * (r[0] * r[0] + r[1] * r[1]) / (2 * p.detectNoise * p.detectNoise); }
+    d.lat.twinesOf[idx].forEach(function (e) { var t = d.lat.twines[e], a = t.a === idx ? q : pos[t.a], bb = t.b === idx ? q : pos[t.b], ev = evidence(d.image, a, bb, p); c += (1 - b[e]) * (-ev.llr); });
+    for (var k = 0; k < aims.length; k++) { var dx = q[0] - aims[k][0], dy = q[1] - aims[k][1]; c += p.rho / 2 * (dx * dx + dy * dy); }
+    return c;
+  }
+  // the knot step: first the exact lowest point of the quadratic parts (the detection and the ropes, the Loom of this
+  // problem), then a short walk with four taps of the staff for the sampled image term, each stride tested
+  function walkKnot(d, p, idx, b, pos, w, assoc, aims) {
+    var s2 = p.detectNoise * p.detectNoise, wd = assoc[idx] >= 0 ? w[idx] / s2 : 0, det = assoc[idx] >= 0 ? d.det.knots[assoc[idx]].q : [0, 0];
+    var num = [wd * det[0], wd * det[1]], den = wd; aims.forEach(function (a) { num[0] += p.rho * a[0]; num[1] += p.rho * a[1]; den += p.rho; });
+    var q = den > 0 ? [num[0] / den, num[1] / den] : pos[idx].slice(), quad = q.slice();
+    var h = p.tap, step = p.stride, cost = knotCost(d, p, q, idx, b, pos, w, assoc, aims), path = [pos[idx].slice(), q.slice()];
+    if (knotCost(d, p, pos[idx], idx, b, pos, w, assoc, aims) < cost) { q = pos[idx].slice(); cost = knotCost(d, p, q, idx, b, pos, w, assoc, aims); path = [q.slice()]; }
+    for (var it = 0; it < p.strides; it++) {
+      var gx = (knotCost(d, p, [q[0] + h, q[1]], idx, b, pos, w, assoc, aims) - knotCost(d, p, [q[0] - h, q[1]], idx, b, pos, w, assoc, aims)) / (2 * h);
+      var gy = (knotCost(d, p, [q[0], q[1] + h], idx, b, pos, w, assoc, aims) - knotCost(d, p, [q[0], q[1] - h], idx, b, pos, w, assoc, aims)) / (2 * h);
+      var gn = Math.hypot(gx, gy); if (gn < 1e-9) break;
+      var moved = false;
+      for (var tries = 0; tries < 8; tries++) { var nq = [q[0] - step * gx / gn, q[1] - step * gy / gn], nc = knotCost(d, p, nq, idx, b, pos, w, assoc, aims); if (nc < cost) { q = nq; cost = nc; path.push(q.slice()); moved = true; step *= 1.3; break; } step *= 0.5; }
+      if (!moved) break;
+    }
+    return { q: q, cost: cost, path: path, quad: quad };
+  }
+  function solve(d, p) {
+    var lat = d.lat, L = laws(d, p), nK = lat.knots.length, nE = lat.twines.length, k, e;
+    function llrs(xs, im, sigma) { return lat.twines.map(function (t) { return evidence(im, xs[t.a], xs[t.b], p, sigma).llr; }); }
+    // Maximum distance, in mesh spacings, from the shared positions to the nearest point in each local geometry set.
+    // For a mesh this per-corner distance is one quarter of ||a+c-b-d||.  It is not an ADMM residual.
+    function lawDistance(xs) { var v = 0; L.forEach(function (law) { var pts = law.at.map(function (i) { return xs[i]; }), pj = project(law, pts, d); pts.forEach(function (q, j) { v = Math.max(v, norm(sub(q, pj[j]))); }); }); return v; }
+    function assocOf(xs) { return xs.map(function (q) { var nr = nearest(d.det.knots, q); return nr.d < p.gate ? nr.k : -1; }); }
+    function weightsOf(xs, assoc) { return xs.map(function (q, i) { if (assoc[i] < 0) return 0; var r = sub(q, d.det.knots[assoc[i]].q); return huberWeight((r[0] * r[0] + r[1] * r[1]) / (p.detectNoise * p.detectNoise), p.delta); }); }
+    function word(bb) { return bb.map(function (v) { return v >= 0.5 ? 1 : 0; }); }
+    function openMeshes(wd) { var out = []; lat.meshes.forEach(function (m, i) { if (m.twines.some(function (t) { return wd[t] === 1; })) out.push(i); }); return out; }
+    function regError(xs) { var m = 0; xs.forEach(function (q, i) { m = Math.max(m, norm(sub(q, d.truth[i]))); }); return m; }
+    function geometry(xs) {
+      var meshGap = 0, ropeResidual = 0, tagResidual = 0;
+      lat.meshes.forEach(function (m) { var q = m.knots.map(function (i) { return xs[i]; }); meshGap = Math.max(meshGap, norm(sub(add(q[0], q[2]), add(q[1], q[3])))); });
+      if (p.anchors !== false) {
+        for (var j = 0; j < lat.n; j++) ropeResidual = Math.max(ropeResidual, Math.abs(xs[lat.K(0, j)][0] - d.ropeX));
+        tagResidual = norm(sub(xs[lat.K(0, 0)], [d.ropeX, d.det.tag[1]]));
+      }
+      return { projectionCorrection: lawDistance(xs), meshClosure: meshGap, ropeResidual: ropeResidual, tagResidual: tagResidual };
+    }
+    function xBlockCost(xs, bb, w, assoc, aims) {
+      var c = 0;
+      xs.forEach(function (q, i) {
+        if (assoc[i] >= 0) { var r = sub(q, d.det.knots[assoc[i]].q); c += w[i] * (r[0] * r[0] + r[1] * r[1]) / (2 * p.detectNoise * p.detectNoise); }
+        aims[i].forEach(function (a) { var r = sub(q, a); c += p.rho * (r[0] * r[0] + r[1] * r[1]) / 2; });
+      });
+      lat.twines.forEach(function (t, e) { c += (1 - bb[e]) * (-evidence(d.image, xs[t.a], xs[t.b], p).llr); });
+      return c;
+    }
+    function consensus(xs, zz, zPrev, uu) {
+      var primal2 = 0, copyMax = 0, accum = xs.map(function () { return [0, 0]; }), dual2 = 0, dualScaled2 = 0;
+      L.forEach(function (law, li) { law.at.forEach(function (i, j) {
+        var r = sub(xs[i], zz[li][j]), rn = norm(r); primal2 += rn * rn; copyMax = Math.max(copyMax, rn);
+        if (zPrev) { var dz = sub(zz[li][j], zPrev[li][j]); accum[i][0] += dz[0]; accum[i][1] += dz[1]; }
+      }); });
+      if (zPrev) accum.forEach(function (q) { dualScaled2 += q[0] * q[0] + q[1] * q[1]; });
+      dual2 = p.rho * p.rho * dualScaled2;
+      var occurrences = L.reduce(function (s, law) { return s + law.at.length; }, 0);
+      return { primal: Math.sqrt(primal2), primalRms: Math.sqrt(primal2 / Math.max(1, 2 * occurrences)), copyMax: copyMax,
+               dual: zPrev ? Math.sqrt(dual2) : null, dualOverRho: zPrev ? Math.sqrt(dualScaled2) : null,
+               scaledDualNorm: Math.sqrt(uu.reduce(function (s, row) { return s + row.reduce(function (t, q) { return t + q[0] * q[0] + q[1] * q[1]; }, 0); }, 0)) };
+    }
+    // the close-up: the flagged meshes are looked at again, close and quiet, and each of their twines is resolved
+    // where it really is (a close look settles a twine whatever our registration says); the report is accepted
+    // when every twine of every flagged mesh reads in the close-up as the word says
+    function closeup(xs, wd) {
+      var open = openMeshes(wd); if (!open.length) return { checked: 0, agreed: 0, accepted: false, open: open, total: nE, usesHiddenTruth: true };
+      var ll = llrs(d.truth, d.closeup, p.closeNoise), checked = 0, agreed = 0, twinesSeen = {}; void xs;
+      open.forEach(function (mi) { lat.meshes[mi].twines.forEach(function (t) { if (twinesSeen[t]) return; twinesSeen[t] = true; checked++; var says = ll[t] + p.prior < 0 ? 1 : 0; if (says === wd[t]) agreed++; }); });
+      return { checked: checked, agreed: agreed, accepted: agreed === checked, open: open, total: nE, usesHiddenTruth: true };
+    }
+    // start: a rigid lattice of the known mesh size from the tag (or shifted, for the counterfactual); the twines
+    // start as their first reading says
+    var start = d.det.tag.slice(); if (p.startShift) start = add(start, p.startShift);
+    var pos = lat.knots.map(function (kn) { return [start[0] + kn.i * p.mesh, start[1] + kn.j * p.mesh]; });
+    var b = [], l00 = llrs(pos, d.image); for (e = 0; e < nE; e++) b.push(l00[e] + p.prior < 0 ? 1 : 0);
+    var z = L.map(function (law) { return project(law, law.at.map(function (i) { return pos[i]; }), d); });
+    var u = L.map(function (law) { return law.at.map(function () { return [0, 0]; }); });
+    var out = { laws: L, rounds: [], accepted: null, admissible: null, feasible: null, stopReason: null };
+    var l0 = llrs(pos, d.image), w0 = word(b), assoc0 = assocOf(pos);
+    var flagged0 = []; for (e = 0; e < nE; e++) if (w0[e]) flagged0.push(e);
+    var con0 = consensus(pos, z, null, u), law0 = lawDistance(pos);
+    out.rounds.push({ pos: pos.map(function (q) { return q.slice(); }), b: b.slice(), llr: l0, word: w0, open: openMeshes(w0),
+      lawDistance: law0, violation: law0, geometry: geometry(pos), consensus: con0, regError: regError(pos), assoc: assoc0, assocBefore: assoc0, weights: weightsOf(pos, assoc0), weightsBefore: weightsOf(pos, assoc0),
+      z: z, u: u, closeup: null, flagged: flagged0, moved: null, dz: null, blockCostBefore: null, blockCostAfter: null });
+    for (k = 1; k <= p.maxRounds; k++) {
+      var assoc = assocOf(pos), w = weightsOf(pos, assoc);
+      var aims = pos.map(function () { return []; }); L.forEach(function (law, li) { law.at.forEach(function (i, j) { aims[i].push(sub(z[li][j], u[li][j])); }); });
+      // One sequential coordinate sweep.  Each accepted coordinate move lowers the same frozen x-block surrogate,
+      // because later knots see the already-updated earlier neighbours.
+      var npos = pos.map(function (q) { return q.slice(); }), walks = [], blockBefore = xBlockCost(pos, b, w, assoc, aims);
+      for (var i = 0; i < nK; i++) { var wk = walkKnot(d, p, i, b, npos, w, assoc, aims[i]); npos[i] = wk.q; walks.push(wk); }
+      var blockAfter = xBlockCost(npos, b, w, assoc, aims);
+      var ll = llrs(npos, d.image), nb = [];
+      for (e = 0; e < nE; e++) nb.push(ll[e] + p.prior < 0 ? 1 : 0);   // no law shares a twine: its step is a threshold on evidence plus prior
+      var nz = L.map(function (law, li) { return project(law, law.at.map(function (i, j) { return add(npos[i], u[li][j]); }), d); });
+      var nu = L.map(function (law, li) { return law.at.map(function (i, j) { return add(u[li][j], sub(npos[i], nz[li][j])); }); });
+      var dz = 0; L.forEach(function (law, li) { law.at.forEach(function (i, j) { dz = Math.max(dz, norm(sub(nz[li][j], z[li][j]))); }); });
+      var moved = 0; npos.forEach(function (q, i) { moved = Math.max(moved, norm(sub(q, pos[i]))); });
+      var wd = word(nb), cu = closeup(npos, wd), flagged = []; for (e = 0; e < nE; e++) if (wd[e]) flagged.push(e);
+      var lawDist = lawDistance(npos), con = consensus(npos, nz, z, nu);
+      var rec = { pos: npos, b: nb, llr: ll, word: wd, open: openMeshes(wd), lawDistance: lawDist, violation: lawDist,
+        geometry: geometry(npos), consensus: con, regError: regError(npos), assoc: assoc, assocBefore: assoc, weights: w, weightsBefore: w, aims: aims, walks: walks, z: nz, u: nu,
+        dz: dz, moved: moved, closeup: cu, flagged: flagged, blockCostBefore: blockBefore, blockCostAfter: blockAfter };
+      out.rounds.push(rec);
+      pos = npos; b = nb; z = nz; u = nu;
+      if (out.admissible == null && rec.lawDistance <= p.tol) out.admissible = out.feasible = k;
+      if (cu.accepted && rec.lawDistance <= p.tol) { out.accepted = k; out.stopReason = 'verified geometry'; break; }
+      if (rec.lawDistance <= p.tol && dz <= p.tol && moved <= p.tol) { out.stopReason = 'small geometry and iterate changes'; break; }
+    }
+    if (!out.stopReason) out.stopReason = 'round limit';
+    out.final = out.rounds[out.rounds.length - 1]; out.pos = pos; out.word = out.final.word; out.open = out.final.open; out.verified = out.accepted;
+    return out;
+  }
+
+  // the robust fit of a rigid lattice of the known mesh size placed at (u, v), and the anchors' pull toward the
+  // rope and the tag: the two lands of the page that shows the lattice's impostors
+  function shiftCost(d, p, u, v) {
+    var c = 0; d.lat.knots.forEach(function (k) { var q = [u + k.i * p.mesh, v + k.j * p.mesh], nr = nearest(d.det.knots, q); c += huber(nr.d * nr.d / (p.detectNoise * p.detectNoise), p.delta); });
+    return c;
+  }
+  function anchorCost(d, p, u, v) { var dx = u - d.ropeX, dy = v - d.det.tag[1]; return (dx * dx + dy * dy) / (2 * p.tagNoise * p.tagNoise); }
+  // the hollows of the rigid fit: the local minima of shiftCost on a fine grid, within half again of the lowest;
+  // the one nearest the origin is the true shift's hollow
+  function hollows(d, p) {
+    var NG = 57, G = [], out = [], gi, gj;
+    for (gi = 0; gi < NG; gi++) { var row = []; for (gj = 0; gj < NG; gj++) row.push(shiftCost(d, p, -1.4 + 2.8 * gi / (NG - 1), -1.4 + 2.8 * gj / (NG - 1))); G.push(row); }
+    var gMin = Math.min.apply(null, G.map(function (r) { return Math.min.apply(null, r); }));
+    for (gi = 1; gi + 1 < NG; gi++) for (gj = 1; gj + 1 < NG; gj++) {
+      var c = G[gi][gj], ok = c < 1.5 * gMin;
+      for (var di = -1; di <= 1 && ok; di++) for (var dj = -1; dj <= 1; dj++) if ((di || dj) && G[gi + di][gj + dj] <= c) { ok = false; break; }
+      if (ok) out.push({ q: [-1.4 + 2.8 * gi / (NG - 1), -1.4 + 2.8 * gj / (NG - 1)], c: c });
+    }
+    var lowest = out.reduce(function (a, b) { return b.c < a.c ? b : a; }, out[0]), truest = out.reduce(function (a, b) { return norm(b.q) < norm(a.q) ? b : a; }, out[0]);
+    return { all: out, lowest: lowest, truest: truest };
+  }
+  var PRESET = { seed: 11, n: 6, mesh: 1, belly: 0.35, beyond: 2, region: [-1.5, 6.5, -1.5, 6.5], pixels: 200,
+                 background: 0.15, twineBright: 1.0, twineWidth: 0.06, ropeBright: 1.0, ropeWidth: 0.12, tagRadius: 0.22, tagBright: 1.6, noise: 0.22, closeNoise: 0.07, samples: 9,
+                 fish: [[4.3, 1.2, 0.5, 0.25, 0.9], [1.6, 4.4, 0.35, 0.2, 0.8]],
+                 broken: [{ i: 2, j: 2, dir: 'h' }, { i: 3, j: 2, dir: 'v' }, { i: 3, j: 3, dir: 'h' }],
+                 detectNoise: 0.03, misses: 3, spurious: 4, tagNoise: 0.02, gate: 0.45, delta: 2.5,
+                 prior: 1.5, effective: 1, rho: 1000, tap: 0.02, stride: 0.03, strides: 3, tol: 0.01, maxRounds: 60, anchors: true, startShift: null };
+  return { PRESET: PRESET, build: build, solve: solve, laws: laws, project: project, shiftCost: shiftCost, anchorCost: anchorCost, hollows: hollows, lattice: lattice, trueKnot: trueKnot, raster: raster, sample: sample, evidence: evidence,
+           detections: detections, nearest: nearest, huber: huber, huberWeight: huberWeight, knotCost: knotCost, walkKnot: walkKnot, norm: norm, sub: sub, add: add, scale: scale, stream: stream };
+})();
+if (typeof module !== 'undefined') module.exports = Net;
+</script>
+<script>
+// The drawing parts of the tutorial "Finding the tear" (net_course.js): the camera image of the net, the lattice of
+// knots and twines with their states, the detections, the tag and the rope, the meshes and their copies, the
+// samples along a twine, and the panels of rows and tables.  The kit g comes from board.js; the case from net.js.
+var NetParts = (function () {
+  'use strict';
+  var B = window.Board; if (!B) return null;
+  var H = B.H, C = H.C, seg = H.seg, num = H.num, clamp = H.clamp, mix = H.mix, backOut = H.backOut, nice = H.nice;
+  var TAU = 2 * Math.PI, JADE = '#7fd6b4';
+  function places(step) { return clamp(Math.ceil(-Math.log(step) / Math.LN10 - 1e-9), 0, 7); }
+  function rrect(c, x, y, w, h, r) { r = Math.min(r, w / 2, h / 2); c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r); c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath(); }
+  function subscript(n) { var d = '₀₁₂₃₄₅₆₇₈₉'; return String(n).split('').map(function (q) { return d.charAt(Number(q)); }).join(''); }
+
+  // ------------------------------------------------------------ the camera image on the map
+  function axes(g, xl, yl) {
+    var c = g.ctx, R = g.mapR, v = g.vis, step = nice((v[1] - v[0]) / 5), d = places(step);
+    c.font = '11px ' + g.mono; c.fillStyle = C.dim; c.strokeStyle = C.faint; c.lineWidth = 1; c.textAlign = 'center'; c.textBaseline = 'bottom';
+    for (var t = Math.ceil(v[0] / step) * step; t <= v[1]; t += step) { var a = g.P([t, v[2]]); if (a[0] < R[0] + 18 || a[0] > R[0] + R[2] - 24) continue; c.beginPath(); c.moveTo(a[0], R[1] + R[3]); c.lineTo(a[0], R[1] + R[3] - 5); c.stroke(); c.fillText(num(t, d), a[0], R[1] + R[3] - 6); }
+    c.textAlign = 'left'; c.textBaseline = 'middle';
+    for (t = Math.ceil(v[2] / step) * step; t <= v[3]; t += step) { var b = g.P([v[0], t]); if (b[1] < R[1] + 22 || b[1] > R[1] + R[3] - 30) continue; c.beginPath(); c.moveTo(R[0], b[1]); c.lineTo(R[0] + 5, b[1]); c.stroke(); c.fillText(num(t, d), R[0] + 7, b[1]); }
+    c.font = '600 12px ' + g.sans; c.fillStyle = C.ink; c.textAlign = 'right'; c.textBaseline = 'bottom'; c.fillText(xl, R[0] + R[2] - 6, R[1] + R[3] - 4);
+    c.textAlign = 'left'; c.textBaseline = 'top'; c.fillText(yl, R[0] + 6, R[1] + 5);
+  }
+  // the raster as the camera sees it: an underwater green-grey, drawn once into an offscreen canvas per raster
+  var cache = {};
+  function image(g, im, o) {
+    o = o || {}; var key = o.id || 'image', c = g.ctx, cv = cache[key];
+    if (!cv || cv.raster !== im) {
+      cv = document.createElement('canvas'); cv.width = im.N; cv.height = im.N; cv.raster = im;
+      var cc = cv.getContext('2d'), id = cc.createImageData(im.N, im.N), lo = o.lo == null ? -0.2 : o.lo, hi = o.hi == null ? 1.6 : o.hi;
+      for (var y = 0; y < im.N; y++) for (var x = 0; x < im.N; x++) { var t = clamp((im.data[y * im.N + x] - lo) / (hi - lo), 0, 1), k = ((im.N - 1 - y) * im.N + x) * 4; id.data[k] = 20 + 160 * t; id.data[k + 1] = 40 + 190 * t; id.data[k + 2] = 55 + 170 * t; id.data[k + 3] = 255; }
+      cc.putImageData(id, 0, 0); cache[key] = cv;
+    }
+    var R = im.region, A = g.P([R[0], R[3]]), Bq = g.P([R[1], R[2]]); g.clip(g.mapR);
+    c.imageSmoothingEnabled = true; c.globalAlpha = o.alpha == null ? 1 : o.alpha; c.drawImage(cv, A[0], A[1], Bq[0] - A[0], Bq[1] - A[1]); c.globalAlpha = 1; c.restore();
+  }
+  // the lattice: twines as lines coloured by state, knots as dots; o: { pos, word (1 = broken), col, broken (col), p,
+  //      knots (draw knots), lw, labels (knot indices) }
+  function lattice(g, lat, o) {
+    var p = o.p == null ? 1 : o.p; if (!(p > 0)) return; var c = g.ctx; g.clip(g.mapR); c.globalAlpha = clamp(p, 0, 1);
+    lat.twines.forEach(function (t, e) {
+      var broken = o.word && o.word[e] === 1, a = g.P(o.pos[t.a]), b = g.P(o.pos[t.b]);
+      c.strokeStyle = broken ? (o.broken || C.red) : (o.col || JADE); c.lineWidth = o.lw || 2; c.setLineDash(broken ? [4, 4] : []);
+      c.beginPath(); c.moveTo(a[0], a[1]); c.lineTo(b[0], b[1]); c.stroke();
+    });
+    c.setLineDash([]);
+    if (o.knots !== false) o.pos.forEach(function (q, i) { var a = g.P(q); c.fillStyle = o.knotCol || C.ink; c.beginPath(); c.arc(a[0], a[1], o.r || 3.5, 0, TAU); c.fill(); });
+    c.globalAlpha = 1; c.restore();
+    if (o.labels) o.pos.forEach(function (q, i) { var k = lat.knots[i]; g.label(q, '(' + k.i + ',' + k.j + ')', C.dim, { dx: 5, dy: -9, size: 10, plain: true, p: p }); });
+  }
+  // the detections: small crosses; o: { dets, p, col, spurious (col for the false ones) }
+  function detections(g, dets, o) {
+    var p = o.p == null ? 1 : o.p; if (!(p > 0)) return; var c = g.ctx; g.clip(g.mapR); c.globalAlpha = clamp(p, 0, 1); c.lineWidth = 2; c.lineCap = 'round';
+    dets.forEach(function (dq, k) { var a = g.P(dq.q), s = 5, false_ = dq.knot < 0; c.strokeStyle = false_ ? (o.spurious || C.orange) : (o.col || C.gold); c.beginPath(); c.moveTo(a[0] - s, a[1] - s); c.lineTo(a[0] + s, a[1] + s); c.moveTo(a[0] + s, a[1] - s); c.lineTo(a[0] - s, a[1] + s); c.stroke(); });
+    c.globalAlpha = 1; c.restore();
+  }
+  // the tag: a gold ring with its number; the rope: a vertical line
+  function tag(g, q, p, label) { if (!(p > 0)) return; g.halo(q, 11, C.gold, p, 2.5); g.dot(q, 3, C.gold, p); if (label) g.label(q, label, C.gold, { dx: -16, dy: -14, align: 'right', p: seg(p, 0.4, 1), size: 12 }); }
+  function rope(g, x, y0, y1, p, label) { if (!(p > 0)) return; g.line([x, y0], [x, y1], 'rgba(255,210,122,0.85)', 4, p); if (label) g.label([x, y1], label, C.gold, { dx: 8, dy: -10, p: seg(p, 0.4, 1), size: 12 }); }
+  // a mesh outlined, with its four knot copies; o: { pos (positions of its 4 knots), col, p, fill, label }
+  function mesh(g, pts, o) {
+    var p = o.p == null ? 1 : o.p; if (!(p > 0)) return; var c = g.ctx, P = pts.map(g.P, g); g.clip(g.mapR); c.globalAlpha = clamp(p, 0, 1);
+    c.beginPath(); P.forEach(function (a, i) { if (i) c.lineTo(a[0], a[1]); else c.moveTo(a[0], a[1]); }); c.closePath();
+    if (o.fill) { c.fillStyle = o.fill; c.fill(); }
+    c.strokeStyle = o.col || C.blue; c.lineWidth = o.lw || 2; if (o.dash) c.setLineDash(o.dash); c.stroke(); c.setLineDash([]); c.globalAlpha = 1; c.restore();
+    if (o.label) { var cx = pts.reduce(function (s, q) { return [s[0] + q[0] / 4, s[1] + q[1] / 4]; }, [0, 0]); g.label(cx, o.label, o.col || C.blue, { align: 'center', dy: 4, p: p, size: 11.5 }); }
+  }
+  function copyDot(g, q, from, p, label, o) {
+    o = o || {}; if (!(p > 0)) return; if (from) g.line(from, q, 'rgba(169,205,246,0.6)', 1.5, p, [3, 3]);
+    g.dot(q, 4.5, C.blue, p); if (label) g.label(q, label, C.blue, { dx: o.dx == null ? 8 : o.dx, dy: o.dy == null ? 12 : o.dy, align: o.align || 'left', p: seg(p, 0.5, 1), size: 11.5 });
+  }
+  // the samples along a twine, seen from the side: o: { samples, mu0, mu1, p, title, llr }
+  function sampleStrip(g, R, o) {
+    var vals = o.samples, n = vals.length, lo = Math.min(o.mu0 - 0.3, Math.min.apply(null, vals)), hi = Math.max(o.mu1 + 0.3, Math.max.apply(null, vals)), p = o.p == null ? 1 : o.p;
+    var pl = g.plot(R, [0, 1], [lo, hi], { title: o.title + (o.llr != null ? ':  ℓ = ' + num(o.llr, 1) + (o.llr > 0 ? ', favors intact' : ', favors torn') : ''), tTicks: false }), short = pl.box[3] < 130;   // a short plot (a phone) keeps its labels inside
+    pl.frame(short ? '' : 'along the predicted twine', 'intensity');
+    pl.seg(0, o.mu1, 1, o.mu1, JADE, 1.5, seg(p, 0, 0.3), [5, 4]); g.labelPx(pl.X(1) - 4, pl.Y(o.mu1) - 12, 'intact: ' + num(o.mu1, 2), JADE, { align: 'right', size: 11.5, plain: true, p: seg(p, 0.1, 0.3) });
+    pl.seg(0, o.mu0, 1, o.mu0, C.red, 1.5, seg(p, 0.1, 0.4), [5, 4]); g.labelPx(pl.X(1) - 4, pl.Y(o.mu0) + (short ? -12 : 14), 'broken: ' + num(o.mu0, 2), C.red, { align: 'right', size: 11.5, plain: true, p: seg(p, 0.2, 0.4) });
+    for (var k = 0; k < n; k++) { var q = seg(p, 0.3 + 0.5 * k / n, 0.4 + 0.5 * k / n); if (!(q > 0)) continue; var t = (k + 0.5) / n * 0.8 + 0.1; pl.point(t, vals[k], C.gold, '', q); }
+    return pl;
+  }
+  // bars of evidence per twine: items [{ name, value, col }]
+  function bars(g, R, items, p, title) { g.bars(R, items, p, { title: title, d: 1, nameW: 150 }); }
+
+  // ------------------------------------------------------------ panels of rows and tables
+  function lines(g, R, items, p, title, o) {
+    o = o || {}; var n = items.length, top = R[1] + (title ? 44 : 16), rowH = Math.min(o.rowH || 34, (R[3] - (top - R[1]) - 8) / n);
+    g.panel(R, title);
+    items.forEach(function (it, i) { var q = seg(p, i / (n + 0.4), (i + 1) / (n + 0.4)); if (!(q > 0)) return; g.labelPx(R[0] + 14 + (it.indent || 0), top + rowH * i + rowH / 2, it.text, it.col || C.ink, { size: it.size || 12.5, plain: true, mono: !!it.mono, p: q }); });
+  }
+  function table(g, R, rows, p, title, o) {
+    o = o || {}; var n = rows.length + (o.head ? 1 : 0), top = R[1] + 40, rowH = Math.min(40, (R[3] - 50) / n), mid = R[0] + 12 + Math.min(o.leftW || 230, R[2] * 0.42);
+    g.panel(R, title); var all = (o.head ? [o.head] : []).concat(rows);
+    all.forEach(function (r, i) {
+      var q = seg(p, i / (n + 0.5), (i + 1) / (n + 0.5)); if (!(q > 0)) return; var y = top + rowH * i + rowH / 2, head = o.head && i === 0;
+      g.labelPx(R[0] + 12, y, r[0], head ? C.dim : (o.leftCol || C.gold), { size: head ? 11.5 : 12.5, plain: true, p: q });
+      g.labelPx(mid, y, r[1], head ? C.dim : (o.rightCol || C.ink), { size: head ? 11.5 : 12.5, plain: true, p: q });
+      if (head) { var c = g.ctx; c.strokeStyle = C.faint; c.beginPath(); c.moveTo(R[0] + 10, y + rowH / 2 - 4); c.lineTo(R[0] + R[2] - 10, y + rowH / 2 - 4); c.stroke(); }
+    });
+  }
+  function split(R, share, gap) {
+    gap = gap || 8;
+    if (R[2] >= R[3] * 1.25 && R[2] >= 600) { var w = Math.round((R[2] - gap) * share); return [[R[0], R[1], w, R[3]], [R[0] + w + gap, R[1], R[2] - w - gap, R[3]]]; }
+    var h = Math.round((R[3] - gap) * share); return [[R[0], R[1], R[2], h], [R[0], R[1] + h + gap, R[2], R[3] - h - gap]];
+  }
+  return { JADE: JADE, axes: axes, image: image, lattice: lattice, detections: detections, tag: tag, rope: rope, mesh: mesh, copyDot: copyDot, sampleStrip: sampleStrip, bars: bars, lines: lines, table: table, split: split, subscript: subscript };
+})();
+</script>
+<script>
+// "Finding the tear": an interactive synthetic case study of joint geometry estimation and binary tear decisions.
+// The net is taught on its own terms first. Only the position-copy part is then compared with CAJODE's ADMM split;
+// the twine decisions, constraint sets, continuous update, and verification gate are explicitly kept distinct.
+(function () {
+  'use strict';
+  var B = window.Board, N = window.Net, P = window.NetParts; if (!B || !N || !P) return;
+  var H = B.H, C = H.C, seg = H.seg, num = H.num, pair = H.pair, at = H.at, add = H.add, sub = H.sub, lerp2 = H.lerp2, around = H.around, ease = H.ease, clamp = H.clamp;
+  var JADE = P.JADE;
+
+  // ------------------------------------------------------------ the fixed synthetic case and its trace
+  var d = N.build(), p = d.p, lat = d.lat, im = d.image, truth = d.truth, S = d.solution, R = S.rounds;
+  var K_END = R.length - 1, K_STOP = S.accepted != null ? S.accepted : K_END, start = R[0], fin = S.final;
+  var VIEW = p.region.slice(), trueWord = lat.twines.map(function (t, e) { return d.brokenIds.indexOf(e) >= 0 ? 1 : 0; });
+  var trueOpen = lat.meshes.map(function (m, i) { return m.twines.some(function (e) { return trueWord[e] === 1; }) ? i : null; }).filter(function (x) { return x != null; });
+  function meshName(i) { var m = lat.meshes[i]; return '(' + m.i + ', ' + m.j + ')'; }
+  function twineName(e) { var t = lat.twines[e]; return '(' + t.i + ', ' + t.j + ')' + (t.dir === 'h' ? ' across' : ' up'); }
+  function base(g, o) { o = o || {}; P.image(g, o.closeup ? d.closeup : im, { id: o.closeup ? 'closeup' : 'image', alpha: o.alpha }); P.axes(g, 'across the picture, meshes →', '↑ up, meshes'); }
+  function meshPts(pos, mi) { return lat.meshes[mi].knots.map(function (k) { return pos[k]; }); }
+  function posAt(k) { var a = R[Math.min(Math.floor(k), K_END)], b = R[Math.min(Math.floor(k) + 1, K_END)], f = ease(clamp(k - Math.floor(k), 0, 1)); return a.pos.map(function (q, i) { return lerp2(q, b.pos[i], f); }); }
+  var nDet = d.det.knots.length, nFalse = d.det.knots.filter(function (q) { return q.knot === -1; }).length, nBeyond = d.det.knots.filter(function (q) { return q.knot === -2; }).length;
+  var out = [], CH = { job: 'The task', evidence: 'Camera evidence', geometry: 'Geometry model', program: 'The optimization', consensus: 'Position consensus', run: 'Run and verify', bridge: 'What transfers to CAJODE' };
+
+  // ------------------------------------------------------------ 1. the inspection task
+  out.push({ id: 'job', chapter: CH.job, title: 'What must the inspector report?', layout: 'map', view: VIEW, dur: 5.6,
+    text: 'A small remotely operated vehicle photographs a salmon-cage net. A broken strand of netting—a twine—can open one or two neighbouring mesh cells. The practical output is not merely “a tear exists.” The inspector must identify the torn twines and name the open meshes relative to a numbered tag, so that a repair team can find them.',
+    math: 'output: torn twines + open mesh coordinates, all referenced to tag 17',
+    draw: function (g, pr) { base(g, { alpha: seg(pr, 0, 0.45) }); P.rope(g, d.ropeX, VIEW[2], VIEW[3], seg(pr, 0.35, 0.6), 'side rope'); P.tag(g, d.det.tag, seg(pr, 0.55, 0.85), 'tag 17'); } });
+
+  out.push({ id: 'truth', chapter: CH.job, title: 'Hidden truth—for evaluating the simulator only', layout: 'map', view: VIEW, dur: 5.8,
+    text: 'The simulator hides three torn twines. They open ' + trueOpen.length + ' meshes. The solver never receives these red labels or the gold knot positions; they are shown now only so that we can evaluate the synthetic experiment later. In a field inspection there is no hidden-truth overlay.',
+    math: 'hidden from the solver: ' + d.brokenIds.map(twineName).join(', ') + '; open meshes ' + trueOpen.map(meshName).join(', '),
+    draw: function (g, pr) { base(g, { alpha: 0.7 }); P.lattice(g, lat, { pos: truth, word: trueWord, col: 'rgba(255,210,122,0.6)', broken: C.red, p: seg(pr, 0, 0.45), lw: 2, knots: false }); trueOpen.forEach(function (mi, k) { P.mesh(g, meshPts(truth, mi), { col: C.red, fill: 'rgba(255,99,99,0.22)', p: seg(pr, 0.45 + 0.07 * k, 0.65 + 0.07 * k), label: meshName(mi) }); }); } });
+
+  out.push({ id: 'unknowns', chapter: CH.job, title: 'Two unknowns must be estimated together', layout: 'map+side', view: VIEW, dur: 6,
+    text: 'First, every knot has an unknown two-dimensional image position pₙ because the net sags. Second, every twine has a binary state bₑ: 0 means intact and 1 means torn. A rigid ' + lat.n + ' by ' + lat.n + ' grid is placed from the tag to initialize the positions. It is wrong by as much as ' + num(start.regError, 2) + ' mesh spacings. The tear decision cannot be trusted until the twine is sampled in the right place.',
+    math: 'positions pₙ ∈ ℝ²; states bₑ ∈ {0,1}, with 0 = intact and 1 = torn',
+    draw: function (g, pr) { base(g, { alpha: 0.65 }); P.lattice(g, lat, { pos: start.pos, col: 'rgba(230,233,238,0.85)', p: seg(pr, 0, 0.45), knotCol: C.ink }); P.lattice(g, lat, { pos: truth, col: 'rgba(255,210,122,0.45)', p: seg(pr, 0.45, 0.75), knots: false, lw: 1.5 }); P.lines(g, g.sideR, [{ text: 'pₙ: where knot n lies in the picture', col: C.gold }, { text: 'bₑ = 0: twine e is intact', col: JADE }, { text: 'bₑ = 1: twine e is torn', col: C.red }, { text: 'both are unknown', col: C.ink }], pr, 'The unknowns'); } });
+
+  // ------------------------------------------------------------ 2. what the camera supplies
+  out.push({ id: 'detections', chapter: CH.evidence, title: 'The knot detector is useful, but imperfect', layout: 'map+side', view: VIEW, dur: 5.8,
+    text: 'A detector marks bright crossings. This image gives ' + nDet + ' marks: ' + (nDet - nFalse - nBeyond) + ' from the modeled patch, ' + nBeyond + ' from netting beyond it, and ' + nFalse + ' spurious marks on fish or clutter. It also misses ' + d.det.misses.length + ' knots in the patch. These marks are noisy observations, not known knot identities.',
+    math: 'observations: genuine detections + missed knots + spurious detections',
+    draw: function (g, pr) { base(g, { alpha: 0.58 }); P.detections(g, d.det.knots, { p: seg(pr, 0, 0.45) }); P.lattice(g, lat, { pos: start.pos, col: 'rgba(230,233,238,0.45)', p: seg(pr, 0.35, 0.65), knotCol: C.ink, r: 3 }); P.lines(g, g.sideR, [{ text: (nDet - nFalse - nBeyond) + ' detections from this patch', col: C.gold }, { text: nBeyond + ' genuine knots beyond the patch', col: C.dim }, { text: nFalse + ' spurious detections', col: C.orange }, { text: d.det.misses.length + ' modeled knots missed', col: C.red }], pr, 'What the detector returned'); } });
+
+  var assocK = lat.K(4, 3), assocId = start.assocBefore[assocK], assocDet = assocId >= 0 ? d.det.knots[assocId].q : null, assocDist = assocDet ? N.norm(sub(start.pos[assocK], assocDet)) : 0;
+  out.push({ id: 'association', chapter: CH.evidence, title: 'A current position chooses a detection', layout: 'map+side', view: around([start.pos[assocK]].concat(assocDet ? [assocDet] : []), 2.4, 1.2), dur: 5.8,
+    text: 'At the beginning of a round, each modeled knot is associated with the nearest detection no more than ' + num(p.gate, 2) + ' mesh away. This is a current guess, not ground truth. Knot (4, 3) is paired with a mark ' + num(assocDist, 2) + ' mesh away. If its position moves, its nearest mark can change at the next round; outside the gate, its detection term is omitted.',
+    math: 'aₙ(p) = nearest gated detection; Eₙ(p) = ‖pₙ − dₐₙ₍ₚ₎‖²/σ_d²',
+    draw: function (g, pr) { base(g); P.lattice(g, lat, { pos: start.pos, col: 'rgba(230,233,238,0.3)', p: 1, knots: false }); g.dot(start.pos[assocK], 5, C.ink, 1); g.label(start.pos[assocK], 'modeled knot (4, 3)', C.ink, { dx: 10, dy: -13, size: 12 }); if (assocDet) { P.detections(g, [{ q: assocDet, knot: assocK }], { p: 1 }); g.arrow(start.pos[assocK], assocDet, C.gold, 2.5, seg(pr, 0.2, 0.65)); g.label(assocDet, 'nearest gated mark', C.gold, { dx: 10, dy: 16, p: seg(pr, 0.45, 0.75), size: 12 }); } P.lines(g, g.sideR, [{ text: '1 start from the current knot position', col: C.ink }, { text: '2 find the nearest detector mark', col: C.gold }, { text: '3 use it only if distance < ' + num(p.gate, 2), col: C.ink }, { text: '4 repeat after p moves', col: JADE }], pr, 'Association'); } });
+
+  var robustHi = N.huber(100, p.delta) * 1.12;
+  out.push({ id: 'robust', chapter: CH.evidence, title: 'A smooth penalty limits an outlier’s pull', layout: 'map+side', view: VIEW, dur: 6,
+    text: 'Ordinary squared error lets one bad association pull strongly. This toy instead uses the smooth penalty φδ(E). During a round, its weight w is frozen. A small normalized squared error E receives weight near 1; a large error receives a smaller weight. The formula does not discover the correct identity—it only limits the influence of a doubtful pairing.',
+    math: 'φδ(E) = δ²(√(1 + E/δ²) − 1); w(E) = 1/√(1 + E/δ²)',
+    draw: function (g, pr) { base(g, { alpha: 0.45 }); var RR = P.split(g.sideR, 0.5), pl = g.plot(RR[0], [0, 100], [0, robustHi], { title: 'smooth penalty φδ(E)' }); pl.frame('normalized squared error E', 'penalty'); pl.curve(function (x) { return N.huber(x, p.delta); }, C.gold, 2.2, seg(pr, 0, 0.65)); var pw = g.plot(RR[1], [0, 100], [0, 1.05], { title: 'frozen weight w(E)' }); pw.frame('normalized squared error E', 'weight'); pw.curve(function (x) { return N.huberWeight(x, p.delta); }, JADE, 2.2, seg(pr, 0.3, 0.9)); } });
+
+  var eIntact = lat.T(4, 2, 'h'), eBroken = d.brokenIds[0], tI = lat.twines[eIntact], tB = lat.twines[eBroken];
+  var evI = N.evidence(im, truth[tI.a], truth[tI.b], p), evB = N.evidence(im, truth[tB.a], truth[tB.b], p), mu0 = p.background, mu1 = p.background + p.twineBright;
+  out.push({ id: 'samples', chapter: CH.evidence, title: 'A predicted twine selects nine pixels', layout: 'map+side', view: around([truth[tI.a], truth[tI.b], truth[tB.a], truth[tB.b]], 1.2, 2.5), dur: 6,
+    text: 'For a predicted twine, nine points between its two current knot positions are sampled by bilinear interpolation. Bright samples support the intact model; water-like samples support the torn model. The samples are spatially correlated, so the simulator counts the nine values as only ' + p.effective + ' effective independent look. This assumption belongs to the synthetic measurement model.',
+    math: 'qₖ(p) lies on the predicted twine; I(qₖ) is read from the raster image',
+    draw: function (g, pr) { base(g); g.line(truth[tI.a], truth[tI.b], JADE, 4, seg(pr, 0, 0.25)); g.line(truth[tB.a], truth[tB.b], C.red, 4, seg(pr, 0.25, 0.5)); var RR = P.split(g.sideR, 0.5); P.sampleStrip(g, RR[0], { samples: evI.samples, mu0: mu0, mu1: mu1, p: seg(pr, 0, 0.65), title: 'intact twine at its true location' }); P.sampleStrip(g, RR[1], { samples: evB.samples, mu0: mu0, mu1: mu1, p: seg(pr, 0.3, 0.95), title: 'torn twine at its true location' }); } });
+
+  out.push({ id: 'llr', chapter: CH.evidence, title: 'The samples become an intact-versus-torn LLR', layout: 'map+side', view: around([truth[tI.a], truth[tI.b], truth[tB.a], truth[tB.b]], 1.2, 2.5), dur: 6.2,
+    text: 'Under the toy’s equal-variance intensity model, the sample scores are averaged into a model-based log-likelihood ratio ℓₑ(p). Positive ℓ supports intact; negative ℓ supports torn. At their hidden true locations, the intact example gives ' + num(evI.llr, 1) + ' and the torn example gives ' + num(evB.llr, 1) + '. An LLR is evidence, not yet a decision, because the prior against rare tears still matters.',
+    math: 'ℓₑ(p) = (m_eff/n) Σₖ (μ₁−μ₀)(2I(qₖ)−μ₀−μ₁)/(2σ_I²); ℓ>0 favors intact',
+    draw: function (g, pr) { base(g); g.line(truth[tI.a], truth[tI.b], JADE, 4, 1); g.line(truth[tB.a], truth[tB.b], C.red, 4, 1); P.lines(g, g.sideR, [{ text: 'ℓ = log P(samples | intact) / P(samples | torn)', col: C.gold, mono: true, size: 11.5 }, { text: 'positive ℓ: evidence favors intact', col: JADE }, { text: 'negative ℓ: evidence favors torn', col: C.red }, { text: twineName(eIntact) + ': ℓ = ' + num(evI.llr, 1), col: JADE, mono: true }, { text: twineName(eBroken) + ': ℓ = ' + num(evB.llr, 1), col: C.red, mono: true }], pr, 'Reading the sign'); } });
+
+  out.push({ id: 'decision', chapter: CH.evidence, title: 'The binary decision follows from two costs', layout: 'side', dur: 5.8,
+    text: 'For fixed knot positions, the decision is exact and separate for each twine. Calling it intact contributes −ℓₑ. Calling it torn contributes the tear penalty λ. Therefore torn wins precisely when λ is smaller than −ℓₑ, or ℓₑ + λ < 0. There is no relaxed twine variable, parity rule, copy, or ADMM projection in this step.',
+    math: 'cost(bₑ=0) = −ℓₑ; cost(bₑ=1) = λ; choose torn iff ℓₑ + λ < 0',
+    draw: function (g, pr) { var intactScore = evI.llr + p.prior, brokenScore = evB.llr + p.prior; P.lines(g, g.sideR, [{ text: 'coding: bₑ = 0 intact, bₑ = 1 torn', col: C.ink }, { text: 'λ = ' + num(p.prior, 1) + ' penalizes a tear', col: C.gold, mono: true }, { text: 'intact example: ℓ + λ = ' + num(intactScore, 1) + ' → intact', col: JADE, mono: true }, { text: 'torn example: ℓ + λ = ' + num(brokenScore, 1) + ' → torn', col: C.red, mono: true }, { text: 'this is a hard binary threshold', col: C.ink }, { text: 'no copies or parity constraints act on bₑ', col: C.dim }], pr, 'One twine’s decision'); } });
+
+  var ev0 = N.evidence(im, start.pos[tI.a], start.pos[tI.b], p), shiftCurve = [], NS = 81;
+  for (var si = 0; si < NS; si++) { var dy = -0.6 + 1.2 * si / (NS - 1); shiftCurve.push({ dy: dy, llr: N.evidence(im, add(truth[tI.a], [0, dy]), add(truth[tI.b], [0, dy]), p).llr }); }
+  out.push({ id: 'coupling', chapter: CH.evidence, title: 'Why position and tear state are coupled', layout: 'map+side', view: around([truth[tI.a], truth[tI.b], start.pos[tI.a], start.pos[tI.b]], 1.4, 2.5), dur: 6.4,
+    text: 'The LLR is read where the current knot positions place the twine. At the rigid start, this intact twine is displaced by ' + num(N.norm(sub(start.pos[tI.a], truth[tI.a])), 2) + ' mesh, so its samples fall mostly on water and ℓ = ' + num(ev0.llr, 1) + '. The initial model therefore calls ' + start.flagged.length + ' of ' + lat.twines.length + ' twines torn. Moving p changes the pixels, the LLRs, and then b; changing b changes which image terms pull on p.',
+    math: 'p → sample locations qₖ(p) → LLR ℓₑ(p) → state bₑ; bₑ also changes the position cost',
+    draw: function (g, pr) { base(g); g.line(truth[tI.a], truth[tI.b], 'rgba(127,214,180,0.55)', 3, 1); g.line(start.pos[tI.a], start.pos[tI.b], C.red, 4, seg(pr, 0, 0.3)); g.label(lerp2(start.pos[tI.a], start.pos[tI.b], 0.5), 'sampled here: ℓ = ' + num(ev0.llr, 1), C.red, { align: 'center', dy: -14, p: seg(pr, 0.2, 0.45), size: 12 }); var lo = Math.min.apply(null, shiftCurve.map(function (q) { return q.llr; })), hi = Math.max.apply(null, shiftCurve.map(function (q) { return q.llr; })), pad = (hi - lo) * 0.1, pl = g.plot(g.sideR, [-0.6, 0.6], [lo - pad, hi + pad], { title: 'LLR while the predicted twine slides vertically' }); pl.frame('vertical offset, meshes', 'ℓ'); pl.seg(-0.6, -p.prior, 0.6, -p.prior, C.red, 1.2, 1, [5, 4]); pl.curve(function (t) { var q = (t + 0.6) / 1.2 * (NS - 1), k = Math.floor(q), f = q - k; return shiftCurve[Math.min(k, NS - 1)].llr * (1 - f) + shiftCurve[Math.min(k + 1, NS - 1)].llr * f; }, C.gold, 2, seg(pr, 0.25, 0.9)); pl.point(0, shiftCurve[(NS - 1) / 2].llr, JADE, 'true location', seg(pr, 0.55, 0.75), 'left'); } });
+
+  // ------------------------------------------------------------ 3. geometric assumptions and registration
+  var mShow = 13, mk = lat.meshes[mShow];
+  out.push({ id: 'geometry', chapter: CH.geometry, title: 'The simulator imposes a local geometry model', layout: 'map+side', view: VIEW, dur: 6,
+    text: 'This synthetic net assumes each mesh’s four knots form an exact parallelogram: a + c = b + d. This keeps neighbouring rows and columns locally regular, but it does not fix twine lengths or prove that a real loaded cage behaves exactly this way. It is a modeling assumption chosen because projection onto the allowed affine set is easy.',
+    math: 'idealized mesh rule: a + c − b − d = 0',
+    draw: function (g, pr) { base(g, { alpha: 0.58 }); P.lattice(g, lat, { pos: truth, col: 'rgba(230,233,238,0.5)', p: 1, knotCol: C.ink, r: 3 }); P.mesh(g, meshPts(truth, mShow), { col: C.blue, fill: 'rgba(169,205,246,0.18)', p: seg(pr, 0, 0.4), lw: 2.5, label: 'mesh ' + meshName(mShow) }); ['a', 'b', 'c', 'd'].forEach(function (name, k) { g.label(truth[mk.knots[k]], name, C.blue, { dx: k === 0 || k === 3 ? -10 : 10, dy: k < 2 ? 14 : -12, align: k === 0 || k === 3 ? 'right' : 'left', p: seg(pr, 0.2, 0.5), size: 12 }); }); P.lines(g, g.sideR, [{ text: 'used here: exact local parallelograms', col: C.blue }, { text: 'not enforced: fixed twine length', col: C.dim }, { text: 'not established: exact field behavior', col: C.orange }, { text: 'benefit: a simple affine projection', col: JADE }], pr, 'Model boundary'); } });
+
+  out.push({ id: 'anchors', chapter: CH.geometry, title: 'The rope and tag label the patch', layout: 'map+side', view: VIEW, dur: 5.8,
+    text: 'The first knot column is constrained to the side rope, fixing horizontal registration. The detected tag height fixes knot (0, 0), and therefore the row numbering. The tag observation contains simulated noise, but this teaching model treats the detected location as exact during projection. That deliberate simplification should not be confused with a noiseless field measurement.',
+    math: 'rope: p(0,j)_x = 0; tag: p(0,0) = (0, detected tag height)',
+    draw: function (g, pr) { base(g, { alpha: 0.6 }); P.lattice(g, lat, { pos: fin.pos, col: 'rgba(230,233,238,0.45)', p: 1, knotCol: C.ink, r: 3 }); P.rope(g, d.ropeX, VIEW[2], VIEW[3], seg(pr, 0, 0.45), 'horizontal anchor'); P.tag(g, d.det.tag, seg(pr, 0.4, 0.7), 'vertical anchor'); P.lines(g, g.sideR, [{ text: 'rope fixes the net’s left column', col: C.gold }, { text: 'tag fixes which row is row 0', col: C.gold }, { text: 'the noisy tag detection is treated as exact', col: C.orange }, { text: 'these are registration references', col: JADE }], pr, 'Two anchors'); } });
+
+  var SV = [-1.6, 1.6, -1.6, 1.6], shiftLand = function (q) { return N.shiftCost(d, p, q[0], q[1]); }, anchorLand = function (q) { return N.shiftCost(d, p, q[0], q[1]) + N.anchorCost(d, p, q[0], q[1]); };
+  var HO = N.hollows(d, p), shiftMins = HO.all, bestShift = HO.lowest, trueHollow = HO.truest;
+  out.push({ id: 'impostors', chapter: CH.geometry, title: 'A repeated grid creates registration aliases', layout: 'map', view: SV, dur: 6.4,
+    text: 'Sliding a rigid grid over knot detections creates several local minima, roughly one per whole-mesh shift, because neighbouring knots look alike and the net continues beyond the modeled patch. The lowest detection-only minimum is at ' + pair(bestShift.q, 1) + ', not at the correctly labeled patch. Adding the rope and tag removes that labeling ambiguity in this synthetic case. They play the symmetry-breaking role that pilots play in channel estimation.',
+    math: 'detections alone: several shift aliases' + at(0.5, '; detections + anchors: the labeled patch is selected'),
+    draw: function (g, pr) { var anchored = pr > 0.55; g.land(anchored ? anchorLand : shiftLand, { id: anchored ? 'net-anchor-land-v2' : 'net-shift-land-v2', rings: 10, cell: 20 }); P.axes(g, 'horizontal shift, meshes →', '↑ vertical shift, meshes'); shiftMins.forEach(function (m, k) { if (anchored && m !== trueHollow) { g.dot(m.q, 4, C.dim, 1); return; } g.dot(m.q, 5, m === bestShift ? C.orange : C.gold, seg(pr, 0.08 + 0.025 * k, 0.25 + 0.025 * k)); }); if (!anchored) { g.label(bestShift.q, 'lowest detection-only fit', C.orange, { dx: 10, dy: -12, p: seg(pr, 0.3, 0.5), size: 12 }); g.label(trueHollow.q, 'correct label', C.gold, { dx: 10, dy: 16, p: seg(pr, 0.35, 0.55), size: 12 }); } else { g.halo(trueHollow.q, 14, JADE, seg(pr, 0.6, 0.85), 2.5); g.label(trueHollow.q, 'anchors select this alias', JADE, { dx: 14, dy: 18, p: seg(pr, 0.7, 0.95), size: 12 }); } } });
+
+  // ------------------------------------------------------------ 4. the optimization problem
+  out.push({ id: 'program', chapter: CH.program, title: 'The fixed model before any solver steps', layout: 'side', dur: 6.4,
+    text: 'The objective has two observation terms. The first applies the smooth outlier-limiting penalty to each currently gated knot-to-detection distance. The second compares the intact and torn hypotheses along every predicted twine, with λ penalizing tears. The binary states are constrained to 0 or 1, while the positions must satisfy the idealized mesh, rope, and tag sets. Associations are position-dependent.',
+    math: 'min over p,b: Σₙ φδ(Eₙ(p)) + Σₑ [−(1−bₑ)ℓₑ(p) + λbₑ], subject to p in every geometry set and bₑ∈{0,1}',
+    draw: function (g, pr) { P.lines(g, g.sideR, [{ text: 'unknowns: knot positions p and binary states b', col: C.gold }, { text: 'robust detection penalty Σ φδ(Eₙ(p))', col: C.ink }, { text: 'image evidence −Σ (1−bₑ)ℓₑ(p)', col: C.ink }, { text: 'tear prior +λΣ bₑ', col: C.ink }, { text: 'mesh, rope, and tag constraints', col: C.blue }, { text: 'bₑ is exactly 0 or 1', col: C.red }], pr, 'The optimization model'); } });
+
+  out.push({ id: 'difficulty', chapter: CH.program, title: 'Why there is no one-shot solution', layout: 'side', dur: 5.8,
+    text: 'Four mechanisms make the problem difficult. Nearest-detection associations can switch. Raster sampling makes ℓₑ(p) nonlinear, with kinks when an association or interpolation cell changes. The twine states are binary. Repeated knots create several registration basins. The solver therefore alternates local updates from a chosen initialization; it is not a convex program and does not provide a global-optimum certificate.',
+    math: 'changing associations + sampled image term + binary states + multiple basins',
+    draw: function (g, pr) { P.lines(g, g.sideR, [{ text: '1 association can switch when p moves', col: C.orange }, { text: '2 image evidence is nonlinear in p', col: C.gold }, { text: '3 b is binary', col: C.red }, { text: '4 the repeated grid has several basins', col: C.violet }, { text: 'result: use local alternating updates', col: JADE }, { text: 'not promised: the global optimum', col: C.dim }], pr, 'Sources of difficulty'); } });
+
+  // ------------------------------------------------------------ 5. position copies and scaled dual variables
+  var sharedK = lat.K(3, 3), sharedMeshes = lat.meshesOf[sharedK];
+  out.push({ id: 'shared', chapter: CH.consensus, title: 'One shared knot belongs to several local rules', layout: 'map+side', view: around(sharedMeshes.reduce(function (a, mi) { return a.concat(meshPts(start.pos, mi)); }, []), 1.2, 1.3), dur: 5.8,
+    text: 'An interior knot belongs to four neighbouring mesh rules. If every rule moved that knot independently, the four meshes would no longer meet. The split therefore keeps one shared position pₙ and gives each rule r a local copy zᵣₙ. Consensus means every copy should agree with the same shared knot.',
+    math: 'one shared pₙ; one local copy zᵣₙ for each rule r containing knot n; desired: pₙ = zᵣₙ',
+    draw: function (g, pr) { base(g, { alpha: 0.5 }); P.lattice(g, lat, { pos: start.pos, col: 'rgba(230,233,238,0.25)', p: 1, knotCol: C.ink, r: 3 }); sharedMeshes.forEach(function (mi, k) { P.mesh(g, meshPts(start.pos, mi), { col: [C.blue, C.orange, C.violet, JADE][k], fill: 'rgba(169,205,246,0.06)', p: seg(pr, 0.05 + 0.12 * k, 0.3 + 0.12 * k), label: 'rule ' + (k + 1) }); }); g.halo(start.pos[sharedK], 13, C.gold, seg(pr, 0.55, 0.8), 2.5); P.lines(g, g.sideR, [{ text: 'pₙ: one position shared by the net', col: C.gold }, { text: 'z₁ₙ … z₄ₙ: four mesh copies', col: C.blue }, { text: 'each copy obeys its own rule', col: C.ink }, { text: 'consensus asks every zᵣₙ to meet pₙ', col: JADE }], pr, 'Why copies are needed'); } });
+
+  var symRound = Math.min(2, K_END), symLaw = -1, symSlot = -1;
+  S.laws.forEach(function (law, li) { var j = law.at.indexOf(sharedK); if (symLaw < 0 && j >= 0) { symLaw = li; symSlot = j; } });
+  var symP = R[symRound - 1].pos[sharedK], symZ = R[symRound - 1].z[symLaw][symSlot], symU = R[symRound - 1].u[symLaw][symSlot], symV = sub(symZ, symU), symScale = 30;
+  var symZDraw = add(symP, N.scale(sub(symZ, symP), symScale)), symVDraw = add(symP, N.scale(sub(symV, symP), symScale));
+  out.push({ id: 'symbols', chapter: CH.consensus, title: 'Define p, z, u, then the target v = z − u', layout: 'map+side', view: around([symP, symZDraw, symVDraw], 2.4, 0.55), dur: 6.2,
+    text: 'The symbols now have distinct jobs. pₙ is the shared knot position. zᵣₙ is rule r’s projected local copy. uᵣₙ is a scaled dual variable: accumulated signed disagreement between the shared knot and that copy. The position update sees the derived target vᵣₙ = zᵣₙ − uᵣₙ. “Target” is only a teaching description; v is not another state variable. The drawing enlarges the small separation by 30 times so the three locations can be seen.',
+    math: 'shared position pₙ; projected copy zᵣₙ; scaled dual uᵣₙ; target vᵣₙ = zᵣₙ − uᵣₙ',
+    draw: function (g, pr) { base(g, { alpha: 0.35 }); g.dot(symP, 6, C.gold, seg(pr, 0, 0.25)); g.label(symP, 'p: shared knot', C.gold, { dx: 10, dy: -15, p: seg(pr, 0.1, 0.35), size: 12 }); P.copyDot(g, symZDraw, symP, seg(pr, 0.25, 0.5), 'z: projected copy'); g.arrow(symZDraw, symVDraw, C.orange, 2.3, seg(pr, 0.45, 0.7)); g.dot(symVDraw, 5, JADE, seg(pr, 0.62, 0.82)); g.label(symVDraw, 'v = z − u: target', JADE, { dx: 10, dy: 16, p: seg(pr, 0.7, 0.9), size: 12 }); P.lines(g, g.sideR, [{ text: 'p: shared position', col: C.gold }, { text: 'z: one rule’s projected copy', col: C.blue }, { text: 'u: accumulated signed disagreement', col: C.orange }, { text: 'v = z − u: target used by p', col: JADE }, { text: 'separations enlarged ×' + symScale, col: C.dim }], pr, 'Four distinct roles'); } });
+
+  var kShow = lat.K(4, 3), r1 = R[1], wk = r1.walks[kShow], aimsK = r1.aims[kShow], detK = r1.assocBefore[kShow] >= 0 ? d.det.knots[r1.assocBefore[kShow]].q : null;
+  var ksView = around([start.pos[kShow], wk.q, wk.quad].concat(detK ? [detK] : []).concat(aimsK), 2.5, 1.2);
+  out.push({ id: 'position', chapter: CH.consensus, title: 'First solve the frozen quadratic part', layout: 'map+side', view: ksView, dur: 6,
+    text: 'At the start of a position sweep, associations, robust weights, twine states, copies, and scaled duals are frozen. For one knot, the detection term and the quadratic pulls toward all targets v are then quadratic. Their exact minimizer is a weighted mean. For knot (4, 3), ' + aimsK.length + ' geometric rules supply targets and the frozen detection weight is ' + num(r1.weightsBefore[kShow], 2) + '.',
+    math: 'pₙ ← (wₙdₐ/σ_d² + ρΣᵣvᵣₙ)/(wₙ/σ_d² + ρKₙ), before considering the image term',
+    draw: function (g, pr) { base(g); P.lattice(g, lat, { pos: start.pos, col: 'rgba(230,233,238,0.28)', p: 1, knots: false }); var q0 = start.pos[kShow]; g.dot(q0, 5, C.ink, 1); g.label(q0, 'old p', C.ink, { dx: 10, dy: -12, size: 12 }); if (detK) { P.detections(g, [{ q: detK, knot: kShow }], { p: 1 }); g.label(detK, 'detection', C.gold, { dx: 10, dy: 16, p: seg(pr, 0.1, 0.35), size: 12 }); } aimsK.forEach(function (a) { g.dot(a, 4, C.violet, seg(pr, 0.2, 0.4)); }); g.arrow(q0, wk.quad, JADE, 2.5, seg(pr, 0.4, 0.7)); g.dot(wk.quad, 5, JADE, seg(pr, 0.62, 0.82)); g.label(wk.quad, 'weighted quadratic minimizer', JADE, { dx: -12, dy: 18, align: 'right', p: seg(pr, 0.7, 0.92), size: 12 }); P.lines(g, g.sideR, [{ text: 'freeze association, weight, b, z, and u', col: C.dim }, { text: 'detection pulls with weight w/σ²', col: C.gold }, { text: aimsK.length + ' targets pull with weight ρ', col: C.violet }, { text: 'weighted mean minimizes these terms', col: JADE }], pr, 'Quadratic part'); } });
+
+  out.push({ id: 'probes', chapter: CH.consensus, title: 'Then probe the sampled image and test each stride', layout: 'map+side', view: ksView, dur: 6.2,
+    text: 'The image term has no convenient closed-form minimizer with respect to a knot position. Around the weighted mean, the solver samples the frozen local cost at left, right, up, and down offsets of ' + num(p.tap, 2) + ' mesh. The paired samples estimate the two partial derivatives and therefore a downhill direction. A stride is kept only if that frozen local subproblem decreases; otherwise the stride is halved. This round keeps ' + Math.max(0, wk.path.length - 2) + ' image-driven strides for knot (4, 3).',
+    math: 'four probes estimate two partial derivatives; backtrack until the frozen local cost falls',
+    draw: function (g, pr) { base(g); var q = wk.quad, h = p.tap; [[h,0],[-h,0],[0,h],[0,-h]].forEach(function (dq, k) { var t = add(q, dq); g.line(q, t, C.violet, 1.5, seg(pr, 0.05 + 0.06 * k, 0.25 + 0.06 * k)); g.dot(t, 4, C.violet, seg(pr, 0.12 + 0.06 * k, 0.32 + 0.06 * k)); }); g.dot(q, 5, JADE, 1); g.path(wk.path.slice(1), C.gold, 2.4, seg(pr, 0.38, 0.82), [4, 3]); g.dot(wk.q, 6, C.gold, seg(pr, 0.75, 0.95)); g.label(wk.q, 'accepted end point', C.gold, { dx: 10, dy: 17, p: seg(pr, 0.8, 1), size: 12 }); P.lines(g, g.sideR, [{ text: 'probe left and right', col: C.violet }, { text: 'probe down and up', col: C.violet }, { text: 'combine into a downhill direction', col: C.ink }, { text: 'halve a rejected stride', col: C.gold }, { text: 'accepted image strides: ' + Math.max(0, wk.path.length - 2), col: JADE }], pr, 'Four probes and a tested stride'); } });
+
+  var bitRound = 1, llI = R[bitRound].llr[eIntact], llB = R[bitRound].llr[eBroken];
+  out.push({ id: 'bitstep', chapter: CH.consensus, title: 'After positions move, re-read every twine', layout: 'map+side', view: VIEW, dur: 5.8,
+    text: 'The moved knots define new sample locations, so all twine LLRs are recomputed. The same threshold from earlier then gives hard binary states. In round ' + bitRound + ', the displayed intact twine has ℓ + λ = ' + num(llI + p.prior, 1) + ', while the displayed torn twine has ℓ + λ = ' + num(llB + p.prior, 1) + '. This state update is not part of the geometric ADMM consensus.',
+    math: 'bₑ ← 1 if ℓₑ(p) + λ < 0, otherwise bₑ ← 0',
+    draw: function (g, pr) { base(g, { alpha: 0.65 }); P.lattice(g, lat, { pos: R[bitRound].pos, word: R[bitRound].word, col: 'rgba(230,233,238,0.65)', broken: C.red, p: seg(pr, 0, 0.55), knots: false }); P.lines(g, g.sideR, [{ text: 'new p gives new sample locations', col: C.gold }, { text: 'recompute every model-based LLR', col: C.ink }, { text: 'if ℓ + λ < 0: set b = 1 torn', col: C.red }, { text: 'otherwise: set b = 0 intact', col: JADE }, { text: R[bitRound].flagged.length + ' called torn after round ' + bitRound, col: C.ink }], pr, 'Binary state update'); } });
+
+  var lawIdx = -1; S.laws.forEach(function (law, i) { if (law.kind === 'mesh' && law.mesh === mShow) lawIdx = i; });
+  var kP = Math.min(2, K_END), rP = R[kP], uPrev = R[kP - 1].u[lawIdx], before = S.laws[lawIdx].at.map(function (i, j) { return add(rP.pos[i], uPrev[j]); }), afterZ = rP.z[lawIdx];
+  var gapP = Math.max.apply(null, before.map(function (q, j) { return N.norm(sub(q, afterZ[j])); }));
+  out.push({ id: 'project', chapter: CH.consensus, title: 'Each rule projects its local copies', layout: 'map+side', view: around(before.concat(afterZ), 1.2, 1.6), dur: 5.8,
+    text: 'For one mesh rule, start from the moved shared knots plus the previous scaled duals. Projection finds the nearest four-copy configuration that is a parallelogram. If h = a + c − b − d, each corner moves by one quarter of h with the appropriate sign. The projected copies satisfy the local rule exactly, even though the shared positions need not yet agree with them.',
+    math: 'zᵣ ← Π_Gᵣ(pᵣ + uᵣ); for a mesh, g=h/4 and (a,b,c,d)←(a−g,b+g,c−g,d+g)',
+    draw: function (g, pr) { base(g, { alpha: 0.5 }); P.mesh(g, before, { col: C.orange, dash: [5, 4], p: seg(pr, 0, 0.35), label: 'p + old u' }); P.mesh(g, afterZ, { col: C.blue, fill: 'rgba(169,205,246,0.18)', p: seg(pr, 0.4, 0.72), lw: 2.5, label: 'projected z' }); before.forEach(function (q, j) { g.arrow(q, afterZ[j], C.blue, 2, seg(pr, 0.3, 0.62)); }); P.lines(g, g.sideR, [{ text: 'input: p + old u', col: C.orange }, { text: 'output: nearest allowed copy z', col: C.blue }, { text: 'largest corner correction: ' + num(gapP, 3), col: C.ink }, { text: 'z obeys this mesh rule exactly', col: JADE }, { text: 'p and z may still disagree', col: C.dim }], pr, 'One local projection'); } });
+
+  var dualSlot = 0, dualK = S.laws[lawIdx].at[dualSlot], dualP = rP.pos[dualK], dualZ = rP.z[lawIdx][dualSlot], dualOld = uPrev[dualSlot], dualNew = rP.u[lawIdx][dualSlot];
+  out.push({ id: 'dual', chapter: CH.consensus, title: 'The scaled dual remembers signed disagreement', layout: 'map+side', view: around([dualP, dualZ, add(dualP, dualOld)], 4, 0.5), dur: 5.8,
+    text: 'After projection, the shared knot and local copy usually differ. The scaled dual update adds that signed disagreement to its previous value. Persistent disagreement therefore changes the next target v = z − u instead of being forgotten. The scaled dual is bookkeeping for consensus—not a physical force, a knot, or another measurement.',
+    math: 'uᵣₙ ← uᵣₙ + pₙ − zᵣₙ; next target vᵣₙ = zᵣₙ − uᵣₙ',
+    draw: function (g, pr) { base(g, { alpha: 0.35 }); g.dot(dualP, 6, C.gold, 1); P.copyDot(g, dualZ, dualP, 1, 'z'); g.arrow(dualZ, dualP, C.orange, 2.5, seg(pr, 0.15, 0.48)); g.label(lerp2(dualZ, dualP, 0.5), 'p − z', C.orange, { dx: 8, dy: -12, p: seg(pr, 0.3, 0.55), size: 12 }); P.lines(g, g.sideR, [{ text: 'old u = ' + pair(dualOld, 3), col: C.dim, mono: true }, { text: 'p − z = ' + pair(sub(dualP, dualZ), 3), col: C.orange, mono: true }, { text: 'new u = ' + pair(dualNew, 3), col: C.gold, mono: true }, { text: 'u persists into the next round', col: JADE }, { text: 'then v = z − u changes', col: C.ink }], pr, 'Consensus memory'); } });
+
+  out.push({ id: 'round', chapter: CH.consensus, title: 'One complete round—in the net’s actual order', layout: 'side', dur: 6.2,
+    text: 'The net solver has its own update order. It freezes detection associations and robust weights; sweeps through knot positions; recomputes image LLRs; thresholds the hard twine states; projects local position copies; updates scaled dual variables; and finally runs the targeted verification check. This is not CAJODE’s exact update order.',
+    math: 'associate + weight → positions p → LLRs → hard states b → copies z → scaled duals u → targeted verification',
+    draw: function (g, pr) { P.lines(g, g.sideR, [{ text: '1 associate knots and freeze robust weights', col: C.gold }, { text: '2 sweep through shared positions p', col: JADE }, { text: '3 re-read image LLRs', col: C.ink }, { text: '4 threshold hard states b', col: C.red }, { text: '5 project local position copies z', col: C.blue }, { text: '6 update scaled duals u', col: C.orange }, { text: '7 run targeted synthetic verification', col: C.violet }], pr, 'The net solver—not CAJODE'); } });
+
+  // ------------------------------------------------------------ 6. run, stopping, verification, and result
+  var correctRound = R.findIndex(function (r) { return r.flagged.join(',') === d.brokenIds.join(','); });
+  out.push({ id: 'run', chapter: CH.run, title: 'The false tears clear as registration improves', layout: 'map+side', view: VIEW, dur: 9,
+    text: 'The rigid initialization calls ' + start.flagged.length + ' twines torn. As the lattice registers to the net, LLRs are read in better locations and false tear decisions clear. The exact candidate set first equals the hidden three at round ' + correctRound + '. The operational gate finally stops at round ' + K_STOP + '. A count alone is not a correctness test, so the exact identities are checked on the result page.',
+    math: 'twines called torn by round: ' + R.map(function (r) { return r.flagged.length; }).join(', '),
+    draw: function (g, pr) { var kk = seg(pr, 0, 0.9) * K_STOP, pos = posAt(kk), rec = R[Math.min(Math.floor(kk), K_END)]; base(g, { alpha: 0.68 }); P.lattice(g, lat, { pos: pos, word: rec.word, col: 'rgba(230,233,238,0.82)', broken: C.red, p: 1, knotCol: C.ink, r: 3 }); g.labelPx(g.mapR[0] + 12, g.mapR[1] + 30, 'round ' + Math.floor(kk) + ': ' + rec.flagged.length + ' twines called torn', C.gold, { size: 13 }); var ymax = Math.max.apply(null, R.map(function (r) { return r.flagged.length; })) + 2, pl = g.plot(g.sideR, [0, K_STOP], [0, ymax], { title: 'hard tear decisions by round' }); pl.frame('round', 'twines called torn'); pl.seg(0, d.brokenIds.length, K_STOP, d.brokenIds.length, C.red, 1.4, 1, [5, 4]); pl.curve(function (t) { var i = Math.floor(t), f = t - i; return R[Math.min(i, K_END)].flagged.length * (1 - f) + R[Math.min(i + 1, K_END)].flagged.length * f; }, JADE, 2, clamp(kk / K_STOP, 0, 1)); if (kk >= K_STOP) pl.point(K_STOP, fin.flagged.length, C.gold, 'operational stop', 1, 'left'); } });
+
+  out.push({ id: 'stopping', chapter: CH.run, title: 'Separate geometry, consensus, motion, and acceptance', layout: 'side', dur: 6.4,
+    text: 'Four questions must not be collapsed into “converged.” At the final round, the largest correction needed to put any local tuple directly on its geometry set is ' + num(fin.geometry.projectionCorrection, 4) + ' mesh. The ADMM-style primal residual norm is ' + num(fin.consensus.primal, 4) + '. The shared positions moved by as much as ' + num(fin.moved, 4) + ' mesh in the last round. The run stops because targeted verification passed while the geometry correction was below ' + num(p.tol, 2) + '—not because textbook ADMM residual thresholds proved convergence.',
+    math: 'geometry correction ≠ primal residual ≠ dual residual ≠ iterate motion ≠ verification result',
+    draw: function (g, pr) { P.lines(g, g.sideR, [{ text: 'geometry correction: ' + num(fin.geometry.projectionCorrection, 4), col: C.blue, mono: true }, { text: 'mesh closure ‖a+c−b−d‖: ' + num(fin.geometry.meshClosure, 4), col: C.blue, mono: true }, { text: 'primal residual ‖Ap−z‖₂: ' + num(fin.consensus.primal, 4), col: C.violet, mono: true }, { text: 'dual residual ‖s‖₂/ρ: ' + num(fin.consensus.dualOverRho, 4), col: C.orange, mono: true }, { text: 'largest last-round p move: ' + num(fin.moved, 4), col: C.gold, mono: true }, { text: 'stop reason: ' + S.stopReason, col: JADE }, { text: 'no ADMM convergence claim', col: C.dim }], pr, 'Distinct diagnostics'); } });
+
+  var kReject = Math.min(5, K_END), cuR = R[kReject].closeup, cuF = fin.closeup;
+  out.push({ id: 'verification', chapter: CH.run, title: 'The close-up is targeted verification—not a CRC', layout: 'map+side', view: VIEW, dur: 6.4,
+    text: 'The simulator generates a quieter second image and, using hidden true geometry, models an operator centering a close-up on twines around the currently flagged meshes. At round ' + kReject + ', ' + cuR.agreed + ' of ' + cuR.checked + ' inspected twines agree, so the candidate is rejected. At round ' + K_STOP + ', all ' + cuF.checked + ' inspected twines agree. But only ' + cuF.checked + ' of ' + cuF.total + ' twines are inspected: this confirms the proposed repair area and cannot rule out a missed tear elsewhere. It is not a cyclic redundancy check.',
+    math: 'targeted follow-up: confirm twines around predicted-open meshes; limitation: unflagged regions are not covered',
+    draw: function (g, pr) { var late = pr > 0.5, rec = late ? fin : R[kReject], cu = late ? cuF : cuR; base(g, { closeup: true, alpha: 0.78 }); P.lattice(g, lat, { pos: rec.pos, word: rec.word, col: 'rgba(230,233,238,0.48)', broken: C.red, p: 1, knots: false }); rec.open.forEach(function (mi) { P.mesh(g, meshPts(rec.pos, mi), { col: late ? JADE : C.orange, fill: late ? 'rgba(127,214,180,0.18)' : 'rgba(255,176,113,0.18)', p: 1 }); }); P.lines(g, g.sideR, [{ text: 'round ' + (late ? K_STOP : kReject) + ': ' + cu.agreed + '/' + cu.checked + ' inspected agree', col: late ? JADE : C.orange }, { text: 'coverage: ' + cu.checked + '/' + cu.total + ' twines', col: C.ink }, { text: 'hidden geometry simulates centering', col: C.violet }, { text: 'confirms the proposed repair region', col: JADE }, { text: 'cannot exclude a missed remote tear', col: C.orange }, { text: 'not a CRC or convergence proof', col: C.dim }], pr, 'Targeted synthetic follow-up'); } });
+
+  out.push({ id: 'result', chapter: CH.run, title: 'Field-style report and simulator-only evaluation', layout: 'map+side', view: VIEW, dur: 6.4,
+    text: 'The field-style output is three torn-twine candidates, ' + fin.flagged.map(twineName).join(', ') + ', opening meshes ' + fin.open.map(meshName).join(', ') + ' relative to tag 17. Separately, the simulator can compare against hidden truth: all three binary identities are correct and the maximum knot-position error is ' + num(fin.regError, 3) + ' mesh. That second sentence is evaluation evidence available only in this synthetic case.',
+    math: 'report: candidate twines and meshes; synthetic evaluation: exact word match, max position error ' + num(fin.regError, 3) + ' mesh',
+    draw: function (g, pr) { base(g, { alpha: 0.68 }); P.lattice(g, lat, { pos: fin.pos, word: fin.word, col: 'rgba(230,233,238,0.68)', broken: C.red, p: 1, knots: false }); fin.open.forEach(function (mi, k) { P.mesh(g, meshPts(fin.pos, mi), { col: C.red, fill: 'rgba(255,99,99,0.22)', p: seg(pr, 0.08 + 0.1 * k, 0.3 + 0.1 * k), label: meshName(mi) }); }); P.tag(g, d.det.tag, 1, 'tag 17'); P.lines(g, g.sideR, [{ text: 'FIELD-STYLE OUTPUT', col: C.gold }, { text: fin.flagged.length + ' candidate torn twines', col: C.red }, { text: 'open: ' + fin.open.map(meshName).join(', '), col: C.red, mono: true }, { text: 'SIMULATOR-ONLY EVALUATION', col: C.violet }, { text: 'candidate word equals hidden truth ✓', col: JADE }, { text: 'max position error: ' + num(fin.regError, 3), col: JADE, mono: true }], pr, 'Output versus evaluation'); } });
+
+  // ------------------------------------------------------------ 7. the precise bridge to CAJODE
+  out.push({ id: 'bridge', chapter: CH.bridge, title: 'The part that genuinely transfers to CAJODE', layout: 'side', dur: 6.2,
+    text: 'Both problems split a shared variable into local projected copies. Each local copy has a persistent scaled dual variable, the shared update is pulled toward z − u, projection enforces a simple local set, and u accumulates disagreement. In CAJODE the shared variable is a relaxed bit and each local set is a parity polytope. In this net toy the shared variable is a knot position and each local set is an affine geometry set.',
+    math: 'shared skeleton: shared variable → local projected copies z → scaled duals u → targets z−u',
+    draw: function (g, pr) { var RR = P.split(g.sideR, 0.5); P.lines(g, RR[0], [{ text: 'CAJODE: relaxed bits copied per check', col: C.gold }, { text: 'net: knot positions copied per rule', col: C.blue }, { text: 'both: project each local copy', col: JADE }], pr, 'What is shared'); P.lines(g, RR[1], [{ text: 'both: u stores shared − copy', col: C.orange }, { text: 'both: the next target is z − u', col: JADE }, { text: 'the local sets themselves differ', col: C.dim }], pr, 'Consensus bookkeeping'); } });
+
+  out.push({ id: 'differences', chapter: CH.bridge, title: 'The parts that do not transfer unchanged', layout: 'side', dur: 6.2,
+    text: 'The analogy stops at the splitting pattern. CAJODE uses relaxed bit updates, bit/check replicas, parity-polytope projections, a conditional channel solve, and syndrome followed by cyclic redundancy check acceptance. The net uses hard independent twine thresholds, position/geometry copies, affine projections, a sampled-image position sweep, and targeted synthetic follow-up. Their update orders and guarantees are not the same.',
+    math: 'same splitting pattern; different variables, feasible sets, block updates, order, and acceptance evidence',
+    draw: function (g, pr) { var RR = P.split(g.sideR, 0.5); P.lines(g, RR[0], [{ text: 'CAJODE state: relaxed bit', col: C.gold }, { text: 'net state: hard twine threshold', col: C.red }, { text: 'copies: bit/check → knot/rule', col: C.blue }], pr, 'Discrete and copied variables'); P.lines(g, RR[1], [{ text: 'sets: parity → affine geometry', col: C.blue }, { text: 'continuous: channel → image sweep', col: JADE }, { text: 'gate: syndrome + CRC → targeted look', col: C.orange }], pr, 'Updates and acceptance'); } });
+
+  out.push({ id: 'learned', chapter: CH.bridge, title: 'What to carry forward', layout: 'map+side', view: VIEW, dur: 6,
+    text: 'The useful lesson is a sequence, not a metaphor. Define the continuous and discrete unknowns. State what the observations assume. Show why the two blocks are coupled. Introduce shared variables, local copies, and scaled duals before writing their updates. Keep geometric consistency, numerical convergence, operational verification, and hidden-truth evaluation separate. That disciplined structure is what this net example shares with CAJODE.',
+    math: 'model → evidence → coupling → copies → updates → diagnostics → verification → honest claim boundary',
+    draw: function (g, pr) { base(g, { alpha: 0.62 }); P.lattice(g, lat, { pos: fin.pos, word: fin.word, col: 'rgba(230,233,238,0.65)', broken: C.red, p: seg(pr, 0, 0.55), knots: false }); P.lines(g, g.sideR, [{ text: '1 define p and b', col: C.gold }, { text: '2 derive the model-based evidence', col: C.ink }, { text: '3 explain the coupling', col: C.violet }, { text: '4 define p, z, u, and z−u', col: C.blue }, { text: '5 separate every stopping claim', col: C.orange }, { text: '6 transfer only the valid pattern', col: JADE }], pr, 'A reusable way to reason'); } });
+
+  // ------------------------------------------------------------ player, chapter bar, keyboard, and deep links
+  var chapters = [];
+  out.forEach(function (s, i) { if (!chapters.length || chapters[chapters.length - 1].name !== s.chapter) chapters.push({ name: s.chapter, start: i, n: 0 }); chapters[chapters.length - 1].n++; });
+  var bar = document.getElementById('progress');
+  if (bar) {
+    bar.innerHTML = chapters.map(function (ch, k) { return '<button type="button" class="seg" data-k="' + k + '" style="flex-grow:' + ch.n + '" title="' + ch.name + '"><span class="fill"></span><span class="name">' + ch.name + '</span></button>'; }).join('');
+    bar.addEventListener('click', function (e) { var b = e.target.closest ? e.target.closest('[data-k]') : null; if (b) B.go(chapters[+b.getAttribute('data-k')].start); });
+  }
+  B.onStep(function (i) {
+    if (!bar) return;
+    Array.prototype.forEach.call(bar.querySelectorAll('[data-k]'), function (b, k) { var ch = chapters[k], f = clamp((i - ch.start + 1) / ch.n, 0, 1); b.querySelector('.fill').style.width = Math.round(f * 100) + '%'; b.classList.toggle('on', i >= ch.start && i < ch.start + ch.n); });
+  });
+  document.addEventListener('keydown', function (e) { if (e.ctrlKey || e.metaKey || e.altKey) return; if (e.target && /^(INPUT|SELECT|TEXTAREA|BUTTON|SUMMARY)$/.test(e.target.tagName) && (e.key === ' ' || e.key === 'Enter')) return; B.key(e); });
+  B.openSteps(out, { embedded: true });
+  window.course = { steps: out, chapters: chapters, net: d };
+  var hash = (window.location && window.location.hash) || '', ms = /step=([^&]+)/.exec(hash), mp = /p=([0-9.]+)/.exec(hash);
+  if (ms) { var st = decodeURIComponent(ms[1]); B.debug({ step: /^\d+$/.test(st) ? +st : st, p: mp ? +mp[1] : 1 }); }
+})();
+</script>
+<script>
+// A phone reader reaches Next at the foot of a long story card.  Every change of step should bring the new
+// animation back into view; wide screens keep their present position.  Watching the count also covers autoplay,
+// keyboard, contents and chapter navigation without replacing the course's own step callback.
+(function () {
+  'use strict';
+  var count = document.getElementById('board-count'), board = document.getElementById('board');
+  if (!count || !board || !window.MutationObserver) return;
+  new MutationObserver(function () {
+    if (!window.matchMedia || !window.matchMedia('(max-width: 820px)').matches) return;
+    requestAnimationFrame(function () { requestAnimationFrame(function () { board.scrollIntoView({ block: 'start', behavior: 'auto' }); }); });
+  }).observe(count, { childList: true, characterData: true, subtree: true });
+})();
+</script>
+</body>
+</html>
