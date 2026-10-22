@@ -2161,7 +2161,7 @@ var KeepParts = (function () {
     } });
   // ------------------------------------------------------------ 3. the Herald's first word
   out.push({ id: 'first-word', chapter: CH.first, title: 'The Herald reads the first word', layout: 'map', view: VIEW, dur: 5,
-    text: 'Before circuit 1, the Wanderer sets the relaxed tiles from the two fixed linear coefficients introduced above: b⁽⁰⁾ = ' + pair(b0) + '. The Herald thresholds that b at one half and reads ' + word(kw[0].word) + '. Its bits disagree, so their parity check fails and no Seal test is needed. The Warden initializes the replica at the nearest point on the relaxed lawful line, z⁽⁰⁾ = ' + pair(z0) + ', and the ledger—the scaled dual variable—starts at u⁽⁰⁾ = ' + pair(u0) + '.',
+    text: 'Before circuit 1, the Wanderer sets the relaxed tiles from the two fixed coefficients multiplying b introduced above: b⁽⁰⁾ = ' + pair(b0) + '. The Herald thresholds that b at one half and reads ' + word(kw[0].word) + '. Its bits disagree, so their parity check fails and no Seal test is needed. The Warden initializes the replica at the nearest point on the relaxed lawful line, z⁽⁰⁾ = ' + pair(z0) + ', and the ledger—the scaled dual variable—starts at u⁽⁰⁾ = ' + pair(u0) + '.',
     math: 'threshold b⁽⁰⁾ = ' + pair(b0) + ' → hard decision ' + word(kw[0].word) + ': parity fails' + at(0.66, '<br>z⁽⁰⁾ = ' + pair(z0) + ';  u⁽⁰⁾ = ' + pair(u0)),
     draw: function (g, p) {
       kb(g); P.corners(g, 1, land.lawful); star(g, land.treasure, 1);
@@ -2226,7 +2226,7 @@ var KeepParts = (function () {
   // ------------------------------------------------------------ 5. the Herald rides
   var ride = [1.25, 0.08];
   out.push({ id: 'herald', chapter: CH.herald, title: 'The Herald rides', layout: 'map+side', view: VIEW, dur: 6,
-    text: 'After every complete circuit the Herald thresholds the Wanderer’s b and tests the resulting candidate word. On circuit ' + hd + ', b⁽³⁾ = ' + pair(b3) + ' becomes ' + word(kw[hd].word) + ': the parity check passes, and the Seal, which is a truth oracle in this toy, accepts it. A real CAJODE candidate must instead pass every parity check, have the required value at every bit fixed by the receiver configuration, and pass its CRC. The Herald can ride before continuous ADMM consensus: here b⁽³⁾ and z⁽³⁾ remain ' + num(kw[hd].gap) + ' apart.',
+    text: 'After every complete circuit the Herald thresholds the Wanderer’s b and tests the resulting candidate word. On circuit ' + hd + ', b⁽³⁾ = ' + pair(b3) + ' becomes ' + word(kw[hd].word) + ': the parity check passes, and the Seal, which is a truth oracle in this toy, accepts it. A real CAJODE candidate must instead pass every parity check, have the required value at every bit fixed by the receiver configuration, and pass its CRC. The Herald can ride before the relaxed variables agree: here b⁽³⁾ and z⁽³⁾ remain ' + num(kw[hd].gap) + ' apart.',
     math: 'threshold b<sup>(3)</sup> → ' + word(kw[hd].word) + ': parity ✓, toy Seal ✓' + at(0.72, '<br>continuous gap |b<sup>(3)</sup> − z<sup>(3)</sup>| = ' + num(kw[hd].gap)),
     draw: function (g, p) {
       kb(g); star(g, land.treasure, 1); var up = seg(p, 0, 0.55) * hd, n = Math.floor(up);
@@ -2293,8 +2293,8 @@ var KeepParts = (function () {
     } });
   var lm = vr.loom, loomRel = lm.plumb / Math.max(len(lm.r), 1e-30), loomView = around([cF, cN], 3, 0.3), loomFn = function (cq) { return veil.veilCost(vr.w2, vb1, cq); }, loomShade = P.shadeOf(loomFn, loomView, 'loom3', 12);
   out.push({ id: 'loom', chapter: CH.veil, title: 'The Loom', layout: 'map+side', view: loomView, dur: 5.6,
-    text: 'With bits and weights fixed, this toy’s objective is quadratic in c = (c₀,c₁). Its balance equations are M·c = r: the matrix M in the normal equations has two rows and two columns, and r is the right-hand side. Solving them gives the value of c that minimizes this quadratic, moving from ' + pair(cF) + ' to ' + pair(cN) + ' in one pass; this does not establish a global minimum of the alternating nonconvex problem. The plumb line shown here is the absolute residual |M·c − r| = ' + lm.plumb.toExponential(1) + '. The corresponding relative residual is ' + loomRel.toExponential(1) + '; it divides by |r| and is a different quantity. Full CAJODE instead solves a much larger sparse system for C = C⁰ + Δ with regularization on Δ.',
-    math: 'solve for c: M·c = r,  c = (c₀,c₁)' + at(0.42, '<br>absolute residual |M·c − r| = ' + lm.plumb.toExponential(1) + ';  relative = ' + loomRel.toExponential(1)) + at(0.76, '<br>height under the rope: ' + num(vr.L1, 3) + ' → ' + num(vr.L2, 3)),
+    text: 'With bits and weights fixed, this toy’s objective is quadratic in c = (c₀,c₁). Its balance equations are M·c = r: the matrix M in the normal equations has two rows and two columns, and r is the right-hand side. Solving them gives the value of c that minimizes this quadratic, moving from ' + pair(cF) + ' to ' + pair(cN) + ' in one pass; this does not establish a global minimum of the alternating nonconvex problem. The plumb line shows |M·c − r| = ' + lm.plumb.toExponential(1) + '. Dividing that value by |r| gives the relative residual ' + loomRel.toExponential(1) + '. Full CAJODE instead solves a much larger sparse system for C = C⁰ + Δ with regularization on Δ.',
+    math: 'solve for c: M·c = r,  c = (c₀,c₁)' + at(0.42, '<br>|M·c − r| = ' + lm.plumb.toExponential(1) + ';  relative residual = ' + loomRel.toExponential(1)) + at(0.76, '<br>height under the rope: ' + num(vr.L1, 3) + ' → ' + num(vr.L2, 3)),
     draw: function (g, p) {
       g.land(loomFn, loomShade); P.axes(g, 'thickness c₀ →', '↑ spill c₁');
       g.dot(cF, 6, C.ink, 1); g.label(cF, 'before: ' + pair(cF), C.ink, { dx: 10, dy: -14, size: 12 });
@@ -2397,7 +2397,7 @@ var KeepParts = (function () {
     draw: function (g, p) { P.keyTable(g, g.sideR, KEY.slice(0, 5), p, 'The key: foundations'); } });
   out.push({ id: 'key-veil', chapter: CH.key, title: 'The key: ADMM and the Veil', layout: 'side', dur: 6,
     text: 'These five mappings recap the ADMM rope, the replica variables and scaled dual variables associated with the parity checks, and the pilot-based estimate that anchors the Veil.',
-    math: 'aim z − u → update b → parity projection → scaled dual variable;  C = C⁰ + Δ',
+    math: 'aim z − u → update b → parity-polytope projection → scaled dual variable;  C = C⁰ + Δ',
     draw: function (g, p) { P.keyTable(g, g.sideR, KEY.slice(5, 10), p, 'The key: ADMM and the Veil'); } });
   out.push({ id: 'key-evidence', chapter: CH.key, title: 'The key: updates and evidence', layout: 'side', dur: 7,
     text: 'These last five mappings recap one Veil circuit and its stop conditions. A real candidate must pass every parity check, have the required value at every bit fixed by the receiver configuration, and pass its CRC. Evidence stays narrow: with the Veil lifted, selected values from the two-bit Keep and three-bit row match one frozen Julia decode_llr trace. With the Veil down, the four-window hall is a teaching toy built from CAJODE’s documented equations, not a trace or validation of the complete CAJODE or CORAL receiver.',
