@@ -41,18 +41,18 @@ var JULIA = {
 };
 var keep = K.build('keep'), kw = keep.walk;
 JULIA.keep.forEach(function (ref, k) {
-  check('Keep circuit ' + k + ': tiles, Warden and ledger as decode_llr', closeAll(kw[k].x, ref.b, 1e-12) && closeAll(kw[k].z, ref.z, 1e-12) && closeAll(kw[k].u, ref.u, 1e-12), JSON.stringify(kw[k].x));
-  check('Keep circuit ' + k + ': the Herald reads ' + ref.hard, kw[k].word.join('') === ref.hard);
+  check('Keep iteration ' + k + ': tiles, Warden and ledger as decode_llr', closeAll(kw[k].x, ref.b, 1e-12) && closeAll(kw[k].z, ref.z, 1e-12) && closeAll(kw[k].u, ref.u, 1e-12), JSON.stringify(kw[k].x));
+  check('Keep iteration ' + k + ': the Herald reads ' + ref.hard, kw[k].word.join('') === ref.hard);
 });
-check('Keep: the Herald rides on circuit ' + JULIA.keepFirstAccepted + ' (decode_llr first_accepted)', kw.herald === JULIA.keepFirstAccepted, kw.herald);
+check('Keep: the toy truth oracle first matches on iteration ' + JULIA.keepFirstAccepted + ' (decode_llr first_accepted)', kw.herald === JULIA.keepFirstAccepted, kw.herald);
 check('Keep: the Twins stand apart when the Herald rides', kw[kw.herald].gap > 0.2, kw[kw.herald].gap);
-check('Keep: the Twins meet at the true order one circuit later', kw[kw.herald + 1].gap === 0 && kw[kw.herald + 1].x[0] === 0 && kw[kw.herald + 1].x[1] === 0);
+check('Keep: the replicas agree at the true order one iteration later', kw[kw.herald + 1].gap === 0 && kw[kw.herald + 1].x[0] === 0 && kw[kw.herald + 1].x[1] === 0);
 var strong = K.build('keep', { l1: 16 / 3, l2: -10 / 3 }), sw = strong.walk;
-JULIA.strong.forEach(function (ref, k) { check('strong lanterns, circuit ' + k + ' as decode_llr', closeAll(sw[k].x, ref.b, 1e-12) && closeAll(sw[k].z, ref.z, 1e-12) && closeAll(sw[k].u, ref.u, 1e-12)); });
-check('strong lanterns: the Herald rides on circuit ' + JULIA.strongFirstAccepted, sw.herald === JULIA.strongFirstAccepted, sw.herald);
+JULIA.strong.forEach(function (ref, k) { check('strong lanterns, iteration ' + k + ' as decode_llr', closeAll(sw[k].x, ref.b, 1e-12) && closeAll(sw[k].z, ref.z, 1e-12) && closeAll(sw[k].u, ref.u, 1e-12)); });
+check('strong lanterns: the toy truth oracle first matches on iteration ' + JULIA.strongFirstAccepted, sw.herald === JULIA.strongFirstAccepted, sw.herald);
 var row = K.build('row'), rw = row.walk;
-JULIA.row.forEach(function (ref, k) { check('row of two towers, circuit ' + k + ' as decode_llr', closeAll(rw[k].b, ref.b, 1e-12) && closeAll(rw[k].z, ref.z, 1e-12) && closeAll(rw[k].u, ref.u, 1e-12), JSON.stringify(rw[k].b)); });
-check('row: the Herald rides on circuit ' + JULIA.rowFirstAccepted, rw.herald === JULIA.rowFirstAccepted, rw.herald);
+JULIA.row.forEach(function (ref, k) { check('row of two towers, iteration ' + k + ' as decode_llr', closeAll(rw[k].b, ref.b, 1e-12) && closeAll(rw[k].z, ref.z, 1e-12) && closeAll(rw[k].u, ref.u, 1e-12), JSON.stringify(rw[k].b)); });
+check('row: the toy truth oracle first matches on iteration ' + JULIA.rowFirstAccepted, rw.herald === JULIA.rowFirstAccepted, rw.herald);
 check('row: the middle sentry carries two ledgers', row.land.edgesOf[1].length === 2 && row.land.degree[1] === 2);
 check('hard-word boundary: values below one half read 0 and one half itself reads 1', K.hardWord([0, 0.499999999999, 0.5, 1]).join('') === '0011');
 check('degree-two projection takes the clipped mean on the line z1=z2', closeAll(K.projectPair([0.2, 0.8]), [0.5, 0.5]) && closeAll(K.projectPair([-2, 0.4]), [0, 0]) && closeAll(K.projectPair([1.6, 0.8]), [1, 1]));
@@ -68,19 +68,19 @@ check('Veil: the first raw bit-zero coefficients are 4 c0 y / v', closeAll(vl.le
 check('Veil: each displayed lean equals the matching linear coefficient of the stated expected energy', closeAll(vl.leans, energyCoefficients, 1e-12) && energyAffine, JSON.stringify(energyCoefficients));
 check('Veil: the tiles start the way the lanterns lean (0, 1)', vl.start[0] === 0 && vl.start[1] === 1);
 check('Veil: the toy Seal is an exact-truth oracle, not merely the parity law', vl.lawful([1, 1]) && !vl.sealed([1, 1]) && vl.lawful([0, 0]) && vl.sealed([0, 0]));
-check('Veil: no circuit failed its certificates', vw.failed == null, vw.failed);
+check('Veil: no iteration failed its certificates', vw.failed == null, vw.failed);
 check('Veil: every stride lowers or keeps the height under the rope, and so does every Loom pass', vw.slice(1).every(function (r) { return r.L1 <= r.L0 + 1e-10 * Math.max(1, Math.abs(r.L0)) && r.L2 <= r.L1 + 1e-10 * Math.max(1, Math.abs(r.L1)); }));
-check('Veil: the plumb line hangs true on every circuit (residual within 1e-10)', vw.slice(1).every(function (r) { return r.loom.plumb <= 1e-10; }), Math.max.apply(null, vw.slice(1).map(function (r) { return r.loom.plumb; })).toExponential(1));
-check('Veil: the Herald rides with the sent word on circuit 4', vw.herald === 4 && vw[4].word.join('') === vl.sent.join(''), vw.herald);
+check('Veil: the plumb line hangs true on every iteration (residual within 1e-10)', vw.slice(1).every(function (r) { return r.loom.plumb <= 1e-10; }), Math.max.apply(null, vw.slice(1).map(function (r) { return r.loom.plumb; })).toExponential(1));
+check('Veil: the toy truth oracle first matches the sent word on iteration 4', vw.herald === 4 && vw[4].word.join('') === vl.sent.join(''), vw.herald);
 check('Veil: the twins stand apart when the Herald rides', vw[vw.herald].gap > 0.1, vw[vw.herald].gap);
 var firstConsensus = null;
 for (var vc = 0; vc < vw.length; vc++) if (vw[vc].gap <= 1e-13) { firstConsensus = vc; break; }
-check('Veil: the relaxed tiles first reach parity consensus on circuit 9', firstConsensus === 9 && closeAll(vw[9].b, vw[9].z, 1e-12), firstConsensus);
-check('Veil: the full state rests on circuit 24, after consensus', vw.rest === 24 && vw[vw.length - 1].gap === 0 && vw[vw.length - 1].word.join('') === '00', vw.rest);
-check('Veil: every circuit uses v=z-u, z=projection(b+old u), and u=old u+b-z', vw.slice(1).every(function (r) {
+check('Veil: the relaxed variables first reach parity consensus on iteration 9', firstConsensus === 9 && closeAll(vw[9].b, vw[9].z, 1e-12), firstConsensus);
+check('Veil: full-state change reaches the toy threshold on iteration 24, after consensus', vw.rest === 24 && vw[vw.length - 1].gap === 0 && vw[vw.length - 1].word.join('') === '00', vw.rest);
+check('Veil: every iteration uses v=z-u, z=projection(b+old u), and u=old u+b-z', vw.slice(1).every(function (r) {
   return closeAll(r.v, K.sub(r.zFrom, r.uFrom), 1e-12) && closeAll(r.z, vl.project(K.add(r.b, r.uFrom)), 1e-12) && closeAll(r.u, K.add(r.uFrom, K.sub(r.b, r.z)), 1e-12);
 }));
-check('Veil: the Bowl has curvature on circuit 3 and stops short of the track’s own bottom', vw[3].h[1] > 1 && Math.abs(vw[3].b[1] - vw[3].ground[1]) > 0.3, JSON.stringify([vw[3].h, vw[3].b, vw[3].ground]));
+check('Veil: the Bowl has curvature on iteration 3 and stops short of the track’s own bottom', vw[3].h[1] > 1 && Math.abs(vw[3].b[1] - vw[3].ground[1]) > 0.3, JSON.stringify([vw[3].h, vw[3].b, vw[3].ground]));
 // the Scales: the weight is the minimiser of the half-quadratic form, and the form is above the pseudo-Huber value elsewhere
 var okScales = [0.01, 0.3, 1, 2.5, 7].every(function (E) {
   var w = vl.weight(E), d2 = vl.delta * vl.delta, atW = w * E + d2 * (1 - w) * (1 - w) / w;
@@ -103,9 +103,10 @@ check('Veil: the Loom’s weave is the lowest weave at fixed tiles and weights',
 
 // ---------------------------------------------------------------- 3. the course in a browser-less sandbox
 function sandbox() {
-  var elements = {}, noop = function () {};
+  var elements = {}, drawnText = [], noop = function () {};
   function ctx() {
-    var t = { globalAlpha: 1, fillStyle: '', strokeStyle: '', lineWidth: 1, font: '', textAlign: '', textBaseline: '', lineCap: '', lineJoin: '' };
+    var t = { globalAlpha: 1, fillStyle: '', strokeStyle: '', lineWidth: 1, font: '', textAlign: '', textBaseline: '', lineCap: '', lineJoin: '',
+      fillText: function (s) { drawnText.push(String(s)); }, strokeText: function (s) { drawnText.push(String(s)); } };
     return new Proxy(t, { get: function (o, k) {
       if (k === 'measureText') return function (s) { return { width: 7 * String(s).length }; };
       if (k === 'createImageData') return function (w, h) { return { data: new Uint8ClampedArray(w * h * 4), width: w, height: h }; };
@@ -122,7 +123,7 @@ function sandbox() {
       getContext: function () { return ctx(); } };
     return (elements[id] = e);
   }
-  var sb = { console: console, performance: { now: function () { return 0; } }, requestAnimationFrame: function () { return 1; }, cancelAnimationFrame: noop,
+  var sb = { console: console, __drawnText: drawnText, performance: { now: function () { return 0; } }, requestAnimationFrame: function () { return 1; }, cancelAnimationFrame: noop,
     getComputedStyle: function () { return { fontFamily: 'sans-serif', getPropertyValue: function () { return 'monospace'; } }; },
     document: { body: {}, documentElement: {}, getElementById: element, querySelectorAll: function () { return []; }, addEventListener: noop, createElement: function () { return element('created-' + Object.keys(elements).length); } },
     location: { hash: '' }, devicePixelRatio: 1, addEventListener: noop, Proxy: Proxy };
@@ -136,41 +137,103 @@ try { sb = sandbox(); course = sb.course; } catch (e) { errors.push('course fail
 check('the advanced course builds in the sandbox', !!course, errors[0]);
 if (course) {
   var steps = course.steps, ids = steps.map(function (s) { return s.id; });
+  var EXPECTED_IDS = [
+    'received-grid', 'one-tap', 'ici', 'isi-boundary',
+    'partial-fft', 'separate-chain', 'joint-loop',
+    'variables', 'bits-to-symbols', 'anchors-and-constraints', 'prediction', 'robust-objective', 'why-alternate',
+    'parity-polytope', 'local-copies', 'aim', 'bit-update', 'projection', 'dual-update', 'acceptance',
+    'robust-weights', 'bit-majorizer', 'channel-solve', 'iteration-order', 'milestones',
+    'shared-bits', 'full-frame', 'takeaway'
+  ];
+  var EXPECTED_CHAPTERS = [
+    ['Why the OFDM model breaks', 0, 4],
+    ['Keep the received evidence', 4, 3],
+    ['One receiver, two unknown blocks', 7, 6],
+    ['ADMM for the code constraints', 13, 7],
+    ['Alternating channel and bits', 20, 5],
+    ['From toy receiver to CAJODE', 25, 3]
+  ];
+  function raw(id) { var s = steps[ids.indexOf(id)]; return s ? s.text + ' ' + s.math : ''; }
   function text(id) { var s = steps[ids.indexOf(id)]; return s ? (s.text + ' ' + s.math).replace(/<[^>]*>/g, '') : ''; }
-  check('the expanded course has 28 steps in 9 chapters', steps.length === 28 && course.chapters.length === 9, steps.length + ' steps, ' + course.chapters.length + ' chapters');
+  function shown(v, d) { var s = v.toFixed(d == null ? 3 : d); return (/^-0(\.0*)?$/.test(s) ? s.slice(1) : s).replace('-', '−'); }
+  function shownPair(v, d) { return '(' + shown(v[0], d) + ', ' + shown(v[1], d) + ')'; }
+  function drawnText(id, p) { sb.__drawnText.length = 0; sb.Board.debug({ step: id, p: p == null ? 1 : p }); return sb.__drawnText.join(' | '); }
+
+  check('the OFDM-first course has the exact approved 28-step order', steps.length === 28 && ids.join('|') === EXPECTED_IDS.join('|'), ids.join(', '));
+  check('the 28 steps form the exact six chapter blocks', course.chapters.length === EXPECTED_CHAPTERS.length && course.chapters.every(function (ch, i) {
+    return ch.name === EXPECTED_CHAPTERS[i][0] && ch.start === EXPECTED_CHAPTERS[i][1] && ch.n === EXPECTED_CHAPTERS[i][2];
+  }), course.chapters.map(function (ch) { return ch.name + ':' + ch.start + '+' + ch.n; }).join(' | '));
   check('every step has a unique id, a title, a text and a draw function', ids.every(function (id, i) { return ids.indexOf(id) === i; }) && steps.every(function (s) { return s.id && s.title && typeof s.text === 'string' && typeof s.draw === 'function'; }));
   var drawn = 0;
   steps.forEach(function (s, i) { [0, 0.25, 0.5, 0.75, 1].forEach(function (p) { sb.Board.debug({ step: i, p: p }); drawn++; }); });
   var errs = sb.kingsLandErrors || [];
-  check('every step draws at five moments without an error (' + drawn + ' drawings)', errs.length === 0, errs.slice(0, 3).join(' | '));
-  check('the opening expands CAJODE and identifies the tutorial as its teaching model', /CAJODE/.test(text('road')) && /Code-Aided Joint OFDM Demodulation and Error Correction/.test(text('road')));
-  var castText = text('cast'), aimText = text('aim');
-  check('the cast defines b, z, u, the hard threshold, and the toy-oracle/real-CRC boundary before the circuit', ids.indexOf('cast') < ids.indexOf('aim') && /vector b of shared bit variables/.test(castText) && /replica variable z/.test(castText) && /ledger u/i.test(castText) && /1\/2/.test(castText) && /truth oracle/.test(castText) && /CRC/.test(castText));
-  check('the two-bit parity law is introduced before the parity polytope for longer checks', ids.indexOf('keep') < ids.indexOf('warden') && /two sentries/.test(text('keep')) && /parity check involving both/.test(text('keep')) && /parity polytope for each longer check/.test(text('keep')));
-  check('the aim is introduced only after b, z and u and is defined as a derived target, not a state', ids.indexOf('cast') < ids.indexOf('aim') && /aim v/.test(aimText) && /z/.test(aimText) && /u/.test(aimText) && /derived rope target/.test(aimText) && /not a fourth state/.test(aimText));
-  check('the Veil section states the toy/full channel boundary before using c0 and c1', ids.indexOf('veil-overview') < ids.indexOf('veil') && /real-valued/.test(text('veil-overview')) && /full CAJODE/i.test(text('veil-overview')) && /complex channel/.test(text('veil-overview')) && /C [−-] C⁰/.test(text('veil-overview')));
-  var courseSource = fs.readFileSync(path.join(__dirname, 'advanced_course.js'), 'utf8');
-  var keyMatch = /var KEY = (\[[\s\S]*?\]);\n  out\.push\(\{ id: 'key-foundations'/.exec(courseSource);
-  var keyRows = keyMatch ? vm.runInNewContext('(' + keyMatch[1] + ')') : [];
-  var keyLabels = ['the Coral Fort', 'the Jade Keep', 'the jade tile', 'the lean ℓ', 'the ridge', 'the rope, the aim', 'the Wardens', 'the ledgers', 'the Veil', 'the Beacons', 'the Scales', 'the Bowl', 'the Loom, the plumb line', 'the Herald, the Seal', 'the Candle, the note'];
-  var keyMarkers = ['CORAL', 'Code-Aided Joint OFDM Demodulation and Error Correction', 'bit variable b', 'coefficient multiplying b', 'β·b', 'ADMM penalty', 'parity polytope', 'scaled dual', 'C = C⁰ + Δ', 'pilots', 'one weight per reading', 'surrogate function', 'normal equations', 'CRC', '200 updates'];
-  check('the three key pages are consecutive and precede the ending', ids.indexOf('key-foundations') + 1 === ids.indexOf('key-veil') && ids.indexOf('key-veil') + 1 === ids.indexOf('key-evidence') && ids.indexOf('key-evidence') + 1 === ids.indexOf('end'));
-  check('key-foundations renders mappings 1 through 5', ids.indexOf('key-foundations') >= 0 && String(steps[ids.indexOf('key-foundations')].draw).indexOf('KEY.slice(0, 5)') >= 0);
-  check('key-veil renders mappings 6 through 10', ids.indexOf('key-veil') >= 0 && String(steps[ids.indexOf('key-veil')].draw).indexOf('KEY.slice(5, 10)') >= 0);
-  check('key-evidence renders mappings 11 through 15', ids.indexOf('key-evidence') >= 0 && String(steps[ids.indexOf('key-evidence')].draw).indexOf('KEY.slice(10, 15)') >= 0);
-  check('the key contains all 15 named mappings with their required meanings', keyRows.length === 15 && keyRows.every(function (r, i) { return r.length === 2 && r[0] === keyLabels[i] && r[1].indexOf(keyMarkers[i]) >= 0; }), keyRows.length + ' mappings');
-  check('the key gives the exact CAJODE expansion', keyRows.length === 15 && keyRows[1][1] === 'CAJODE: Code-Aided Joint OFDM Demodulation and Error Correction');
-  var evidenceText = text('key-evidence');
-  check('the evidence key preserves the frozen-trace and documented-toy boundary', /selected values[\s\S]*match one frozen Julia decode_llr trace/.test(evidenceText) && /teaching toy built from CAJODE’s documented equations/.test(evidenceText) && /not a trace or validation of the complete CAJODE or CORAL receiver/.test(evidenceText));
-  check('the Herald page quotes the walk: circuit ' + kw.herald + ', gap ' + kw[kw.herald].gap.toFixed(3), text('herald').indexOf('circuit ' + kw.herald) >= 0 && text('herald').indexOf(kw[kw.herald].gap.toFixed(3)) >= 0);
-  check('the rope page quotes circuit 3’s aim and the second tile’s rest', text('rope-track').indexOf(kw[3].x[1].toFixed(3)) >= 0 && text('rope-track').indexOf(kw[3].v[0].toFixed(3)) >= 0);
-  check('the Bowl page quotes the stride and the track’s own bottom', text('bowl').indexOf(vw[3].b[1].toFixed(3)) >= 0 && text('bowl').indexOf(vw[3].ground[1].toFixed(3)) >= 0 && text('bowl').indexOf(vw[3].h[1].toFixed(2)) >= 0);
-  check('the Loom page quotes the weave before and after', text('loom').indexOf(vw[3].c[0].toFixed(3)) >= 0 && text('loom').indexOf(vw[3].cFrom[0].toFixed(3)) >= 0);
-  check('the Scales page quotes the second lantern’s weight before and after the stride', text('scales').indexOf(vw[3].w1[2].toFixed(2)) >= 0 && text('scales').indexOf(vw[3].w2[2].toFixed(2)) >= 0);
-  check('the spill page gives the raw 4 c0 y/v coefficient and its two values', /4c₀y\/ν/.test(text('spill')) && text('spill').indexOf(vl.leans[0].toFixed(1)) >= 0 && text('spill').indexOf(Math.abs(vl.leans[1]).toFixed(1)) >= 0);
-  check('the walk page distinguishes acceptance, first consensus, and full-state rest', text('veil-walk').indexOf('circuit ' + vw.herald) >= 0 && text('veil-walk').indexOf('circuit ' + firstConsensus) >= 0 && text('veil-walk').indexOf('circuit ' + vw.rest) >= 0);
-  check('the towers page quotes the middle tile’s advice and rest', text('two-towers').indexOf(rw[2].advice[1].toFixed(3)) >= 0 && text('two-towers').indexOf(rw[2].b[1].toFixed(3)) >= 0);
-  check('the towers page distinguishes the advice sum from the rope’s average target', /sum S/.test(text('two-towers')) && /average advice, not the sum/.test(text('two-towers')));
+  check('every step draws at five moments without an error (140 drawings) and uses neutral technical bit markers', drawn === 140 && errs.length === 0 && steps.every(function (s) { return !/g\.hero\(/.test(String(s.draw)); }), errs.slice(0, 3).join(' | '));
+
+  var opening = text('received-grid');
+  check('the opening gives the exact CAJODE expansion and introduces carrier coupling before the ICI abbreviation', /CAJODE—Code-Aided Joint OFDM Demodulation and Error Correction—/.test(opening) && /frequency-domain response, including carrier coupling/.test(opening) && /response C and coded bits b/.test(opening) && opening.indexOf('ICI') < 0);
+  check('the opening says this teaches CAJODE rather than the separate JADE block-feedback schedule', /teaches that CAJODE problem/.test(opening) && /not the separate JADE block-feedback schedule/.test(opening));
+
+  var oneTap = text('one-tap'), ici = text('ici'), isi = text('isi-boundary');
+  check('the physical story orders one-tap conditions, same-symbol ICI, then the short-CP ISI boundary', ids.indexOf('one-tap') < ids.indexOf('ici') && ids.indexOf('ici') < ids.indexOf('isi-boundary'));
+  check('one-tap equalization is tied to adequate CP and near time invariance', /cyclic prefix must cover the effective channel memory/.test(oneTap) && /nearly invariant over the useful OFDM interval/.test(oneTap) && /approximately diagonal/.test(oneTap));
+  check('the ICI page expands the term and labels its half-width-two drawing as generic rather than CAJODE’s band', /intercarrier interference \(ICI\)/.test(ici) && /same OFDM symbol/.test(ici) && /generic physical ICI illustration with two neighbours on either side/.test(ici) && /documented prediction later keeps half-width one/.test(ici) && /modelling approximation/.test(ici) && /not a claim that all farther coefficients are exactly zero/.test(ici));
+  check('the ISI page states the current-symbol scope and excludes a demonstrated short-prefix receiver', /tail from the preceding OFDM symbol/.test(isi) && /intercarrier interference within the current OFDM symbol only/.test(isi) && /do not demonstrate a short-prefix receiver/.test(isi));
+
+  var partial = text('partial-fft');
+  check('Partial FFT is explicitly a supplied-deck contrast, not an input to documented CAJODE', /supplied OFDM deck/.test(partial) && /not an input to the documented CAJODE engine/.test(partial) && /CAJODE starts with one standard post-FFT observation/.test(partial));
+  check('Partial FFT is not credited with new information or a guaranteed gain', /creates no new information/.test(partial) && /does not prove a performance gain/.test(partial));
+  check('the conventional one-way receiver appears before the joint receiver loop', ids.indexOf('separate-chain') < ids.indexOf('joint-loop') && /information normally travels only forward/.test(text('separate-chain')) && /alternates between two unknown blocks/.test(text('joint-loop')));
+  check('the joint loop keeps pilot anchoring and code constraints distinct', /pilots anchor the channel\/ICI response/.test(text('joint-loop')) && /code constraints restrict the coded bits/.test(text('joint-loop')) && /neither replaces the other/.test(text('joint-loop')));
+
+  var roles = text('anchors-and-constraints');
+  check('pilots, LDPC parity, configured bits, and CRC have four distinct roles', /Known pilot symbols provide fixed references/.test(roles) && /low-density parity-check \(LDPC\) code supplies parity relations/.test(roles) && /receiver configuration fixes any known bit positions/.test(roles) && /CRC tests a hard candidate/.test(roles) && /none substitutes for another/.test(roles));
+  var qpsk = text('bits-to-symbols');
+  check('the QPSK page expands the term and gives the correct bit-to-sign mapping', /quadrature phase-shift keying \(QPSK\)/.test(qpsk) && /d = \(xI \+ jxQ\)\/√2/.test(qpsk) && /00 → \(\+1,\+1\); 01 → \(\+1,−1\); 10 → \(−1,\+1\); 11 → \(−1,−1\)/.test(qpsk));
+
+  var notation = raw('variables'), aimText = text('aim');
+  check('the receiver notation defines shared b, local z_a, scaled-dual u_a, and derived v_a before ADMM', ids.indexOf('variables') < ids.indexOf('aim') && /shared bit vector/.test(notation) && /z<sub>a<\/sub>/.test(notation) && /scaled dual variable u<sub>a<\/sub>/.test(notation) && /v<sub>a<\/sub> = z<sub>a<\/sub> − u<sub>a<\/sub> is derived/.test(notation));
+  check('v = z − u is neither stored state nor a physical observation', /not another stored state/.test(text('variables')) && /not independently optimized/.test(aimText) && /not a physical receiver observation/.test(aimText));
+  var objective = text('robust-objective');
+  check('the objective separates response priors and distinguishes the deck’s parity penalty from CAJODE projection', /frequency smoothness of the correction Δ = C − C⁰/.test(objective) && /temporal prior on the full response C/.test(objective) && /supplied deck’s smooth parity penalty is a different formulation/.test(objective) && /CAJODE’s parity-polytope projection/.test(objective) && /Hard code feasibility is separate/.test(objective));
+
+  var k3 = kw[3], iteration3 = text('aim') + ' ' + text('bit-update') + ' ' + text('projection') + ' ' + text('dual-update');
+  check('the fixed-channel ADMM pages identify the frozen trace and quote iteration 3 values for v, b, z, and u', /frozen known-channel teaching trace/.test(iteration3) && /bit-zero log-likelihood-ratio \(LLR\) term/.test(iteration3) && iteration3.indexOf(shownPair(k3.v)) >= 0 && iteration3.indexOf(shownPair(k3.x)) >= 0 && iteration3.indexOf(shownPair(k3.z)) >= 0 && iteration3.indexOf(shownPair(k3.u)) >= 0, [shownPair(k3.v), shownPair(k3.x), shownPair(k3.z), shownPair(k3.u)].join(' | '));
+  check('the projection page limits the mean shortcut and calls z parity-feasible', /clipped mean/.test(text('projection')) && /Longer checks use their actual parity-polytope projection/.test(text('projection')) && /parity-feasible local replica z\(3\)/.test(drawnText('projection', 1)));
+
+  var acceptance = text('acceptance'), acceptanceDrawing = drawnText('acceptance', 1);
+  check('the toy-oracle page quotes iteration 3 and its nonzero agreement gap', acceptance.indexOf('iteration ' + kw.herald) >= 0 && acceptance.indexOf(k3.word.join('')) >= 0 && acceptanceDrawing.indexOf(shown(k3.gap)) >= 0, acceptanceDrawing);
+  check('the page separates the hidden-truth toy oracle from real parity, configured-bit, and CRC acceptance', /threshold the shared b—not a local z/.test(acceptance) && /hidden-truth “Seal” oracle reports a match/.test(acceptance) && /toy does not evaluate a CRC/.test(acceptance) && /every parity check passes/.test(acceptance) && /every bit fixed by the receiver configuration/.test(acceptance) && /CRC passes/.test(acceptance));
+  check('candidate acceptance is not convergence or a global-optimality certificate', /Candidate acceptance is not ADMM convergence/.test(acceptance) && /does not prove a global optimum/.test(acceptance));
+
+  var weightsBefore = drawnText('robust-weights', 0.5), weightsAfter = drawnText('robust-weights', 1), v3 = vw[3];
+  check('the robust-weight drawing quotes the changed observation weight', weightsBefore.indexOf(shown(v3.w1[2], 2)) >= 0 && weightsAfter.indexOf(shown(v3.w2[2], 2)) >= 0, shown(v3.w1[2], 2) + ' → ' + shown(v3.w2[2], 2));
+  var robust = text('robust-weights');
+  check('the robust-weight page bounds the toy and defines its observation scale and pseudo-Huber scale', /four real-valued observations/.test(robust) && /two known endpoint pilots/.test(robust) && /two data positions/.test(robust) && /two bit variables in \[0,1\]/.test(robust) && /one two-bit parity check/.test(robust) && /two real response coefficients/.test(robust) && /direct coefficient c₀/.test(robust) && /neighbouring-carrier coefficient c₁/.test(robust) && /complex, carrier- and OFDM-symbol-indexed C/.test(robust) && /pilot-estimate interpolation-error variance/.test(robust) && /not generic noise variance/.test(robust) && /δ is the pseudo-Huber scale/.test(robust));
+  var channel = text('channel-solve'), relativeResidual = v3.loom.plumb / Math.max(Math.hypot(v3.loom.r[0], v3.loom.r[1]), 1e-30);
+  check('the channel-solve page quotes the response before, after, and equation residual', channel.indexOf(shownPair(v3.cFrom)) >= 0 && channel.indexOf(shownPair(v3.c)) >= 0 && channel.indexOf(relativeResidual.toExponential(1)) >= 0, channel);
+  check('the channel certificate is limited to the fixed-bit, fixed-weight response block', /b and the current robust weights fixed/.test(text('prediction')) && /hold both fixed/.test(channel) && /residual check confirms this linear solve, not the global joint problem/.test(channel) && /sparse solve for C = C⁰ \+ Δ/.test(channel));
+
+  var updateOrder = text('iteration-order'), dualDiagnostics = raw('dual-update');
+  check('the full update order is weights, bits, refreshed weights, channel, projection, dual, then test', /robust weights, take the majorized bit update, recompute the weights/.test(updateOrder) && /solve the response block, project each local replica, and update every scaled dual/.test(updateOrder) && /Only then form and test a hard candidate/.test(updateOrder));
+  check('projection remains a feasibility operation and both standard ADMM residuals are defined', /parity projection is an exact feasibility operation/.test(updateOrder) && /not one of the objective-descent certificates/.test(updateOrder) && /primal residual/.test(dualDiagnostics) && /dual residual/.test(dualDiagnostics) && /r<sup>\(k\)<\/sup> = b<sub>N<\/sub><sup>\(k\)<\/sup> − z<sup>\(k\)<\/sup>/.test(dualDiagnostics) && /s<sup>\(k\)<\/sup> = ρ\(z<sup>\(k\)<\/sup> − z<sup>\(k−1\)<\/sup>\)/.test(dualDiagnostics));
+
+  var milestones = text('milestones');
+  check('the milestone page separates toy-oracle match, consensus, and full-state threshold from CAJODE stopping', milestones.indexOf('iteration ' + vw.herald) >= 0 && milestones.indexOf('iteration ' + firstConsensus) >= 0 && milestones.indexOf('iteration ' + vw.rest) >= 0 && /hidden-truth Seal oracle/.test(milestones) && /still .* apart/.test(milestones) && /full toy state/.test(milestones) && /real candidate passes parity, configured-bit and CRC tests/.test(milestones) && /update budget is reached/.test(milestones) && /numerical certificate fails/.test(milestones) && /not when r and s cross convergence tolerances/.test(milestones));
+  check('the toy endpoint is neither channel truth nor a certified global optimum', /not known channel truth/.test(milestones) && /not a certified global optimum/.test(milestones));
+
+  var shared = text('shared-bits'), row2 = rw[2], row1 = rw[1];
+  check('the degree-two shared-bit page names and quotes its incident-target sum, average, and bit move', /Sum the incident ADMM targets for each bit/.test(steps[ids.indexOf('shared-bits')].title) && /touches two checks/.test(shared) && /incident-target sum/.test(shared) && shared.indexOf(shown(row2.advice[1])) >= 0 && shared.indexOf(shown(row1.b[1])) >= 0 && shared.indexOf(shown(row2.b[1])) >= 0 && /centre equal to their average/.test(shared));
+  var fullFrame = text('full-frame'), fullFrameDraw = String(steps[ids.indexOf('full-frame')].draw);
+  check('the full-frame page uses documented half-width one, frequency smoothness on Delta, and a full-C temporal prior', /carrier offsets ℓ = −1, 0, 1/.test(fullFrame) && /half-width-one band/.test(fullFrame) && /correction Δ = C − C⁰ smooth across carriers/.test(fullFrame) && /temporal prior acts on the full response/.test(fullFrame) && /Cs\+1 ≈ asCs/.test(fullFrame) && /band: 1/.test(fullFrameDraw) && /intercarrier interference within each current symbol/.test(fullFrame) && /short cyclic prefix requires an explicit preceding-symbol term/.test(fullFrame));
+
+  var evidence = text('takeaway');
+  check('the takeaway preserves the frozen Julia trace and documented teaching-toy boundary', /selected values from a frozen Julia decode_llr trace/.test(evidence) && /teaching model built from the documented equations/.test(evidence) && /not a run or performance validation of the full receiver/.test(evidence));
+  check('the takeaway makes no BER, global-optimum, physical-truth, or short-CP claim', /No page here claims BER gain, convergence to a global optimum, recovery of physical channel truth, or short-CP operation/.test(evidence));
+
+  var shell = fs.readFileSync(path.join(__dirname, 'advanced.html'), 'utf8');
+  check('the shell title, H1, and summary lead with the OFDM task without unexplained ICI', /<title>Joint OFDM Demodulation and Decoding with CAJODE<\/title>/.test(shell) && /<h1 id="board-title">Joint OFDM Demodulation and Decoding with CAJODE<\/h1>/.test(shell) && /Pilots anchor the frequency-domain response, including carrier coupling; code constraints help resolve the data bits\./.test(shell));
+  check('the canvas is an accessible technical diagram described by the step text and equation', /<canvas id="board-canvas" role="img"[^>]*aria-describedby="board-step board-text board-math"/.test(shell) && /Your browser does not support the tutorial diagram\.<\/canvas>/.test(shell));
+  check('the shell uses legible technical display, body, and monospace fonts', /Atkinson\+Hyperlegible/.test(shell) && /IBM\+Plex\+Mono/.test(shell) && /--mono: 'IBM Plex Mono'/.test(shell));
 }
 
 console.log(failures ? failures + ' of ' + checks + ' checks FAILED' : 'all ' + checks + ' checks passed');

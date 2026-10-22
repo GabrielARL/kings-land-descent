@@ -1,14 +1,14 @@
-<!-- The advanced tutorial page "The Jade Keep", the second stronghold of "Three heroes downhill"; build_page.py
-     inlines its scripts and adds the document's html, head and body tags.  Everything above the body marker goes
-     into the head.  The styles are those of tutorial.html. -->
-<title>The Jade Keep</title>
+<!-- The CAJODE tutorial page: an OFDM joint-demodulation-and-decoding lesson that keeps the Jade Keep only as a
+     supporting analogy.  build_page.py inlines its scripts and adds the document's html, head and body tags.
+     Everything above the body marker goes into the head.  The styles are those of tutorial.html. -->
+<title>Joint OFDM Demodulation and Decoding with CAJODE</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IM+Fell+English+SC&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
-/* Layout: one screen of a storybook lesson; the night map (the stage) on the left, the story and its formula on the
-   right with one big Next; the chapters as a bar that fills along the bottom. */
+/* Layout: one screen of a visual receiver lesson; the technical diagram is on the left, the explanation and its
+   formula are on the right, and the chapter bar runs along the bottom. */
 :root {
   --bg: #edf1f5;
   --surface: #ffffff;
@@ -20,7 +20,7 @@
   --accent-ink: #1b1406;
   --math-bg: #f4f6f9;
   --stage: #0b121b;
-  --display: 'IM Fell English SC', 'Iowan Old Style', Georgia, serif;
+  --display: 'Atkinson Hyperlegible', 'Segoe UI', system-ui, sans-serif;
   --body: 'Atkinson Hyperlegible', 'Segoe UI', system-ui, sans-serif;
   --mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
 }
@@ -36,14 +36,15 @@ body {
 .course { max-width: 1320px; margin: 0 auto; display: grid; gap: 14px; }
 .course-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .eyebrow { font-size: 12.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
-.course-head h1 { margin: 0; font-family: var(--display); font-weight: 400; font-size: clamp(26px, 3.4vw, 38px); line-height: 1.1; text-wrap: balance; }
+.course-head h1 { margin: 0; font-family: var(--display); font-weight: 700; font-size: clamp(26px, 3.4vw, 38px); line-height: 1.1; text-wrap: balance; }
+.course-summary { margin: 5px 0 0; max-width: 70ch; color: var(--muted); font-size: 14px; line-height: 1.4; text-wrap: balance; }
 .count { font-family: var(--mono); font-size: 13.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .course-body { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(300px, 1fr); gap: 16px; align-items: start; }
 .stage { position: relative; aspect-ratio: 16 / 11; max-width: 100%; background: var(--stage); border-radius: 12px; overflow: hidden; }
 .stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 .story { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px 18px 14px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
 .chapter { font-size: 12.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); font-weight: 700; }
-.story h2 { margin: 0; font-family: var(--display); font-weight: 400; font-size: 26px; line-height: 1.15; text-wrap: balance; }
+.story h2 { margin: 0; font-family: var(--display); font-weight: 700; font-size: 26px; line-height: 1.15; text-wrap: balance; }
 .text { max-width: 65ch; }
 .text kbd { font-family: var(--mono); font-size: 0.85em; border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; }
 .math { font-family: var(--mono); font-size: 14px; line-height: 1.75; background: var(--math-bg); border-left: 3px solid var(--accent); border-radius: 6px; padding: 8px 12px; overflow-wrap: anywhere; }
@@ -84,16 +85,17 @@ button:focus-visible, summary:focus-visible { outline: 3px solid var(--accent); 
 <main class="course" id="board">
   <header class="course-head">
     <div>
-      <div class="eyebrow">Three heroes downhill · the advanced tale</div>
-      <h1 id="board-title">The Jade Keep</h1>
+      <div class="eyebrow">OFDM receiver tutorial · Jade Keep analogy</div>
+      <h1 id="board-title">Joint OFDM Demodulation and Decoding with CAJODE</h1>
+      <p class="course-summary">Pilots anchor the frequency-domain response, including carrier coupling; code constraints help resolve the data bits.</p>
     </div>
     <span class="count" id="board-count"></span>
   </header>
   <div class="course-body">
-    <div class="stage"><canvas id="board-canvas" aria-label="The animation of this step"></canvas></div>
-    <section class="story" aria-live="polite">
+    <div class="stage"><canvas id="board-canvas" role="img" aria-label="Interactive OFDM receiver diagram for the current step" aria-describedby="board-step board-text board-math">Your browser does not support the tutorial diagram.</canvas></div>
+    <section class="story" aria-labelledby="board-step">
       <div class="chapter" id="board-chapter"></div>
-      <h2 id="board-step"></h2>
+      <h2 id="board-step" aria-live="polite" aria-atomic="true"></h2>
       <div class="text" id="board-text"></div>
       <div class="math" id="board-math"></div>
       <div class="controls">
