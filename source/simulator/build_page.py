@@ -1,16 +1,17 @@
 #!/usr/bin/env python3
-"""Build the two public pages for King's Land Descent.
+"""Build the three public pages for King's Land Descent.
 
     python3 -B source/simulator/build_page.py
     node source/simulator/test_engine.js
     node source/simulator/test_learning_flow.js
+    node source/simulator/test_keep.js
 
 page.html holds the markup and the styles; engine.js the lands, the weather and the walks (projected gradient,
 L-BFGS, ADMM); fog.js the view of the land; board.js and board_parts.js the step-by-step board; game.js
 walking, talking, following a hero, the trial and the race; app.js the map, relief and status windows.  The script
-inlines the scripts and writes ../../index.html and ../../tutorial.html. Both complete pages open directly in a
-browser; the optional web fonts load from their CDN. With --fragment PATH it also writes the game page without
-its html, head and body tags.
+inlines the scripts and writes ../../index.html, ../../tutorial.html and ../../jade_keep_tutorial.html. All three
+complete pages open directly in a browser; the optional web fonts load from their CDN. With --fragment PATH it
+also writes the game page without its html, head and body tags.
 """
 import argparse
 from pathlib import Path
@@ -21,6 +22,7 @@ ROOT = HERE.parents[1]
 PAGES = {
     "game": ("page.html", "index.html", ("engine.js", "fog.js", "board.js", "board_parts.js", "game.js", "app.js")),
     "tutorial": ("tutorial.html", "tutorial.html", ("engine.js", "board.js", "board_parts.js", "course.js")),
+    "advanced": ("advanced.html", "jade_keep_tutorial.html", ("engine.js", "board.js", "keep.js", "advanced_parts.js", "advanced_course.js")),
 }
 
 
@@ -50,12 +52,14 @@ def build(which, fragment=None):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Build index.html and tutorial.html from their templates and scripts.")
+    parser = argparse.ArgumentParser(description="Build index.html, tutorial.html and jade_keep_tutorial.html from their templates and scripts.")
     parser.add_argument("--fragment", type=Path, help="also write the game page without its html, head and body tags")
     parser.add_argument("--tutorial-fragment", type=Path, help="also write the tutorial page without its html, head and body tags")
+    parser.add_argument("--advanced-fragment", type=Path, help="also write the Jade Keep page without its html, head and body tags")
     args = parser.parse_args()
     build("game", args.fragment)
     build("tutorial", args.tutorial_fragment)
+    build("advanced", args.advanced_fragment)
 
 
 if __name__ == "__main__":
