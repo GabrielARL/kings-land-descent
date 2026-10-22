@@ -1087,7 +1087,7 @@ var Game = (function () {
         ], correct: 0, retry: 'Not quite. The split gives one final decision two different temporary jobs.' } },
       { lesson: 6, goal: 'Live four days with N. Watch the rope, the Warden and the ledger. B now opens the full derivation. On day 4 the Wanderer steps outside the wall and the Warden remains lawful.', target: { dom: ['#fog-next', '#reckon'], text: 'Next day' },
         done: function (b) { return today() >= b.day + 4 && !api.playing(); } },
-      { lesson: 6, boardIds: ['ledger-role', 'without-ledger', 'aim', 'rope', 'wander', 'warden', 'ledger', 'again'], boardTitle: 'ADMM: why the ledger changes the next aim',
+      { lesson: 6, boardIds: ['rope', 'without-ledger', 'ledger-role', 'aim', 'wander', 'warden', 'ledger', 'again'], boardTitle: 'ADMM: the rope, the book, and one circuit',
         goal: 'Now open ▶ Step by step again. Follow all eight pages from the first signed gap through the next aim and complete circuit.', target: { dom: ['.rk-board'], text: 'See the ledger change the aim' },
         done: function (b) { return stats.boardCompletions > b.boardCompletions; } },
       { lesson: 6, goal: 'Step off, walk to the Warden (the blue figure) and ask what is in the ledger.', target: { npc: 'wd', choice: 'What is in the ledger?', text: 'Talk' },

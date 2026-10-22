@@ -149,8 +149,9 @@ check('gradient endpoints and y construction are explicit',
 check('the denominator is explained as rise over distance travelled',
   parts.indexOf("frac('change in uphill slope along the stride', 'distance travelled')") >= 0 &&
   parts.indexOf("\u2016s' + si + '\u2016² = s'") >= 0);
-check('tutorial says L-BFGS stores and reads the complete s and y vectors',
-  /stores the complete vectors/.test(parts) && /reads both vectors/.test(parts) && /different denominator/.test(parts));
+check('tutorial says L-BFGS stores and reads the complete vectors and bounds its race claim',
+  /stores the complete vectors/.test(parts) && /reads both vectors/.test(parts) && /different denominator/.test(parts) &&
+  /Fastest on this smooth canyon/.test(course) && !/Fastest on smooth land/.test(course));
 
 try {
   var E = require(path.join(dir, 'engine.js')), cp = {}, pk;
@@ -179,10 +180,10 @@ try {
 var guidedLists = [], idsRe = /boardIds\s*:\s*\[([^\]]+)\]/g, idsMatch;
 while ((idsMatch = idsRe.exec(game))) guidedLists.push((idsMatch[1].match(/['"]([^'"]+)['"]/g) || []).map(function (s) { return s.slice(1, -1); }));
 var expectedIntro = ['twins', 'wanderer-role', 'warden-role'];
-var expectedCircuit = ['ledger-role', 'without-ledger', 'aim', 'rope', 'wander', 'warden', 'ledger', 'again'];
+var expectedCircuit = ['rope', 'without-ledger', 'ledger-role', 'aim', 'wander', 'warden', 'ledger', 'again'];
 check('guided ADMM introduction defines both copies before the ledger',
   guidedLists.length >= 1 && same(guidedLists[0], expectedIntro), guidedLists[0] ? guidedLists[0].join(', ') : 'missing');
-check('guided ADMM circuit introduces the ledger before the aim and updates',
+check('guided ADMM circuit shows the rope fail before the book, then the aim and the updates',
   guidedLists.length >= 2 && same(guidedLists[1], expectedCircuit), guidedLists[1] ? guidedLists[1].join(', ') : 'missing');
 check('guided ADMM board is a completion gate, not an optional detour',
   /done\s*:\s*function\s*\(b\)\s*\{\s*return\s+stats\.boardCompletions\s*>\s*b\.boardCompletions/.test(game) &&
@@ -197,20 +198,22 @@ var lowerParts = parts.toLowerCase();
 check('ADMM stopping requires both named residuals',
   lowerParts.indexOf('primal residual') >= 0 && lowerParts.indexOf('dual residual') >= 0 &&
   lowerParts.indexOf('stop only when both') >= 0);
-check('ADMM stopping explains agreement plus stopped movement',
-  lowerParts.indexOf('agreement alone is not enough') >= 0 && lowerParts.indexOf('stopped moving') >= 0);
+check('ADMM stopping explains agreement plus stopped movement and names the scaled move',
+  lowerParts.indexOf('agreement alone is not enough') >= 0 && lowerParts.indexOf('stopped moving') >= 0 &&
+  /ρ times the Warden’s move/.test(course));
 
-var roleIds = ['wanderer-role', 'warden-role', 'ledger-role', 'without-ledger', 'aim'];
+var roleIds = ['wanderer-role', 'warden-role', 'rope', 'without-ledger', 'ledger-role', 'aim'];
 check('ADMM concepts are introduced in causal page order',
   roleIds.every(function (id, i) { return parts.indexOf("id: '" + id + "'") >= 0 && (!i || parts.indexOf("id: '" + roleIds[i - 1] + "'") < parts.indexOf("id: '" + id + "'")); }), roleIds.join(', '));
-check('game metaphors are distinguished from standard ADMM objects',
-  /teaching names, not extra people in the standard equations/.test(parts) &&
-  /scaled dual variable u/.test(parts) && /not another copy, person, or final answer/.test(parts) &&
-  /firstWallContact/.test(parts) && /lawful copy/.test(parts) && /no gap: u unchanged/.test(parts));
+check('the Twins are introduced by the King’s request and their two jobs before any mechanism',
+  /one spot to dig/.test(parts) && /never looks at the law/.test(parts) && /nearest lawful spot/.test(parts) &&
+  /keeps a book/.test(parts) && /scaled dual variable u/.test(parts) &&
+  /firstWallContact/.test(parts) && /no gap: the book is unchanged/.test(parts));
 check('aim is derived as the centre of the same quadratic penalty',
   /\|x − z \+ u\|² = \|x − \(z − u\)\|²/.test(parts) && /its centre is v = z − u/.test(parts));
-check('ledger-free comparison is clearly marked as not ADMM',
-  /counterfactual is not ADMM/.test(parts) && /force u = 0 every circuit/.test(parts));
+check('the rope-alone comparison says the rope pulls but does not remember',
+  /rope alone/.test(parts) && /does not remember/.test(parts) && /counterfactual, not ADMM/.test(parts) &&
+  /with the book \(next\)/.test(parts));
 
 var admmAt = course.indexOf("pick(Ww, 'tw', 4"), admmPick = admmAt < 0 ? '' : course.slice(admmAt, admmAt + 520);
 check('standalone ADMM lesson uses the first nonzero-ledger circuit',

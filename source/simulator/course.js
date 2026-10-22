@@ -202,28 +202,20 @@
       for (var k = 1; k <= Math.min(n, wpw.length - 1); k++) if (wpw[k].clipped) { g.dot(wpw[k].raw, 3.5, C.red, 1); g.line(wpw[k].raw, wpw[k].x, C.red, 1.5, 1, [3, 3]); }
       var q = walkTo(g, wpw, up, C.orange, 2.5); g.hero(q, 'pg', 1, 'day ' + Math.min(n, dPg + 1));
     } });
-  out.push({ id: 'twins', chapter: CH.tw, title: 'One answer, two jobs', layout: 'map', view: wallView, dur: 4.4,
-    text: 'The King still wants one answer: the lowest point that obeys the wall. The alternating direction method of multipliers—ADMM—temporarily writes that answer as two copies. The game calls the cost copy x the Wanderer and the lawful copy z the Warden. Those are teaching names; standard ADMM uses x and z. They must ultimately agree, x = z. We now meet each role before adding the ledger and rope.',
-    math: 'minimise f(q), q ∈ C' + at(0.38, '<br>split the jobs: minimise f(x), z ∈ C, x = z'),
-    draw: function (g, p) {
-      base(g, Ww); star(g, Tw, 1); var up = seg(p, 0.1, 0.9) * 5;
-      var qx = walkTo(g, wtw, up, '#e6e9ee', 2.5, 'x'), qz = walkTo(g, wtw, up, C.blue, 2.5, 'z');
-      g.hero(qx, 'tw', 1, 'the Wanderer'); g.dot(qz, 7, C.blue, 1); g.label(qz, 'the Warden', C.blue, { dx: 10, dy: 14 });
-      g.line(qx, qz, C.violet, 2, seg(p, 0.65, 0.88), [5, 4]);
-    } });
-  // Work the transition from day 4 to day 5: day 4 created the first nonzero ledger entry, so the next aim
-  // visibly differs from the Warden's point.  Earlier versions used day 3, where u = 0 and v = z hid the mechanism.
+  // The Twins' tale, from the King's request to one full circuit, told on day 4 to day 5: day 4 created the first
+  // nonzero ledger entry, so the next aim visibly differs from the Warden's point.  Earlier versions used day 3, where u = 0 and v = z hid the mechanism.
   out = out.concat(pick(Ww, 'tw', 4,
-    ['wanderer-role', 'warden-role', 'ledger-role', 'without-ledger', 'aim', 'rope', 'wander', 'warden', 'ledger', 'again'], CH.tw));
+    ['twins', 'wanderer-role', 'warden-role', 'rope', 'without-ledger', 'ledger-role', 'aim', 'wander', 'warden', 'ledger', 'again'], CH.tw));
   var Dw = Math.max(dPg, dLb, dTw) + 1;
   out.push({ id: 'race2', chapter: CH.tw, title: 'Three heroes at the wall', layout: 'map+side', view: [0.0, 1.6, -0.2, 1.4], dur: 6,
-    text: 'At the wall the Cartographer is within 0.001 of the treasure on day ' + dLb + ', the Twins’ Warden on day ' + dTw + ' and the Pilgrim on day ' + dPg + '. At the Twins’ settled endpoint, both tests are small: the primal residual is ' + num(primalEnd, 5) + ' and the dual residual is ' + num(dualEnd, 5) + '. The ledger is the scaled dual variable u = ' + pair(uEnd) + '; there it approaches −∇J(x*)/ρ = ' + pair(uTheory) + '.',
-    math: 'days to within 0.001:  Cartographer ' + at(0.25, String(dLb)) + ',  Twins ' + at(0.42, String(dTw)) + ',  Pilgrim ' + at(0.58, String(dPg)) + '<br>' + at(0.72, 'primal residual ' + num(primalEnd, 5) + ';  dual residual ' + num(dualEnd, 5)) + '<br>' + at(0.88, 'scaled dual u → −∇J(x*)/ρ = ' + pair(uTheory)),
+    text: 'At the wall the Cartographer is within 0.001 of the treasure on day ' + dLb + ', the Twins’ Warden on day ' + dTw + ' and the Pilgrim on day ' + dPg + '. At the Twins’ settled endpoint both tests are small: the gap is ' + num(primalEnd, 5) + ' and ρ times the Warden’s move is ' + num(dualEnd, 5) + '. The Warden’s book settles at u = ' + pair(uEnd) + ': the wall’s toll, −∇J(x*)/ρ = ' + pair(uTheory) + ', the slope of the land at the spot to dig divided by the rope’s stiffness.',
+    math: 'days to within 0.001:  Cartographer ' + at(0.25, String(dLb)) + ',  Twins ' + at(0.42, String(dTw)) + ',  Pilgrim ' + at(0.58, String(dPg)) + '<br>' + at(0.72, 'primal residual ' + num(primalEnd, 5) + ';  dual residual ' + num(dualEnd, 5)) + '<br>' + at(0.88, 'the book u → −∇J(x*)/ρ = ' + pair(uTheory) + ', the wall’s toll'),
     draw: function (g, p) {
       base(g, Ww); star(g, Tw, 1); var up = seg(p, 0, 0.95) * Dw;
       var a = walkTo(g, wpw, up, C.orange, 2), b = walkTo(g, wlw, up, C.blue, 2.5), z = walkTo(g, wtw, up, '#9ec5f3', 2, 'z');
       g.hero(a, 'pg', 1); g.hero(b, 'lb', 1); g.dot(z, 6, '#6aa2e3', 1);
-      chart(g, g.sideR, [series(Ww, 'pg', Dw, 'x', dPg), series(Ww, 'lb', Dw, 'x', dLb), series(Ww, 'tw', Dw, 'z', dTw, 'Twins')], up);
+      chart(g, g.sideR, [series(Ww, 'pg', Dw, 'x', dPg), series(Ww, 'lb', Dw, 'x', dLb), series(Ww, 'tw', Dw, 'z', dTw, 'Twins')], up,
+        g.W < g.H ? 'cost gap by day (log scale)' : undefined);
     } });
 
   // 6. the old fort
@@ -314,16 +306,18 @@
   // 9. what we learned
   var cards = [
     ['pg', 'The Pilgrim · gradient descent', 'Needs only the slope. Simple and sure on a gentle land, slow in a narrow valley, and flung away when its stride is too long.'],
-    ['lb', 'The Cartographer · L-BFGS', 'Keeps m pages of memory, learns the land’s shape and tests each stride. Fastest on smooth land; haze can stall it.'],
-    ['tw', 'The Twins · ADMM', 'Give two copies different jobs, then use the rope and scaled dual variable to restore agreement. Stop when both residuals are small.']];
+    ['lb', 'The Cartographer · L-BFGS', 'Keeps m pages of memory, learns the land’s shape and tests each stride. Fastest on this smooth canyon; haze can stall it.'],
+    ['tw', 'The Twins · ADMM', 'The Wanderer hunts the lowest spot, the Warden keeps the law; a rope ties them, and the Warden’s book of their gaps makes them meet. Stop when they stand together and have stopped moving.']];
   out.push({ id: 'summary', chapter: CH.end, title: 'Three ways down', layout: 'side', dur: 5,
     text: cards.map(function (cd) { return '<b>' + cd[1] + '.</b> ' + cd[2]; }).join('<br><br>'),
     math: 'canyon: Pilgrim ' + pgDays + ' days, Cartographer ' + lbDays + ';  wall: Cartographer ' + dLb + ', Twins ' + dTw + ', Pilgrim ' + dPg,
     draw: function (g, p) {
-      var R = g.sideR, wd = (R[2] - 16) / 3;
+      var R = g.sideR, stacked = g.W < g.H, gap = 8;
+      var wd = stacked ? R[2] : (R[2] - 2 * gap) / 3, ht = stacked ? (R[3] - 2 * gap) / 3 : R[3];
       cards.forEach(function (cd, i) {
         var q = seg(p, 0.1 + 0.25 * i, 0.4 + 0.25 * i); if (!(q > 0)) return;
-        var Rr = [R[0] + i * (wd + 8), R[1], wd, R[3]], keep = g.mapR; g.mapR = [Rr[0] + 4, Rr[1] + 34, Rr[2] - 8, Rr[3] - 40];
+        var Rr = stacked ? [R[0], R[1] + i * (ht + gap), wd, ht] : [R[0] + i * (wd + gap), R[1], wd, ht];
+        var keep = g.mapR; g.mapR = [Rr[0] + 4, Rr[1] + 34, Rr[2] - 8, Rr[3] - 40];
         var W = i === 2 ? Ww : Wc, v = i === 2 ? [0.0, 1.6, -0.1, 1.5] : [-0.1, 1.0, -0.15, 0.95];
         g.panel(Rr, cd[1]); g.view(v); g.ctx.globalAlpha = q; g.land(W.land.J, { id: W.shade.id + 'mini' + i, lo: W.shade.lo, hi: W.shade.hi, rings: 10, cell: 5 });
         if (W.land.box) g.path([[0, 0], [1, 0], [1, 1], [0, 1], [0, 0]], C.blue, 1.5, 1);
@@ -359,4 +353,7 @@
   document.addEventListener('keydown', function (e) { if (e.ctrlKey || e.metaKey || e.altKey) return; if (e.target && /^(INPUT|SELECT|TEXTAREA|BUTTON|SUMMARY)$/.test(e.target.tagName) && (e.key === ' ' || e.key === 'Enter')) return; B.key(e); });
   B.openSteps(out, { embedded: true });
   window.course = { steps: out, chapters: chapters };
+  // #step=ID&p=0.5 opens a step at a moment of its animation, with time stopped (for screenshots and checks)
+  var hash = (window.location && window.location.hash) || '', ms = /step=([^&]+)/.exec(hash), mp = /p=([0-9.]+)/.exec(hash);
+  if (ms) { var st = decodeURIComponent(ms[1]); B.debug({ step: /^\d+$/.test(st) ? +st : st, p: mp ? +mp[1] : 1 }); }
 })();
