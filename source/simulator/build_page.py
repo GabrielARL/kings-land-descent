@@ -20,9 +20,9 @@ HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
 # (template, output at the repository root, scripts it inlines)
 PAGES = {
-    "game": ("page.html", "index.html", ("engine.js", "fog.js", "board.js", "board_parts.js", "game.js", "app.js")),
-    "tutorial": ("tutorial.html", "tutorial.html", ("engine.js", "board.js", "board_parts.js", "course.js")),
-    "advanced": ("advanced.html", "jade_keep_tutorial.html", ("engine.js", "board.js", "keep.js", "advanced_parts.js", "advanced_course.js")),
+    "game": ("page.html", "index.html", ("engine.js", "fog.js", "board.js", "board_parts.js", "game.js", "app.js", "realm.js")),
+    "tutorial": ("tutorial.html", "tutorial.html", ("engine.js", "board.js", "board_parts.js", "course.js", "realm.js")),
+    "advanced": ("advanced.html", "jade_keep_tutorial.html", ("engine.js", "board.js", "keep.js", "advanced_parts.js", "advanced_course.js", "realm.js")),
 }
 
 

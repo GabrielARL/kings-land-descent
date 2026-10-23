@@ -16,7 +16,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent.parent
 SIMULATOR = HERE.parent / "simulator"
-SCRIPTS = {"board.js": SIMULATOR / "board.js", "net.js": HERE / "net.js", "net_parts.js": HERE / "net_parts.js", "net_course.js": HERE / "net_course.js"}
+SCRIPTS = {"board.js": SIMULATOR / "board.js", "net.js": HERE / "net.js", "net_parts.js": HERE / "net_parts.js", "net_course.js": HERE / "net_course.js", "realm.js": SIMULATOR / "realm.js"}
 
 
 def render():

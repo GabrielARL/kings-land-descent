@@ -1,6 +1,7 @@
 <!-- The page of the simulation; build_page.py inlines the four scripts at the end and adds the document's
      html, head and body tags.  Everything above the body marker goes into the head. -->
 <title>King's Land Descent</title>
+<meta name="kings-land-page" content="game">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -665,9 +666,11 @@ body.racing #map { cursor: pointer; }
     <p>With their first settings, the canyon and the wall give the tale's own numbers. In the canyon, the Pilgrim comes within 0.01 of the spring after 21 strides and the Cartographer after 4. At the wall, the Pilgrim comes within 0.001 of the treasure after 10 strides, the Twins after 9 days and the Cartographer after 6. The two-bit parity and ridge lands use CORAL's three terms (deck p5): fixed evidence, a pull to binary endpoints, and a parity-violation penalty.</p>
   </footer>
 </div>
+<script>window.kingsLandHash = location.hash;   // the address as it arrived: the game rewrites it to its land</script>
 <script src="engine.js"></script>
 <script src="fog.js"></script>
 <script src="board.js"></script>
 <script src="board_parts.js"></script>
 <script src="game.js"></script>
 <script src="app.js"></script>
+<script src="realm.js"></script>

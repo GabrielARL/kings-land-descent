@@ -382,9 +382,14 @@ var Board = (function () {
 
   // ------------------------------------------------------------ the board: open, play, step, close
   var embedded = false, stepHook = null, kit = null, cx = null, steps = [], visited = [], i = 0, t0 = 0, playing = false, raf = 0, opened = false, viewNow = null, viewFrom = null, closeHook = null, frozen = null;
+  // A road (realm.js): a short list of steps played in place of the course, after which the course resumes; on a page
+  // without a course (the game) the road opens the board by itself and closes it at the end.  Watchers see every step,
+  // the road's included; the course's own step hook sees only its own steps.
+  var road = null, watchers = [];
   function now() { return frozen != null ? frozen : performance.now(); }
   function open(ctx, o) {
     o = o || {}; var pl = plan(ctx); if (!pl.steps.length) return false;
+    if (road) { var r0 = road; road = null; if (r0.onEnd) r0.onEnd(true); }   // the reader opened the board for their own spot: the road gives way
     cx = pl.cx; steps = pl.steps; embedded = false;
     if (o.ids && o.ids.length) {
       var all = steps;
@@ -399,6 +404,7 @@ var Board = (function () {
     return true;
   }
   function close() {
+    if (road && road.standalone) { endRoad(true); return; }
     if (!opened || embedded) return; opened = false; playing = false; cancelAnimationFrame(raf); raf = 0; $('board').hidden = true;
     if (closeHook) closeHook({ completed: visited.length === steps.length && visited.every(function (v) { return v; }), visited: visited.filter(Boolean).length, count: steps.length });
   }
@@ -410,11 +416,13 @@ var Board = (function () {
     $('board-step').textContent = s.title;
     $('board-text').innerHTML = s.text || '';
     $('board-math').innerHTML = s.math || ''; $('board-math').hidden = !s.math;
-    $('board-count').textContent = 'Step ' + (i + 1) + ' of ' + steps.length;
+    $('board-count').textContent = road ? road.label + ' · ' + (i + 1) + ' of ' + steps.length : 'Step ' + (i + 1) + ' of ' + steps.length;
     $('board-prev').disabled = i === 0;
-    $('board-next').textContent = i === steps.length - 1 ? (embedded ? 'The end' : 'Done ✓') : (embedded ? 'Next →' : 'Next ▶');
-    $('board-next').disabled = embedded && i === steps.length - 1;
-    if (stepHook) stepHook(i, steps[i], steps);
+    var last = i === steps.length - 1;
+    $('board-next').textContent = last ? (road ? road.next : embedded ? 'The end' : 'Done ✓') : (embedded ? 'Next →' : 'Next ▶');
+    $('board-next').disabled = embedded && last && !road;
+    if (stepHook && !road) stepHook(i, steps[i], steps);
+    watchers.forEach(function (f) { try { f(i, steps[i], !!road); } catch (e) { (window.kingsLandErrors = window.kingsLandErrors || []).push('watcher: ' + (e && e.stack || e)); } });
     Array.prototype.forEach.call($('board-list').querySelectorAll('[data-i]'), function (li) {
       var j = +li.getAttribute('data-i'); li.classList.toggle('on', j === i); li.classList.toggle('done', j < i);
       if (j === i && li.scrollIntoView) { var box = $('board-list'); if (li.offsetTop < box.scrollTop || li.offsetTop + li.offsetHeight > box.scrollTop + box.clientHeight) box.scrollTop = li.offsetTop - box.clientHeight / 2; }
@@ -430,6 +438,9 @@ var Board = (function () {
     $('board-list').innerHTML = html;
   }
   function hold(s) { var words = ((s.text || '') + ' ' + (s.math || '')).replace(/<[^>]*>/g, ' ').split(/\s+/).length; return clamp(1.6 + 0.07 * words, 3, 10); }
+  function estimateSeconds(list0) {
+    return (list0 || []).reduce(function (sum, s) { return sum + (s.dur || 3) + hold(s); }, 0);
+  }
   function glide(a, b, t) {
     var ca = [(a[0] + a[1]) / 2, (a[2] + a[3]) / 2], cb = [(b[0] + b[1]) / 2, (b[2] + b[3]) / 2], wa = a[1] - a[0], wb = b[1] - b[0], ha = a[3] - a[2], hb = b[3] - b[2];
     var c = lerp2(ca, cb, t), w = wa * Math.pow(wb / wa, t), h = ha * Math.pow(hb / ha, t);
@@ -452,12 +463,12 @@ var Board = (function () {
     cancelAnimationFrame(raf); raf = 0;
     var s = steps[i], tSec = (now() - t0) / 1000, dur = s.dur || 3, p = clamp(tSec / dur, 0, 1);
     render(p, tSec);
-    if (playing && tSec > dur + hold(s)) { if (i < steps.length - 1) { go(i + 1); return; } playing = false; playLabel(); }
+    if (playing && tSec > dur + hold(s)) { if (i < steps.length - 1) { go(i + 1); return; } if (road) { endRoad(false); return; } playing = false; playLabel(); }
     if (frozen == null && (p < 1 || tSec < 0.9 || playing)) raf = requestAnimationFrame(tick);
   }
   function playLabel() { var b = $('board-play'); if (b) { b.textContent = playing ? '⏸ Pause' : '⏵ Play'; b.setAttribute('aria-pressed', String(playing)); } }
   function play() { playing = !playing; if (playing && i === steps.length - 1 && (now() - t0) / 1000 > (steps[i].dur || 3)) go(0); playLabel(); tick(); }
-  function next() { if (i < steps.length - 1) go(i + 1); else close(); }
+  function next() { if (i < steps.length - 1) go(i + 1); else if (road) endRoad(false); else close(); }
   function bind() {
     if ($('board-close')) $('board-close').addEventListener('click', close);
     $('board-prev').addEventListener('click', function () { playing = false; playLabel(); go(i - 1); });
@@ -489,6 +500,32 @@ var Board = (function () {
     list(); go(o.start || 0);
     return true;
   }
+  // A road: play `list0` now, then return to the course at step o.then (an index or an id; else where it was).
+  // o: { then, label (the count's prefix), next (the last step's button), title (the board's title when standalone),
+  //      onEnd(skipped), start }.
+  function interlude(list0, o) {
+    o = o || {}; if (!list0 || !list0.length || road) return false;
+    var standalone = !opened || !embedded, titleEl = $('board-title');
+    road = { steps: steps, visited: visited, i: i, cx: cx, then: o.then, standalone: standalone, wasOpen: opened, label: o.label || 'On the road',
+             next: o.next || 'Continue →', onEnd: o.onEnd || null, title: titleEl ? titleEl.textContent : null };
+    steps = list0; visited = steps.map(function () { return false; });
+    if (!kit) { kit = new Kit($('board-canvas')); bind(); }
+    if (standalone) { embedded = false; cx = o.cx || cx || { landView: [0, 1, 0, 1] }; if (o.title && titleEl) titleEl.textContent = o.title; }
+    $('board').hidden = false; opened = true; playing = false; viewNow = null; viewFrom = null; playLabel();
+    list(); go(o.start || 0);
+    return true;
+  }
+  function endRoad(skipped) {
+    if (!road) return; var r = road; road = null; viewNow = null; viewFrom = null;
+    if (r.standalone && r.title != null && $('board-title')) $('board-title').textContent = r.title;
+    if (r.standalone && !r.wasOpen) { opened = false; playing = false; cancelAnimationFrame(raf); raf = 0; $('board').hidden = true; steps = r.steps; visited = r.visited; cx = r.cx; }
+    else {
+      steps = r.steps; visited = r.visited; cx = r.cx; list();
+      var to = r.standalone ? r.i : typeof r.then === 'string' ? steps.map(function (s) { return s.id; }).indexOf(r.then) : r.then;
+      go(to == null || to < 0 ? r.i : to);
+    }
+    if (r.onEnd) r.onEnd(!!skipped);
+  }
   // For tests: show step n (an index or an id) at progress p, with time stopped.
   function debug(o) {
     o = o || {};
@@ -498,7 +535,7 @@ var Board = (function () {
     }
     if (o.p != null && opened) { frozen = 1e9; t0 = frozen - 1000 * (o.p * (steps[i].dur || 3)) - 1000; render(o.p, 5); }
     if (o.live) frozen = null;
-    return { open: opened, i: i, n: steps.length, id: steps[i] && steps[i].id, title: steps[i] && steps[i].title };
+    return { open: opened, i: i, n: steps.length, id: steps[i] && steps[i].id, title: steps[i] && steps[i].title, road: !!road };
   }
 
   var H = { C: C, HERO: HERO, clamp: clamp, ease: ease, seg: seg, mix: mix, lerp2: lerp2, add: add, sub: sub, dot: dot, len: len, scale: scale,
@@ -880,5 +917,7 @@ var Board = (function () {
 
   return { register: register, open: open, openSteps: openSteps, onStep: function (f) { stepHook = f; }, go: function (n) { playing = false; playLabel(); go(n); }, close: close, key: key, debug: debug, plan: plan, H: H, Kit: Kit,
            isOpen: function () { return opened; }, onClose: function (f) { closeHook = f; },
+           interlude: interlude, endInterlude: function () { endRoad(true); }, onRoad: function () { return !!road; }, onAnyStep: function (f) { watchers.push(f); },
+           estimateSeconds: estimateSeconds,
            steps: function () { return steps.map(function (s) { return { id: s.id, chapter: s.chapter, title: s.title, text: s.text, math: s.math, layout: s.layout }; }); } };
 })();
