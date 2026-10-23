@@ -1,0 +1,1673 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!-- The tutorial page "The Coach and the Physio"; build_plan.py inlines its scripts and adds the document's html, head and
+     body tags.  Everything above the body marker goes into the head.  The styles and the player are those of the
+     King's Land tutorials (source/simulator/tutorial.html and board.js). -->
+<title>The Coach and the Physio</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IM+Fell+English+SC&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one screen of a storybook lesson; the night map (the stage) on the left, the story and its formula on the
+   right with one big Next; the chapters as a bar that fills along the bottom. */
+:root {
+  --bg: #edf1f5;
+  --surface: #ffffff;
+  --ink: #17212c;
+  --muted: #546273;
+  --line: #d3dbe4;
+  --accent: #8f5a00;
+  --accent-fill: #f5c25c;
+  --accent-ink: #1b1406;
+  --math-bg: #f4f6f9;
+  --stage: #0b121b;
+  --display: 'IM Fell English SC', 'Iowan Old Style', Georgia, serif;
+  --body: 'Atkinson Hyperlegible', 'Segoe UI', system-ui, sans-serif;
+  --mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --bg: #0c1218; --surface: #131b24; --ink: #e6ebf0; --muted: #9aa8b6; --line: #253242; --accent: #ffd27a; --accent-fill: #ffd27a; --accent-ink: #1b1406; --math-bg: #0f161e; color-scheme: dark; }
+}
+:root[data-theme="dark"] { --bg: #0c1218; --surface: #131b24; --ink: #e6ebf0; --muted: #9aa8b6; --line: #253242; --accent: #ffd27a; --accent-fill: #ffd27a; --accent-ink: #1b1406; --math-bg: #0f161e; color-scheme: dark; }
+html, body { height: 100%; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 16px; line-height: 1.55;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 14px;
+}
+.course { max-width: 1320px; margin: 0 auto; display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; }
+.course-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.eyebrow { font-size: 12.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+.course-head h1 { margin: 0; font-family: var(--display); font-weight: 400; font-size: clamp(26px, 3.4vw, 38px); line-height: 1.1; text-wrap: balance; }
+.count { font-family: var(--mono); font-size: 13.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.course-body { width: 100%; min-width: 0; display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(300px, 1fr); gap: 16px; align-items: start; }
+.stage { position: relative; aspect-ratio: 16 / 11; max-width: 100%; background: var(--stage); border-radius: 12px; overflow: hidden; }
+.stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.story { box-sizing: border-box; width: 100%; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px 18px 14px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.chapter { font-size: 12.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); font-weight: 700; }
+.story h2 { margin: 0; font-family: var(--display); font-weight: 400; font-size: 26px; line-height: 1.15; text-wrap: balance; }
+.text { max-width: 65ch; }
+.text kbd { font-family: var(--mono); font-size: 0.85em; border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; }
+.math { font-family: var(--mono); font-size: 14px; line-height: 1.75; background: var(--math-bg); border-left: 3px solid var(--accent); border-radius: 6px; padding: 8px 12px; overflow-wrap: anywhere; }
+.bp { opacity: 0.15; transition: opacity 0.3s; }
+.bp.on { opacity: 1; }
+.fr { display: inline-grid; vertical-align: middle; text-align: center; line-height: 1.15; margin: 0 2px; }
+.fr > span:first-child { border-bottom: 1px solid currentColor; padding: 0 3px; }
+.controls { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.controls button { font: inherit; font-size: 15px; border-radius: 8px; padding: 8px 14px; cursor: pointer; background: transparent; color: var(--ink); border: 1px solid var(--line); }
+.controls button:hover { border-color: var(--accent); }
+.controls button:disabled { opacity: 0.4; cursor: default; }
+.controls #board-next { margin-left: auto; background: var(--accent-fill); color: var(--accent-ink); border-color: var(--accent-fill); font-weight: 700; padding: 10px 26px; font-size: 17px; }
+.controls #board-next:disabled { opacity: 0.55; }
+button:focus-visible, summary:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.contents summary { cursor: pointer; color: var(--muted); font-size: 14px; }
+.contents ol { list-style: none; margin: 8px 0 0; padding: 0; max-height: 240px; overflow: auto; font-size: 14px; border-top: 1px solid var(--line); }
+.contents .bl-chap { color: var(--accent); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; padding: 8px 4px 2px; }
+.contents .bl-step { display: flex; gap: 8px; padding: 3px 6px; border-radius: 6px; cursor: pointer; }
+.contents .bl-step span { min-width: 1.8em; color: var(--muted); font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.contents .bl-step:hover { background: var(--math-bg); }
+.contents .bl-step.on { background: var(--math-bg); font-weight: 700; }
+.progress { display: flex; gap: 4px; }
+.progress .seg { position: relative; flex-basis: 0; min-width: 0; height: 36px; border: 0; border-radius: 6px; background: var(--line); cursor: pointer; overflow: hidden; padding: 0 8px; text-align: left; color: var(--ink); font: inherit; }
+.progress .fill { position: absolute; inset: 0 auto 0 0; width: 0; background: var(--accent-fill); opacity: 0.55; transition: width 0.3s; }
+.progress .seg.on .fill { opacity: 0.9; }
+.progress .name { position: relative; font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+.progress .seg.on .name { font-weight: 700; }
+@media (max-width: 820px) {
+  .course-body { grid-template-columns: minmax(0, 1fr); }
+  .stage { aspect-ratio: 4 / 5; }
+  .story h2 { font-size: 23px; }
+  .progress .name { display: none; }
+  .progress .seg { height: 12px; padding: 0; }
+}
+@media (prefers-reduced-motion: reduce) { .bp, .progress .fill { transition: none; } }
+</style>
+</head>
+<body>
+<main class="course" id="board">
+  <header class="course-head">
+    <div>
+      <div class="eyebrow">Optimization with constraints · a training-plan case study</div>
+      <h1 id="board-title">The Coach and the Physio</h1>
+    </div>
+    <span class="count" id="board-count"></span>
+  </header>
+  <div class="course-body">
+    <div class="stage"><canvas id="board-canvas" aria-label="Animated illustration for the current tutorial step" aria-describedby="board-step board-text board-math"></canvas></div>
+    <section class="story" aria-live="polite">
+      <div class="chapter" id="board-chapter"></div>
+      <h2 id="board-step"></h2>
+      <div class="text" id="board-text"></div>
+      <div class="math" id="board-math"></div>
+      <div class="controls">
+        <button type="button" id="board-prev">← Back</button>
+        <button type="button" id="board-replay" title="Play this step’s animation again">↻ Replay</button>
+        <button type="button" id="board-play" aria-pressed="false">⏵ Play</button>
+        <button type="button" id="board-next">Next →</button>
+      </div>
+      <details class="contents"><summary>Contents</summary><ol id="board-list"></ol></details>
+    </section>
+  </div>
+  <nav class="progress" id="progress" aria-label="Chapters"></nav>
+</main>
+<script>
+// The step-by-step board of kings_land_descent.html.  It cuts one day's reckoning of a hero (or yours, after you feel
+// the slope) into small steps.  Each step has a few plain words, its formula with that day's numbers, and an
+// animation on a flat chart of the land: where the hero stands, how the height is made, the four taps, the slopes
+// they give, and the hero's move.  game.js opens the board with the day's context; Board.register adds the steps of
+// one part of the reckoning (this file holds the parts every hero shares, board_parts.js the others).
+//
+// A step is { id, chapter, title, text, math, layout, view, dur, draw }:
+//   layout  'map' (the land seen from above), 'map+side' (the map and a panel beside it) or 'side' (a panel only);
+//   view    the part of the land the map shows, [x1min, x1max, x2min, x2max]; the board glides from one view to the next;
+//   dur     seconds the animation takes; text and math are HTML, and a part wrapped by at(p, html) shows from
+//           progress p of the animation on;
+//   draw(g, p) draws the step at progress p in [0, 1] with the kit g (g.mapR and g.sideR are the two panels).
+var Board = (function () {
+  'use strict';
+  var TAU = 2 * Math.PI;
+  function $(id) { return document.getElementById(id); }
+  function clamp(v, a, b) { return v < a ? a : v > b ? b : v; }
+  function ease(t) { t = clamp(t, 0, 1); return t * t * (3 - 2 * t); }
+  // the progress of a part of a step's animation that runs from a to b
+  function seg(p, a, b) { return ease((p - a) / (b - a)); }
+  function mix(a, b, t) { return a + (b - a) * t; }
+  function lerp2(a, b, t) { return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t]; }
+  function add(a, b, s) { s = s == null ? 1 : s; return [a[0] + s * b[0], a[1] + s * b[1]]; }
+  function sub(a, b) { return [a[0] - b[0], a[1] - b[1]]; }
+  function dot(a, b) { return a[0] * b[0] + a[1] * b[1]; }
+  function len(a) { return Math.hypot(a[0], a[1]); }
+  function scale(a, s) { return [a[0] * s, a[1] * s]; }
+  function backOut(t) { var s = 1.6; t = clamp(t, 0, 1) - 1; return t * t * ((s + 1) * t + s) + 1; }
+  function num(v, d) {
+    if (v == null || !isFinite(v)) return '—';
+    var s = v.toFixed(d == null ? 3 : d);
+    if (/^-0(\.0*)?$/.test(s)) s = s.slice(1);
+    return s.replace('-', '−');
+  }
+  function pair(v, d) { return '(' + num(v[0], d) + ', ' + num(v[1], d) + ')'; }
+  // a number ready to be multiplied: negative numbers in brackets
+  function par(v, d) { var t = num(v, d); return v < 0 && t !== '0.000' ? '(' + t + ')' : t; }
+  function at(p, html) { return '<span class="bp" data-at="' + p + '">' + html + '</span>'; }
+  function frac(a, b) { return '<span class="fr"><span>' + a + '</span><span>' + b + '</span></span>'; }
+  // a view around some points: their box, widened by a share of its size, at least `least` wide
+  function around(pts, grow, least) {
+    var x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+    pts.forEach(function (q) { if (!q) return; x0 = Math.min(x0, q[0]); x1 = Math.max(x1, q[0]); y0 = Math.min(y0, q[1]); y1 = Math.max(y1, q[1]); });
+    var cx = (x0 + x1) / 2, cy = (y0 + y1) / 2, w = Math.max((x1 - x0) * (1 + grow), (y1 - y0) * (1 + grow), least);
+    return [cx - w / 2, cx + w / 2, cy - w / 2, cy + w / 2];
+  }
+
+  var C = { bg: '#0b121b', ink: '#f2f5f8', dim: 'rgba(242,245,248,0.6)', faint: 'rgba(242,245,248,0.22)', gold: '#ffd27a',
+            orange: '#ffb071', blue: '#a9cdf6', green: '#b9f0a8', red: '#ff9a8a', violet: '#d9c2ff', box: 'rgba(8,12,18,0.82)' };
+  var HERO = { pg: { col: '#ffb071', letter: 'P' }, lb: { col: '#a9cdf6', letter: 'C' }, tw: { col: '#e6e9ee', letter: 'W' }, you: { col: '#ffd27a', letter: 'Y' } };
+
+  // ------------------------------------------------------------ the drawing kit
+  // Drawings in world spots keep inside the map's panel when a side panel shares the canvas.
+  function mapOnly(fn) { return function () { if (!this.sideR || !this.mapR) return fn.apply(this, arguments); var c = this.ctx, R = this.mapR; c.save(); c.beginPath(); c.rect(R[0], R[1], R[2], R[3]); c.clip(); try { return fn.apply(this, arguments); } finally { c.restore(); } }; }
+  function Kit(canvas) { this.cv = canvas; this.ctx = canvas.getContext('2d'); this.W = 0; this.H = 0; this.grid = null; this.lines = {}; }
+  Kit.prototype.fit = function () {
+    var r = this.cv.getBoundingClientRect(), dpr = Math.min(window.devicePixelRatio || 1, 2);
+    var W = Math.max(240, Math.round(r.width)), H = Math.max(180, Math.round(r.height));
+    if (this.cv.width !== Math.round(W * dpr) || this.cv.height !== Math.round(H * dpr)) { this.cv.width = Math.round(W * dpr); this.cv.height = Math.round(H * dpr); }
+    this.W = W; this.H = H; this.dpr = dpr;
+    this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    this.sans = getComputedStyle(document.body).fontFamily || 'sans-serif';
+    this.mono = (getComputedStyle(document.documentElement).getPropertyValue('--mono') || '').trim() || 'monospace';
+  };
+  Kit.prototype.clear = function () { var c = this.ctx; c.globalAlpha = 1; c.setLineDash([]); c.fillStyle = C.bg; c.fillRect(0, 0, this.W, this.H); };
+  Kit.prototype.layout = function (kind) {
+    var W = this.W, H = this.H, m = 8;
+    this.mapR = this.sideR = null;
+    if (kind === 'side') this.sideR = [m, m, W - 2 * m, H - 2 * m];
+    else if (kind === 'map+side') {
+      if (W >= H * 1.1) { var w = Math.round((W - 3 * m) * 0.54); this.mapR = [m, m, w, H - 2 * m]; this.sideR = [2 * m + w, m, W - 3 * m - w, H - 2 * m]; }
+      else { var h = Math.round((H - 3 * m) * 0.55); this.mapR = [m, m, W - 2 * m, h]; this.sideR = [m, 2 * m + h, W - 2 * m, H - 3 * m - h]; }
+    } else this.mapR = [m, m, W - 2 * m, H - 2 * m];
+  };
+  // The map: world spot q = (x1, x2) to canvas, x1 to the right and x2 up, one scale for both.
+  Kit.prototype.view = function (v) {
+    var R = this.mapR, vw = v[1] - v[0], vh = v[3] - v[2], s = Math.min(R[2] / vw, R[3] / vh);
+    this.s = s; this.ox = R[0] + R[2] / 2 - (v[0] + v[1]) / 2 * s; this.oy = R[1] + R[3] / 2 + (v[2] + v[3]) / 2 * s;
+    this.vis = [(R[0] - this.ox) / s, (R[0] + R[2] - this.ox) / s, (this.oy - R[1] - R[3]) / s, (this.oy - R[1]) / s];
+  };
+  Kit.prototype.P = function (q) { return [this.ox + q[0] * this.s, this.oy - q[1] * this.s]; };
+  Kit.prototype.clip = function (R) { var c = this.ctx; c.save(); c.beginPath(); rrect(c, R[0], R[1], R[2], R[3], 8); c.clip(); };
+  function rrect(c, x, y, w, h, r) { r = Math.min(r, w / 2, h / 2); c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r); c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath(); }
+  function ramp(t) {
+    var lo = [26, 58, 92], mid = [92, 112, 120], hi = [150, 98, 58], u = clamp(t, 0, 1);
+    return u < 0.5 ? [mix(lo[0], mid[0], u * 2), mix(lo[1], mid[1], u * 2), mix(lo[2], mid[2], u * 2)] : [mix(mid[0], hi[0], u * 2 - 1), mix(mid[1], hi[1], u * 2 - 1), mix(mid[2], hi[2], u * 2 - 1)];
+  }
+  // The land as shading and rings of equal height.  fn is the height; o.lo, o.hi fix the shading's range (else the
+  // range in view), o.rings the number of rings (spaced so that a bowl gets evenly spaced rings), o.id names fn.
+  Kit.prototype.land = function (fn, o) {
+    o = o || {};
+    var R = this.mapR, v = this.vis, cell = o.cell || 4, nx = Math.max(40, Math.round(R[2] / cell)), ny = Math.max(30, Math.round(R[3] / cell));
+    var key = (o.id || 'J') + '|' + v.map(function (a) { return a.toPrecision(7); }).join(',') + '|' + nx + 'x' + ny;
+    var g = this.grid && this.grid.key === key ? this.grid : null;
+    if (!g) {
+      var vals = new Float64Array((nx + 1) * (ny + 1)), lo = Infinity, hi = -Infinity;
+      for (var j = 0; j <= ny; j++) for (var i = 0; i <= nx; i++) {
+        var z = fn([v[0] + (v[1] - v[0]) * i / nx, v[2] + (v[3] - v[2]) * j / ny]); vals[j * (nx + 1) + i] = z;
+        if (isFinite(z)) { if (z < lo) lo = z; if (z > hi) hi = z; }
+      }
+      g = this.grid = { key: key, vals: vals, nx: nx, ny: ny, lo: lo, hi: hi, img: null, imgKey: '', rings: null, ringKey: '' };
+      this.lines = {};
+    }
+    var lo = o.lo != null ? o.lo : g.lo, hi = o.hi != null ? o.hi : g.hi; if (!(hi > lo)) hi = lo + 1;
+    var c = this.ctx;
+    if (g.imgKey !== lo + '|' + hi + '|' + !!o.pits) {
+      var cv = document.createElement('canvas'); cv.width = g.nx + 1; cv.height = g.ny + 1;
+      var cc = cv.getContext('2d'), im = cc.createImageData(cv.width, cv.height);
+      for (j = 0; j <= g.ny; j++) for (i = 0; i <= g.nx; i++) {
+        var t = (g.vals[j * (g.nx + 1) + i] - lo) / (hi - lo), col = ramp(Math.sqrt(clamp(t, 0, 1))), k4 = ((g.ny - j) * cv.width + i) * 4;
+        if (t < 0 && o.pits) { var b = clamp(-t * 4, 0, 1); col = [mix(26, 6, b), mix(58, 8, b), mix(92, 12, b)]; }
+        im.data[k4] = col[0]; im.data[k4 + 1] = col[1]; im.data[k4 + 2] = col[2]; im.data[k4 + 3] = 255;
+      }
+      cc.putImageData(im, 0, 0); g.img = cv; g.imgKey = lo + '|' + hi + '|' + !!o.pits; g.ringKey = '';
+    }
+    this.clip(R);
+    c.imageSmoothingEnabled = true; c.globalAlpha = o.alpha == null ? 1 : o.alpha;
+    var A = this.P([v[0], v[3]]), B = this.P([v[1], v[2]]);
+    c.drawImage(g.img, A[0], A[1], B[0] - A[0], B[1] - A[1]);
+    var n = o.rings == null ? 12 : o.rings, rk = lo + '|' + hi + '|' + n;
+    if (n > 0) {
+      if (g.ringKey !== rk) { g.rings = []; for (var q = 1; q <= n; q++) g.rings.push(this.contour(g, lo + (hi - lo) * Math.pow(q / (n + 1), 2))); g.ringKey = rk; }
+      c.strokeStyle = 'rgba(214,230,246,0.33)'; c.lineWidth = 1;
+      g.rings.forEach(function (sg) { strokeSegs(c, sg, this); }, this);
+    }
+    c.globalAlpha = 1; c.restore();
+  };
+  // One ring: the spots of the grid in view where the height is `level` (marching squares).
+  Kit.prototype.contour = function (g, level) {
+    var v = this.vis, nx = g.nx, ny = g.ny, out = [], vals = g.vals, w = nx + 1;
+    function X(i) { return v[0] + (v[1] - v[0]) * i / nx; } function Y(j) { return v[2] + (v[3] - v[2]) * j / ny; }
+    for (var j = 0; j < ny; j++) for (var i = 0; i < nx; i++) {
+      var a = vals[j * w + i], b = vals[j * w + i + 1], cc = vals[(j + 1) * w + i + 1], d = vals[(j + 1) * w + i];
+      var idx = (a > level ? 1 : 0) | (b > level ? 2 : 0) | (cc > level ? 4 : 0) | (d > level ? 8 : 0);
+      if (idx === 0 || idx === 15) continue;
+      var e = [];
+      if ((idx & 1) !== (idx >> 1 & 1)) e.push([X(i + (level - a) / (b - a)), Y(j)]);
+      if ((idx >> 1 & 1) !== (idx >> 2 & 1)) e.push([X(i + 1), Y(j + (level - b) / (cc - b))]);
+      if ((idx >> 2 & 1) !== (idx >> 3 & 1)) e.push([X(i + (level - d) / (cc - d)), Y(j + 1)]);
+      if ((idx >> 3 & 1) !== (idx & 1)) e.push([X(i), Y(j + (level - a) / (d - a))]);
+      if (e.length === 2) out.push(e[0], e[1]); else if (e.length === 4) out.push(e[0], e[1], e[2], e[3]);
+    }
+    return out;
+  };
+  function strokeSegs(c, sg, k) {
+    c.beginPath();
+    for (var i = 0; i + 1 < sg.length; i += 2) { var a = k.P(sg[i]), b = k.P(sg[i + 1]); c.moveTo(a[0], a[1]); c.lineTo(b[0], b[1]); }
+    c.stroke();
+  }
+  // The ring through one height, lit (uses the grid of the last land()).
+  Kit.prototype.ring = function (level, col, w, p) {
+    if (!this.grid || p <= 0) return;
+    var k = String(level), sg = this.lines[k] || (this.lines[k] = this.contour(this.grid, level)), c = this.ctx;
+    this.clip(this.mapR); c.globalAlpha = clamp(p, 0, 1); c.strokeStyle = col; c.lineWidth = w || 2.5; strokeSegs(c, sg, this); c.globalAlpha = 1; c.restore();
+  };
+  // Ticks along the map's bottom (x1) and left (x2) edges.
+  Kit.prototype.axes = function () {
+    var c = this.ctx, R = this.mapR, v = this.vis, step = nice((v[1] - v[0]) / 5), d = places(step);
+    c.font = '11px ' + this.mono; c.fillStyle = C.dim; c.strokeStyle = C.faint; c.lineWidth = 1;
+    c.textAlign = 'center'; c.textBaseline = 'bottom';
+    for (var t = Math.ceil(v[0] / step) * step; t <= v[1]; t += step) { var a = this.P([t, v[2]]); if (a[0] < R[0] + 18 || a[0] > R[0] + R[2] - 24) continue; c.beginPath(); c.moveTo(a[0], R[1] + R[3]); c.lineTo(a[0], R[1] + R[3] - 5); c.stroke(); c.fillText(num(t, d), a[0], R[1] + R[3] - 6); }
+    c.textAlign = 'left'; c.textBaseline = 'middle';
+    for (t = Math.ceil(v[2] / step) * step; t <= v[3]; t += step) { var b = this.P([v[0], t]); if (b[1] < R[1] + 22 || b[1] > R[1] + R[3] - 30) continue; c.beginPath(); c.moveTo(R[0], b[1]); c.lineTo(R[0] + 5, b[1]); c.stroke(); c.fillText(num(t, d), R[0] + 7, b[1]); }
+    c.font = '600 12px ' + this.sans; c.fillStyle = C.ink; c.textAlign = 'right'; c.textBaseline = 'bottom'; c.fillText('x₁ →', R[0] + R[2] - 6, R[1] + R[3] - 4);
+    c.textAlign = 'left'; c.textBaseline = 'top'; c.fillText('↑ x₂', R[0] + 6, R[1] + 5);
+  };
+  function places(step) { return clamp(Math.ceil(-Math.log(step) / Math.LN10 - 1e-9), 0, 7); }
+  function nice(x) { var e = Math.pow(10, Math.floor(Math.log(x) / Math.LN10)), f = x / e; return (f < 1.5 ? 1 : f < 3.5 ? 2 : f < 7.5 ? 5 : 10) * e; }
+  Kit.prototype.dot = mapOnly(function (q, r, col, p) {
+    if (!(p > 0)) return; var c = this.ctx, a = this.P(q);
+    c.beginPath(); c.arc(a[0], a[1], r * backOut(p), 0, TAU); c.fillStyle = col; c.fill(); c.lineWidth = 2; c.strokeStyle = C.bg; c.stroke();
+  });
+  Kit.prototype.halo = mapOnly(function (q, rPx, col, p, w, dash) {
+    if (!(p > 0)) return; var c = this.ctx, a = this.P(q);
+    c.globalAlpha = clamp(p, 0, 1); c.strokeStyle = col; c.lineWidth = w || 1.5; if (dash) c.setLineDash(dash);
+    c.beginPath(); c.arc(a[0], a[1], rPx, 0, TAU); c.stroke(); c.setLineDash([]); c.globalAlpha = 1;
+  });
+  // a ring spreading from a spot, as when the staff touches the ground
+  Kit.prototype.tap = mapOnly(function (q, col, p) {
+    if (!(p > 0) || p >= 1) return; var c = this.ctx, a = this.P(q);
+    c.globalAlpha = 1 - p; c.strokeStyle = col; c.lineWidth = 2; c.beginPath(); c.arc(a[0], a[1], 4 + 22 * p, 0, TAU); c.stroke(); c.globalAlpha = 1;
+  });
+  Kit.prototype.hero = mapOnly(function (q, who, p, label) {
+    if (!(p > 0)) return; var h = HERO[who] || HERO.you, c = this.ctx, a = this.P(q), r = 9 * backOut(p);
+    c.beginPath(); c.arc(a[0], a[1], r + 3, 0, TAU); c.fillStyle = 'rgba(8,12,18,0.85)'; c.fill();
+    c.beginPath(); c.arc(a[0], a[1], r, 0, TAU); c.fillStyle = h.col; c.fill();
+    if (p > 0.6) { c.fillStyle = '#1b1406'; c.font = '700 11px ' + this.sans; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(h.letter, a[0], a[1] + 0.5); }
+    if (label) this.labelPx(a[0] + 14, a[1] - 12, label, h.col, { p: seg(p, 0.5, 1) });
+  });
+  Kit.prototype.flag = mapOnly(function (q, p) {
+    if (!(p > 0)) return; var c = this.ctx, a = this.P(q), k = backOut(p);
+    c.strokeStyle = C.ink; c.lineWidth = 2; c.beginPath(); c.moveTo(a[0], a[1]); c.lineTo(a[0], a[1] - 22 * k); c.stroke();
+    c.fillStyle = '#f7f3ea'; c.beginPath(); c.moveTo(a[0], a[1] - 22 * k); c.lineTo(a[0] + 14 * k, a[1] - 17 * k); c.lineTo(a[0], a[1] - 12 * k); c.closePath(); c.fill();
+    c.fillStyle = '#c45100'; c.beginPath(); c.arc(a[0] + 5 * k, a[1] - 17 * k, 2.2 * k, 0, TAU); c.fill();
+  });
+  // an arrow from a to b (world spots), drawn as far as progress p
+  Kit.prototype.arrow = mapOnly(function (a, b, col, w, p, dash) { if (!(p > 0)) return; var A = this.P(a), B = this.P(b); this.arrowPx(A, [mix(A[0], B[0], p), mix(A[1], B[1], p)], col, w, dash); });
+  Kit.prototype.arrowPx = function (A, B, col, w, dash) {
+    var c = this.ctx, dx = B[0] - A[0], dy = B[1] - A[1], L = Math.hypot(dx, dy); if (L < 0.5) return;
+    var ux = dx / L, uy = dy / L, hl = Math.min(9 + 2 * w, L * 0.5), hw = hl * 0.55;
+    c.strokeStyle = col; c.fillStyle = col; c.lineWidth = w; c.lineCap = 'round'; if (dash) c.setLineDash(dash);
+    c.beginPath(); c.moveTo(A[0], A[1]); c.lineTo(B[0] - ux * hl * 0.7, B[1] - uy * hl * 0.7); c.stroke(); c.setLineDash([]);
+    c.beginPath(); c.moveTo(B[0], B[1]); c.lineTo(B[0] - ux * hl - uy * hw, B[1] - uy * hl + ux * hw); c.lineTo(B[0] - ux * hl + uy * hw, B[1] - uy * hl - ux * hw); c.closePath(); c.fill();
+  };
+  Kit.prototype.line = mapOnly(function (a, b, col, w, p, dash) {
+    if (!(p > 0)) return; var c = this.ctx, A = this.P(a), B = this.P(b);
+    c.strokeStyle = col; c.lineWidth = w || 1.5; c.lineCap = 'round'; if (dash) c.setLineDash(dash);
+    c.beginPath(); c.moveTo(A[0], A[1]); c.lineTo(mix(A[0], B[0], p), mix(A[1], B[1], p)); c.stroke(); c.setLineDash([]);
+  });
+  // a path through world spots, drawn as far as progress p of its length
+  Kit.prototype.path = mapOnly(function (pts, col, w, p, dash) {
+    if (!(p > 0) || pts.length < 2) return; var c = this.ctx, P = pts.map(this.P, this), L = 0, i;
+    for (i = 1; i < P.length; i++) L += Math.hypot(P[i][0] - P[i - 1][0], P[i][1] - P[i - 1][1]);
+    var left = L * clamp(p, 0, 1);
+    c.strokeStyle = col; c.lineWidth = w || 2; c.lineJoin = 'round'; c.lineCap = 'round'; if (dash) c.setLineDash(dash);
+    c.beginPath(); c.moveTo(P[0][0], P[0][1]);
+    for (i = 1; i < P.length && left > 0; i++) {
+      var l = Math.hypot(P[i][0] - P[i - 1][0], P[i][1] - P[i - 1][1]), t = l > left ? left / l : 1;
+      c.lineTo(mix(P[i - 1][0], P[i][0], t), mix(P[i - 1][1], P[i][1], t)); left -= l;
+    }
+    c.stroke(); c.setLineDash([]);
+  });
+  Kit.prototype.label = mapOnly(function (q, text, col, o) { var a = this.P(q); o = o || {}; this.labelPx(a[0] + (o.dx || 0), a[1] + (o.dy || 0), text, col, o); });
+  // a label: text on a dark rounded box; o: { p, size, align ('left', 'center', 'right'), mono, plain (no box), base }
+  Kit.prototype.labelPx = function (x, y, text, col, o) {
+    o = o || {}; var p = o.p == null ? 1 : o.p; if (!(p > 0)) return;
+    var c = this.ctx, size = o.size || 13; c.font = (o.mono ? '' : '600 ') + size + 'px ' + (o.mono ? this.mono : this.sans);
+    var w = c.measureText(text).width, align = o.align || 'left', x0 = align === 'center' ? x - w / 2 : align === 'right' ? x - w : x;
+    x0 = clamp(x0, 4, this.W - w - 4); var yc = clamp(y, size / 2 + 4, this.H - size / 2 - 4);
+    c.globalAlpha = clamp(p, 0, 1);
+    if (!o.plain) { c.fillStyle = C.box; c.beginPath(); rrect(c, x0 - 5, yc - size / 2 - 4, w + 10, size + 8, 5); c.fill(); }
+    c.fillStyle = col || C.ink; c.textAlign = 'left'; c.textBaseline = 'middle'; c.fillText(text, x0, yc + 0.5); c.globalAlpha = 1;
+    return [x0 - 5, yc - size / 2 - 4, w + 10, size + 8];
+  };
+  // a label just beyond the tip of an arrow pointing along dir (a world direction)
+  Kit.prototype.tipLabel = mapOnly(function (tip, dir, text, col, p) {
+    var a = this.P(tip), l = len(dir) || 1, ux = dir[0] / l, uy = -dir[1] / l;
+    return this.labelPx(a[0] + ux * 14, a[1] + uy * 14 + (Math.abs(ux) < 0.4 ? (uy < 0 ? -4 : 4) : 0), text, col, { p: p, align: ux > 0.35 ? 'left' : ux < -0.35 ? 'right' : 'center', size: 12.5 });
+  });
+  // a key in a corner of the map: rows of [colour, text, dash]
+  Kit.prototype.legend = function (rows, p) {
+    if (!(p > 0)) return; var c = this.ctx, R = this.mapR, x = R[0] + 10, y = R[1] + 26, w = 0;
+    c.font = '12px ' + this.mono; rows.forEach(function (r) { w = Math.max(w, c.measureText(r[1]).width); });
+    c.globalAlpha = clamp(p, 0, 1); c.fillStyle = C.box; c.beginPath(); rrect(c, x, y, w + 40, rows.length * 19 + 10, 6); c.fill();
+    rows.forEach(function (r, k) { c.strokeStyle = r[0]; c.lineWidth = 3; if (r[2]) c.setLineDash(r[2]); c.beginPath(); c.moveTo(x + 8, y + 15 + 19 * k); c.lineTo(x + 26, y + 15 + 19 * k); c.stroke(); c.setLineDash([]); c.fillStyle = C.ink; c.textAlign = 'left'; c.textBaseline = 'middle'; c.fillText(r[1], x + 32, y + 15 + 19 * k); });
+    c.globalAlpha = 1;
+  };
+  // A right angle marker at corner q between directions u and v (unit vectors), size in pixels.
+  Kit.prototype.square = mapOnly(function (q, u, v, size, col, p) {
+    if (!(p > 0)) return; var c = this.ctx, a = this.P(q), s = size, U = [u[0] * s, -u[1] * s], V = [v[0] * s, -v[1] * s];
+    c.globalAlpha = clamp(p, 0, 1); c.strokeStyle = col; c.lineWidth = 1.5;
+    c.beginPath(); c.moveTo(a[0] + U[0], a[1] + U[1]); c.lineTo(a[0] + U[0] + V[0], a[1] + U[1] + V[1]); c.lineTo(a[0] + V[0], a[1] + V[1]); c.stroke(); c.globalAlpha = 1;
+  });
+  Kit.prototype.panel = function (R, title) {
+    var c = this.ctx; c.fillStyle = 'rgba(255,255,255,0.035)'; c.beginPath(); rrect(c, R[0], R[1], R[2], R[3], 8); c.fill();
+    if (title) { c.font = '700 12.5px ' + this.sans; c.fillStyle = C.gold; c.textAlign = 'left'; c.textBaseline = 'top'; c.fillText(title, R[0] + 10, R[1] + 8); }
+  };
+  // A 2-by-2 table of numbers in brackets, with cells lit in turn; returns its width.  cells[i][j] are strings,
+  // lit(i, j) in [0, 1] how much cell (i, j) shows.
+  Kit.prototype.matrix = function (x, y, cells, lit, o) {
+    o = o || {}; var c = this.ctx, size = o.size || 14; c.font = size + 'px ' + this.mono;
+    var cw = Math.max.apply(null, cells.map(function (r) { return Math.max.apply(null, r.map(function (s) { return c.measureText(s).width; })); })) + 14;
+    var rows = cells.length, cols = cells[0].length, h = rows * (size + 10), w = cols * cw + 10;
+    c.strokeStyle = o.col || C.ink; c.lineWidth = 1.5;
+    c.beginPath(); c.moveTo(x + 6, y); c.lineTo(x, y); c.lineTo(x, y + h); c.lineTo(x + 6, y + h); c.stroke();
+    c.beginPath(); c.moveTo(x + w - 6, y); c.lineTo(x + w, y); c.lineTo(x + w, y + h); c.lineTo(x + w - 6, y + h); c.stroke();
+    c.textAlign = 'center'; c.textBaseline = 'middle';
+    for (var i = 0; i < rows; i++) for (var j = 0; j < cols; j++) {
+      var l = lit ? lit(i, j) : 1; if (!(l > 0)) continue;
+      c.globalAlpha = clamp(l, 0, 1); c.fillStyle = (o.colOf && o.colOf(i, j)) || C.ink; c.fillText(cells[i][j], x + 5 + cw * (j + 0.5), y + (size + 10) * (i + 0.5)); c.globalAlpha = 1;
+    }
+    return w;
+  };
+  // Bars for a sum: items [{ name, value, col }] grow in turn from a zero line; the last item may be the total.
+  Kit.prototype.bars = function (R, items, p, o) {
+    o = o || {}; var c = this.ctx, n = items.length, top = R[1] + (o.title ? 34 : 12), rowH = Math.min(46, (R[3] - (top - R[1]) - 10) / n);
+    var pos = 0, neg = 0; items.forEach(function (it) { if (it.value > 0) pos = Math.max(pos, it.value); else neg = Math.max(neg, -it.value); });
+    var whole = pos + neg || 1, nameW = Math.min(R[2] * 0.46, o.nameW || 200), x0 = R[0] + nameW + 14, x1 = R[0] + R[2] - 92;
+    var zero = x0 + (x1 - x0) * neg / whole, unit = (x1 - x0) / whole;
+    if (o.title) this.panel(R, o.title); else this.panel(R);
+    c.strokeStyle = C.faint; c.lineWidth = 1; c.beginPath(); c.moveTo(zero, top - 4); c.lineTo(zero, top + rowH * n); c.stroke();
+    items.forEach(function (it, i) {
+      var q = seg(p, i / (n + 0.3), (i + 1) / (n + 0.3)); if (!(q > 0)) return;
+      var y = top + rowH * i + rowH / 2, w = it.value * unit * q, total = o.total && i === n - 1;
+      if (total) { c.strokeStyle = C.faint; c.beginPath(); c.moveTo(R[0] + 8, y - rowH / 2); c.lineTo(R[0] + R[2] - 8, y - rowH / 2); c.stroke(); }
+      c.globalAlpha = clamp(q * 1.5, 0, 1);
+      c.font = (total ? '700 ' : '600 ') + '12.5px ' + this.sans; c.fillStyle = it.col || C.ink; c.textAlign = 'right'; c.textBaseline = 'middle'; c.fillText(it.name, R[0] + nameW, y);
+      c.fillStyle = it.col || C.ink; c.globalAlpha *= total ? 1 : 0.85; c.fillRect(Math.min(zero, zero + w), y - rowH * 0.28, Math.abs(w), rowH * 0.56); c.globalAlpha = clamp(q * 1.5, 0, 1);
+      c.font = (total ? '700 ' : '') + '12.5px ' + this.mono; c.fillStyle = C.ink; c.textAlign = 'right';
+      c.fillText(num(it.value * (q < 1 ? q : 1), o.d == null ? 4 : o.d), R[0] + R[2] - 10, y); c.globalAlpha = 1;
+    }, this);
+  };
+  // A side panel's plot: t across, v up.  Returns helpers in canvas pixels.
+  Kit.prototype.plot = function (R, tr, vr, o) {
+    o = o || {}; var k = this, c = this.ctx, L = R[0] + 44, Rt = R[0] + R[2] - 14, T = R[1] + (o.title ? 34 : 14), B = R[1] + R[3] - 30;
+    var X = function (t) { return L + (t - tr[0]) / (tr[1] - tr[0]) * (Rt - L); }, Y = function (v) { return B - (v - vr[0]) / (vr[1] - vr[0]) * (B - T); };
+    var P = {
+      X: X, Y: Y, box: [L, T, Rt - L, B - T],
+      frame: function (tl, vl) {
+        if (o.title) k.panel(R, o.title); else k.panel(R);
+        c.strokeStyle = C.faint; c.lineWidth = 1; c.beginPath(); c.moveTo(L, T); c.lineTo(L, B); c.lineTo(Rt, B); c.stroke();
+        c.font = '11px ' + k.mono; c.fillStyle = C.dim; c.textAlign = 'center'; c.textBaseline = 'top';
+        var st = nice((tr[1] - tr[0]) / 4), d = places(st);
+        if (o.tTicks !== false) for (var t = Math.ceil(tr[0] / st) * st; t <= tr[1] + 1e-12; t += st) c.fillText(num(t, d), X(t), B + 4);
+        var sv = nice((vr[1] - vr[0]) / 4), dv = places(sv); c.textAlign = 'right'; c.textBaseline = 'middle';
+        for (var v = Math.ceil(vr[0] / sv) * sv; v <= vr[1] + 1e-12; v += sv) c.fillText(num(v, dv), L - 4, Y(v));
+        c.font = '600 12px ' + k.sans; c.fillStyle = C.ink; c.textAlign = 'right'; c.textBaseline = 'bottom'; if (tl) c.fillText(tl, Rt, B - 4);
+        c.textAlign = 'left'; c.textBaseline = 'top'; if (vl) c.fillText(vl, L + 6, T);
+      },
+      curve: function (fn, col, w, p) {
+        if (!(p > 0)) return;
+        c.save(); c.beginPath(); c.rect(L, T - 6, Rt - L, B - T + 6); c.clip();
+        c.strokeStyle = col; c.lineWidth = w || 2; c.lineJoin = 'round'; c.beginPath();
+        var n = 160, last = Math.round(n * clamp(p, 0, 1));
+        for (var i = 0; i <= last; i++) { var t = tr[0] + (tr[1] - tr[0]) * i / n, y = clamp(Y(fn(t)), T - 40, B + 40); if (i) c.lineTo(X(t), y); else c.moveTo(X(t), y); }
+        c.stroke(); c.restore();
+      },
+      point: function (t, v, col, text, p, side) {
+        if (!(p > 0)) return; c.beginPath(); c.arc(X(t), Y(v), 5 * backOut(p), 0, TAU); c.fillStyle = col; c.fill(); c.lineWidth = 2; c.strokeStyle = C.bg; c.stroke();
+        if (text) k.labelPx(X(t) + (side === 'left' ? -10 : 10), Y(v) - 14, text, col, { p: seg(p, 0.4, 1), align: side === 'left' ? 'right' : 'left', size: 12 });
+      },
+      seg: function (t1, v1, t2, v2, col, w, p, dash) {
+        if (!(p > 0)) return; c.strokeStyle = col; c.lineWidth = w || 1.5; if (dash) c.setLineDash(dash);
+        c.beginPath(); c.moveTo(X(t1), Y(v1)); c.lineTo(mix(X(t1), X(t2), p), mix(Y(v1), Y(v2), p)); c.stroke(); c.setLineDash([]);
+      },
+      // a bracket along t at height v (run) or along v at t (rise), with its text
+      run: function (t1, t2, v, text, col, p) {
+        if (!(p > 0)) return; var y = Y(v) + 14; c.globalAlpha = clamp(p, 0, 1); c.strokeStyle = col; c.lineWidth = 1.5;
+        c.beginPath(); c.moveTo(X(t1), y - 5); c.lineTo(X(t1), y); c.lineTo(X(t2), y); c.lineTo(X(t2), y - 5); c.stroke(); c.globalAlpha = 1;
+        k.labelPx((X(t1) + X(t2)) / 2, y + 12, text, col, { p: p, align: 'center', size: 12 });
+      },
+      rise: function (t, v1, v2, text, col, p) {
+        if (!(p > 0)) return; var x = X(t) + 10; c.globalAlpha = clamp(p, 0, 1); c.strokeStyle = col; c.lineWidth = 1.5;
+        c.beginPath(); c.moveTo(x - 5, Y(v1)); c.lineTo(x, Y(v1)); c.lineTo(x, Y(v2)); c.lineTo(x - 5, Y(v2)); c.stroke(); c.globalAlpha = 1;
+        k.labelPx(x + 6, (Y(v1) + Y(v2)) / 2, text, col, { p: p, size: 12 });
+      }
+    };
+    return P;
+  };
+
+  // ------------------------------------------------------------ the parts of a day's reckoning
+  var parts = {};
+  function register(name, fn) { parts[name] = fn; }
+  // The day under study, from game.js's context: who, the day, where it stood, what it felt; the parts add their
+  // terms of the height (cx.parts) and of the slope (cx.gradParts) for the steps that add them up.
+  function study(ctx) {
+    var cx = {}, k;
+    for (k in ctx) cx[k] = ctx[k];
+    var land = ctx.land;
+    cx.J = land.J; cx.span = land.span; cx.landView = ctx.L.view; cx.h = land.h; cx.sigma = land.sigma || 0; cx.haze = cx.sigma > 0;
+    cx.you = ctx.hero === 'you';
+    cx.who = cx.you ? 'you' : ctx.name; cx.Who = cx.you ? 'You' : ctx.name.charAt(0).toUpperCase() + ctx.name.slice(1);
+    if (cx.you) {
+      cx.x = ctx.at.slice(); cx.path = [cx.x]; cx.k = ctx.day;
+      cx.taps = ctx.felt ? ctx.felt.taps : null; cx.gTaps = ctx.felt ? ctx.felt.g : null; cx.g = cx.gTaps;
+    } else {
+      var w = ctx.walk; cx.k = Math.max(0, Math.min(ctx.day, w.length - 2)); cx.last = ctx.day > w.length - 2;
+      cx.here = w[cx.k]; cx.rec = w.length > 1 ? w[cx.k + 1] : null;
+      cx.x = cx.rec && cx.rec.from ? cx.rec.from.slice() : cx.here.x.slice();
+      cx.path = w.slice(0, cx.k + 1).map(function (d) { return d.x; });
+      cx.taps = cx.rec && cx.rec.taps ? cx.rec.taps : null; cx.gTaps = cx.rec ? cx.rec.gFelt : null; cx.g = cx.rec ? cx.rec.g : null;
+    }
+    cx.gTrue = land.grad(cx.x); cx.F = ctx.hero === 'tw' ? land.f : land.J; cx.Jx = cx.F(cx.x);
+    // the shading's range: the land without its pits, over the whole map
+    var v = cx.landView, lo = Infinity, hi = -Infinity, sm = land.smooth || land.J;
+    for (var i = 0; i <= 40; i++) for (var j = 0; j <= 40; j++) { var z = sm([v[0] + (v[1] - v[0]) * i / 40, v[2] + (v[3] - v[2]) * j / 40]); if (z < lo) lo = z; if (z > hi) hi = z; }
+    cx.shade = { lo: lo, hi: hi, id: 'J', pits: !!land.holes };
+    cx.zoom = [cx.x[0] - 3.6 * cx.h, cx.x[0] + 3.6 * cx.h, cx.x[1] - 3.6 * cx.h, cx.x[1] + 3.6 * cx.h];
+    cx.parts = []; cx.gradParts = [];
+    return cx;
+  }
+  function plan(ctx) {
+    var cx = study(ctx), out = [];
+    function run(name) { if (parts[name]) parts[name](cx, out, H); }
+    run('where');
+    run(cx.land.kind === 'tower' ? 'towerHeight' : 'quadHeight');
+    run('weather');
+    if (cx.hero !== 'tw' && cx.taps) run('taps');
+    run({ pg: 'pgStride', lb: 'lbDay', tw: 'twDay', you: 'youDown' }[cx.hero]);
+    return { cx: cx, steps: out };
+  }
+
+  // ------------------------------------------------------------ the board: open, play, step, close
+  var embedded = false, stepHook = null, kit = null, cx = null, steps = [], visited = [], i = 0, t0 = 0, playing = false, raf = 0, opened = false, viewNow = null, viewFrom = null, closeHook = null, frozen = null;
+  function now() { return frozen != null ? frozen : performance.now(); }
+  function open(ctx, o) {
+    o = o || {}; var pl = plan(ctx); if (!pl.steps.length) return false;
+    cx = pl.cx; steps = pl.steps; embedded = false;
+    if (o.ids && o.ids.length) {
+      var all = steps;
+      steps = o.ids.map(function (id) { return all.filter(function (s) { return s.id === id; })[0]; }).filter(Boolean);
+      if (steps.length !== o.ids.length) return false;
+    }
+    visited = steps.map(function () { return false; });
+    if (!kit) { kit = new Kit($('board-canvas')); bind(); }
+    $('board').hidden = false; opened = true; playing = false; viewNow = null; playLabel();
+    $('board-title').textContent = o.title || (cx.you ? 'Your reckoning, step by step' : 'How ' + cx.who + ' reckons day ' + cx.k + ' → ' + (cx.k + 1) + (cx.last ? ' (its last step)' : ''));
+    list(); go(0);
+    return true;
+  }
+  function close() {
+    if (!opened || embedded) return; opened = false; playing = false; cancelAnimationFrame(raf); raf = 0; $('board').hidden = true;
+    if (closeHook) closeHook({ completed: visited.length === steps.length && visited.every(function (v) { return v; }), visited: visited.filter(Boolean).length, count: steps.length });
+  }
+  function go(n) {
+    if (!steps.length) return;
+    i = clamp(n, 0, steps.length - 1); visited[i] = true; viewFrom = viewNow; t0 = now();
+    var s = steps[i];
+    $('board-chapter').textContent = s.chapter || '';
+    $('board-step').textContent = s.title;
+    $('board-text').innerHTML = s.text || '';
+    $('board-math').innerHTML = s.math || ''; $('board-math').hidden = !s.math;
+    $('board-count').textContent = 'Step ' + (i + 1) + ' of ' + steps.length;
+    $('board-prev').disabled = i === 0;
+    $('board-next').textContent = i === steps.length - 1 ? (embedded ? 'The end' : 'Done ✓') : (embedded ? 'Next →' : 'Next ▶');
+    $('board-next').disabled = embedded && i === steps.length - 1;
+    if (stepHook) stepHook(i, steps[i], steps);
+    Array.prototype.forEach.call($('board-list').querySelectorAll('[data-i]'), function (li) {
+      var j = +li.getAttribute('data-i'); li.classList.toggle('on', j === i); li.classList.toggle('done', j < i);
+      if (j === i && li.scrollIntoView) { var box = $('board-list'); if (li.offsetTop < box.scrollTop || li.offsetTop + li.offsetHeight > box.scrollTop + box.clientHeight) box.scrollTop = li.offsetTop - box.clientHeight / 2; }
+    });
+    tick();
+  }
+  function list() {
+    var html = '', chap = null;
+    steps.forEach(function (s, j) {
+      if (s.chapter !== chap) { chap = s.chapter; html += '<li class="bl-chap">' + chap + '</li>'; }
+      html += '<li class="bl-step" data-i="' + j + '"><span>' + (j + 1) + '</span>' + s.title + '</li>';
+    });
+    $('board-list').innerHTML = html;
+  }
+  function hold(s) { var words = ((s.text || '') + ' ' + (s.math || '')).replace(/<[^>]*>/g, ' ').split(/\s+/).length; return clamp(1.6 + 0.07 * words, 3, 10); }
+  function glide(a, b, t) {
+    var ca = [(a[0] + a[1]) / 2, (a[2] + a[3]) / 2], cb = [(b[0] + b[1]) / 2, (b[2] + b[3]) / 2], wa = a[1] - a[0], wb = b[1] - b[0], ha = a[3] - a[2], hb = b[3] - b[2];
+    var c = lerp2(ca, cb, t), w = wa * Math.pow(wb / wa, t), h = ha * Math.pow(hb / ha, t);
+    return [c[0] - w / 2, c[0] + w / 2, c[1] - h / 2, c[1] + h / 2];
+  }
+  function render(p, tSec) {
+    var s = steps[i];
+    kit.fit(); kit.clear(); kit.layout(s.layout || 'map');
+    if (kit.mapR) {
+      var target = s.view || viewNow || cx.landView, v = target;
+      if (viewFrom && tSec < 0.9) v = glide(viewFrom, target, ease(tSec / 0.9));
+      viewNow = v; kit.view(v);
+    }
+    try { s.draw(kit, p); } catch (e) { (window.kingsLandErrors = window.kingsLandErrors || []).push('board ' + s.id + ': ' + (e && e.stack || e)); }
+    if (tSec < 0.3) { kit.ctx.globalAlpha = 1 - tSec / 0.3; kit.ctx.fillStyle = C.bg; kit.ctx.fillRect(0, 0, kit.W, kit.H); kit.ctx.globalAlpha = 1; }
+    Array.prototype.forEach.call(document.querySelectorAll('#board .bp'), function (el) { el.classList.toggle('on', p >= +el.getAttribute('data-at') - 1e-9); });
+  }
+  function tick() {
+    if (!opened) return;
+    cancelAnimationFrame(raf); raf = 0;
+    var s = steps[i], tSec = (now() - t0) / 1000, dur = s.dur || 3, p = clamp(tSec / dur, 0, 1);
+    render(p, tSec);
+    if (playing && tSec > dur + hold(s)) { if (i < steps.length - 1) { go(i + 1); return; } playing = false; playLabel(); }
+    if (frozen == null && (p < 1 || tSec < 0.9 || playing)) raf = requestAnimationFrame(tick);
+  }
+  function playLabel() { var b = $('board-play'); if (b) { b.textContent = playing ? '⏸ Pause' : '⏵ Play'; b.setAttribute('aria-pressed', String(playing)); } }
+  function play() { playing = !playing; if (playing && i === steps.length - 1 && (now() - t0) / 1000 > (steps[i].dur || 3)) go(0); playLabel(); tick(); }
+  function next() { if (i < steps.length - 1) go(i + 1); else close(); }
+  function bind() {
+    if ($('board-close')) $('board-close').addEventListener('click', close);
+    $('board-prev').addEventListener('click', function () { playing = false; playLabel(); go(i - 1); });
+    $('board-next').addEventListener('click', function () { playing = false; playLabel(); next(); });
+    $('board-replay').addEventListener('click', function () { go(i); });
+    $('board-play').addEventListener('click', play);
+    $('board-list').addEventListener('click', function (e) { var li = e.target.closest ? e.target.closest('[data-i]') : null; if (li) { playing = false; playLabel(); go(+li.getAttribute('data-i')); } });
+    window.addEventListener('resize', function () { if (opened) tick(); });
+  }
+  // Keys while the board is open; true when the board used the key.
+  function key(e) {
+    if (!opened) return false;
+    var k = e.key;
+    if (k === 'ArrowRight' || k === 'Enter') { playing = false; playLabel(); next(); }
+    else if (k === 'ArrowLeft') { playing = false; playLabel(); go(i - 1); }
+    else if (k === ' ') play();
+    else if (k === 'r' || k === 'R') go(i);
+    else if (!embedded && (k === 'Escape' || k === 'b' || k === 'B')) close();
+    else return false;
+    e.preventDefault(); return true;
+  }
+  // A course: a list of prepared steps played inside the page itself (no close; the last step is the end).
+  function openSteps(list0, o) {
+    o = o || {}; embedded = !!o.embedded; cx = o.cx || { landView: [-1, 1, -1, 1] }; steps = list0; visited = steps.map(function () { return false; });
+    if (!steps.length) return false;
+    if (!kit) { kit = new Kit($('board-canvas')); bind(); }
+    $('board').hidden = false; opened = true; playing = false; viewNow = null; playLabel();
+    if (o.title && $('board-title')) $('board-title').textContent = o.title;
+    list(); go(o.start || 0);
+    return true;
+  }
+  // For tests: show step n (an index or an id) at progress p, with time stopped.
+  function debug(o) {
+    o = o || {};
+    if (o.step != null && steps.length) {
+      var n = typeof o.step === 'number' ? o.step : steps.map(function (s) { return s.id; }).indexOf(o.step);
+      if (n >= 0) { frozen = 0; viewNow = null; viewFrom = null; go(n); }
+    }
+    if (o.p != null && opened) { frozen = 1e9; t0 = frozen - 1000 * (o.p * (steps[i].dur || 3)) - 1000; render(o.p, 5); }
+    if (o.live) frozen = null;
+    return { open: opened, i: i, n: steps.length, id: steps[i] && steps[i].id, title: steps[i] && steps[i].title };
+  }
+
+  var H = { C: C, HERO: HERO, clamp: clamp, ease: ease, seg: seg, mix: mix, lerp2: lerp2, add: add, sub: sub, dot: dot, len: len, scale: scale,
+            num: num, pair: pair, par: par, at: at, frac: frac, around: around, nice: nice, backOut: backOut };
+
+  // ------------------------------------------------------------ where the hero stands
+  register('where', function (cx, out) {
+    var x = cx.x, x0 = cx.x0, moved = cx.path.length > 1, col = HERO[cx.hero].col;
+    out.push({ id: 'where', chapter: 'Where', title: cx.you ? 'Where you stand: x' : 'Where ' + cx.who + ' stands: x', layout: 'map', view: cx.landView, dur: 3.6,
+      text: 'A spot on the King’s map is a pair of numbers, x = (x₁, x₂): x₁ grows to the east, x₂ to the north. ' +
+        (cx.you ? 'You stand at x = ' + pair(x) + '.' : 'Every hero sets out from the start flag, x₀ = ' + pair(x0) + ', on day 0. ' +
+          (cx.k === 0 ? 'Today is day 0, so ' + cx.who + ' is still at the flag: x = x₀.' : 'After ' + cx.k + (cx.k === 1 ? ' day' : ' days') + ' of walking, ' + cx.who + ' stands at x = ' + pair(x) + '.')),
+      math: (cx.you ? '' : at(0.15, 'x₀ = ' + pair(x0)) + '<br>') + at(0.7, 'x = (x₁, x₂) = ' + pair(x)),
+      draw: function (g, p) {
+        g.land(cx.J, cx.shade); g.axes();
+        if (!cx.you) { g.flag(x0, seg(p, 0, 0.2)); g.label(x0, 'x₀, the start flag', C.ink, { dx: 18, dy: -22, p: seg(p, 0.1, 0.3) }); }
+        if (moved) g.path(cx.path, col, 2.5, seg(p, 0.25, 0.55));
+        g.hero(x, cx.hero, seg(p, moved ? 0.5 : 0.3, moved ? 0.62 : 0.45));
+        var q = seg(p, 0.62, 0.86), v = g.vis, foot = [x[0], v[2]], side = [v[0], x[1]];
+        g.line(x, foot, C.gold, 1.5, q, [5, 4]); g.line(x, side, C.gold, 1.5, q, [5, 4]);
+        g.label(foot, 'x₁ = ' + num(x[0]), C.gold, { dx: 6, dy: -34, p: seg(p, 0.8, 1) });
+        g.label(side, 'x₂ = ' + num(x[1]), C.gold, { dx: 34, dy: -14, p: seg(p, 0.8, 1) });
+      } });
+  });
+
+  // ------------------------------------------------------------ the height of a valley land: ½(x − c)ᵀA(x − c)
+  register('quadHeight', function (cx, out) {
+    var land = cx.land, P = cx.p, x = cx.x, c = land.c, A = land.A, d = sub(x, c), th = (P.theta || 0) * Math.PI / 180;
+    var u1 = [Math.cos(th), Math.sin(th)], u2 = [-Math.sin(th), Math.cos(th)], l1 = P.l1, l2 = P.l2, round = Math.abs(l1 - l2) < 1e-9;
+    var Ad = [A[0][0] * d[0] + A[0][1] * d[1], A[1][0] * d[0] + A[1][1] * d[1]], q = dot(d, Ad), val = q / 2, a = dot(d, u1), b = dot(d, u2);
+    var valley = land.base.J, weather = !!(land.ripples || land.holes), view = around([x, c], 0.7, 0.3 * cx.span);
+    var box = land.box, cOut = box && (c[0] < box[0] || c[0] > box[1] || c[1] < box[0] || c[1] > box[1]);
+    var vshade = { id: 'valley', lo: 0, rings: 10 };
+    cx.parts.push({ name: 'valley', value: val, col: C.gold });
+    cx.gradParts.push({ name: 'valley A(x − c)', vec: Ad, col: C.gold });
+    function base(g, p, noX) { g.land(valley, vshade); g.axes(); g.dot(c, 6, C.blue, 1); g.label(c, 'c', C.blue, { dx: 10, dy: 12 }); if (!noX) g.hero(x, cx.hero, 1); }
+    var who = cx.you ? 'you' : cx.who;
+    out.push({ id: 'formula', chapter: 'The height', title: 'The King’s formula for the height', layout: 'map', view: cx.landView, dur: 3.4,
+      text: 'The height of a spot is the King’s formula, J(x). On this land it is a smooth valley, ½(x − c)ᵀA(x − c)' +
+        (land.ripples ? ', plus ripples R(x)' : '') + (land.holes ? ', plus black holes B(x)' : '') +
+        '. Dark is low and warm is high; each ring joins spots of the same height. We build the valley first, one symbol at a time.',
+      math: 'J(x) = ' + at(0.3, '½(x − c)ᵀA(x − c)') + (land.ripples ? at(0.55, ' + R(x)') : '') + (land.holes ? at(0.7, ' + B(x)') : ''),
+      draw: function (g, p) { g.land(cx.J, { lo: cx.shade.lo, hi: cx.shade.hi, alpha: seg(p, 0, 0.6) }); g.axes(); g.hero(x, cx.hero, seg(p, 0.5, 0.7)); } });
+    out.push({ id: 'c', chapter: 'The height', title: 'c, the bottom of the valley', layout: 'map', view: view, dur: 3.4,
+      text: 'Here is the valley alone, without ' + (weather ? 'its weather' : 'anything else') + '. c = (c₁, c₂) = ' + pair(c) + ' is its lowest spot: there x − c = 0, so the valley’s height is 0. ' +
+        (cOut ? 'This c lies outside the wall, so no lawful spot reaches it. ' : weather ? 'Ripples and pits move the land’s true lowest spot a little away from c. ' : 'With no weather, c is the treasure. ') +
+        'The rings around c are spots of equal height, higher and higher outward.',
+      math: at(0.6, 'c = ' + pair(c)),
+      draw: function (g, p) {
+        g.land(valley, vshade); g.axes(); g.hero(x, cx.hero, 1);
+        g.ring(val * Math.pow(1 - seg(p, 0.05, 0.6), 2) + 1e-9 * val, C.gold, 2.5, seg(p, 0, 0.1) * (1 - seg(p, 0.6, 0.75)));
+        g.dot(c, 6, C.blue, seg(p, 0.55, 0.7)); g.halo(c, 10 + 10 * seg(p, 0.6, 1), C.blue, seg(p, 0.6, 0.7) * (1 - seg(p, 0.85, 1)));
+        g.label(c, 'c = ' + pair(c), C.blue, { dx: 10, dy: 14, p: seg(p, 0.65, 0.85) });
+      } });
+    out.push({ id: 'd', chapter: 'The height', title: 'x − c: from the bottom to ' + who, layout: 'map', view: view, dur: 3.6,
+      text: 'Subtract c from x, part by part. The result, x − c = ' + pair(d) + ', is the arrow from the bottom c to ' + who + ': ' +
+        num(Math.abs(d[0])) + (d[0] < 0 ? ' to the west' : ' to the east') + ' and ' + num(Math.abs(d[1])) + (d[1] < 0 ? ' to the south.' : ' to the north.'),
+      math: 'x − c = (' + at(0.35, num(x[0]) + ' − ' + par(c[0])) + ', ' + at(0.6, num(x[1]) + ' − ' + par(c[1])) + ')' + at(0.85, ' = ' + pair(d)),
+      draw: function (g, p) {
+        base(g, p);
+        var corner = [x[0], c[1]];
+        g.line(c, corner, C.violet, 2, seg(p, 0.2, 0.45), [6, 4]); g.label(lerp2(c, corner, 0.5), 'x₁ − c₁ = ' + num(d[0]), C.violet, { dy: 18, dx: -30, p: seg(p, 0.35, 0.5) });
+        g.line(corner, x, C.violet, 2, seg(p, 0.45, 0.7), [6, 4]); g.label(lerp2(corner, x, 0.5), 'x₂ − c₂ = ' + num(d[1]), C.violet, { dx: 10, p: seg(p, 0.6, 0.75) });
+        g.arrow(c, x, C.gold, 3, seg(p, 0.72, 0.95)); g.label(lerp2(c, x, 0.5), 'x − c', C.gold, { dx: -50, dy: -16, p: seg(p, 0.85, 1) });
+      } });
+    if (!round) {
+      var thDeg = num(P.theta, 0), Lr = 0.42 * (view[1] - view[0]);
+      out.push({ id: 'axes', chapter: 'The height', title: 'The valley’s two directions', layout: 'map', view: view, dur: 3.8,
+        text: 'This valley is long and narrow. Along its floor, in direction u₁ (θ = ' + thDeg + '° turned from east), it rises slowly: steepness λ₁ = ' + num(l1, 2) + '. ' +
+          'Across it, in direction u₂, it rises with steepness λ₂ = ' + num(l2, 2) + ', ' + num(Math.max(l1, l2) / Math.min(l1, l2), 1) + ' times as steep' + (l2 > l1 ? '' : ' the other way') + '. That is why the rings are long ovals: far apart along the valley, close together across it.',
+        math: at(0.3, 'u₁ = (cos θ, sin θ) = ' + pair(u1) + ',  λ₁ = ' + num(l1, 2)) + '<br>' + at(0.6, 'u₂ = (−sin θ, cos θ) = ' + pair(u2) + ',  λ₂ = ' + num(l2, 2)),
+        draw: function (g, p) {
+          base(g, p);
+          var t = th * seg(p, 0.1, 0.5), e1 = [Math.cos(t), Math.sin(t)], e2 = [-Math.sin(t), Math.cos(t)], r = Lr;
+          g.line(add(c, e1, -r), add(c, e1, r), C.green, 1.5, 1, [8, 6]); g.line(add(c, e2, -r * 0.6), add(c, e2, r * 0.6), C.orange, 1.5, 1, [8, 6]);
+          g.arrow(c, add(c, e1, r * 0.55), C.green, 3, seg(p, 0.45, 0.65)); g.arrow(c, add(c, e2, r * 0.35), C.orange, 3, seg(p, 0.55, 0.75));
+          g.tipLabel(add(c, e1, r * 0.55), e1, 'u₁: gentle, λ₁ = ' + num(l1, 2), C.green, seg(p, 0.6, 0.8));
+          g.tipLabel(add(c, e2, r * 0.35), e2, 'u₂: steep, λ₂ = ' + num(l2, 2), C.orange, seg(p, 0.7, 0.9));
+          if (th > 0.01) { var ctx = g.ctx, C0 = g.P(c), rr = 34; ctx.strokeStyle = C.ink; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(C0[0], C0[1], rr, -t, 0); ctx.stroke(); g.labelPx(C0[0] + rr + 6, C0[1] - 10, 'θ = ' + thDeg + '°', C.ink, { p: seg(p, 0.4, 0.6), size: 12 }); }
+        } });
+    }
+    var a11 = A[0][0], a12 = A[0][1], a22 = A[1][1], cs = Math.cos(th), sn = Math.sin(th);
+    out.push({ id: 'A', chapter: 'The height', title: 'A: the valley’s shape in four numbers', layout: 'map+side', view: view, dur: 4.2,
+      text: round ? 'This valley is round: it is equally steep every way, λ₁ = λ₂ = ' + num(l1, 2) + '. Then A = ' + num(l1, 2) + '·I, a table with ' + num(l1, 2) + ' on its diagonal and 0 elsewhere, and the rings are circles.'
+        : 'A puts the two directions and their steepness into one table of four numbers, A = λ₁u₁u₁ᵀ + λ₂u₂u₂ᵀ. Its diagonal says how steep the valley is due east (a₁₁) and due north (a₂₂); a₁₂ mixes the two, because the valley runs at a slant. ' +
+          'Steeper means closer rings: a circle of the gentle valley is squeezed across into the oval of this one.',
+      math: round ? 'A = ' + at(0.5, '[[' + num(a11) + ', ' + num(a12) + '], [' + num(a12) + ', ' + num(a22) + ']]') :
+        at(0.3, 'a₁₁ = λ₁cos²θ + λ₂sin²θ = ' + num(l1, 2) + '·' + num(cs * cs) + ' + ' + num(l2, 2) + '·' + num(sn * sn) + ' = ' + num(a11)) + '<br>' +
+        at(0.5, 'a₁₂ = (λ₁ − λ₂)·cos θ·sin θ = ' + par(l1 - l2, 2) + '·' + num(cs) + '·' + num(sn) + ' = ' + num(a12)) + '<br>' +
+        at(0.7, 'a₂₂ = λ₁sin²θ + λ₂cos²θ = ' + num(l1, 2) + '·' + num(sn * sn) + ' + ' + num(l2, 2) + '·' + num(cs * cs) + ' = ' + num(a22)),
+      draw: function (g, p) {
+        base(g, p);
+        // a ring of the valley through x, from the circle it would be if the valley were gentle every way
+        var r1 = Math.sqrt(2 * val / Math.min(l1, l2)), r2 = Math.sqrt(2 * val / Math.max(l1, l2)), sq = seg(p, 0.2, 0.75), pts = [];
+        var ua = l1 <= l2 ? u1 : u2, ub = l1 <= l2 ? u2 : u1;
+        for (var k = 0; k <= 72; k++) { var t = k / 72 * TAU; pts.push(add(add(c, ua, r1 * Math.cos(t)), ub, mix(r1, r2, sq) * Math.sin(t))); }
+        g.path(pts, C.gold, 2.5, 1);
+        var R = g.sideR, cells = [[num(a11), num(a12)], [num(a12), num(a22)]];
+        g.panel(R, 'A, the valley’s shape');
+        var lit = function (r, s) { return seg(p, r === 0 && s === 0 ? 0.25 : r !== s ? 0.45 : 0.65, (r === 0 && s === 0 ? 0.25 : r !== s ? 0.45 : 0.65) + 0.12); };
+        g.ctx.font = '600 16px ' + g.sans; g.ctx.fillStyle = C.ink; g.ctx.textAlign = 'right'; g.ctx.textBaseline = 'middle'; g.ctx.fillText('A =', R[0] + 70, R[1] + 66);
+        g.matrix(R[0] + 80, R[1] + 42, cells, lit, { size: 15, colOf: function (r, s) { return r === s ? C.gold : C.violet; } });
+        var y = R[1] + 118, rows = round ? ['every way: λ = ' + num(l1, 2)] : ['a₁₁: steepness due east', 'a₂₂: steepness due north', 'a₁₂: how east and north mix'];
+        rows.forEach(function (t, k) { g.labelPx(R[0] + 14, y + 24 * k, t, k === 2 ? C.violet : C.gold, { p: seg(p, 0.3 + 0.2 * k, 0.45 + 0.2 * k), plain: true, size: 13 }); });
+        if (!round) g.labelPx(R[0] + 14, y + 86, 'gentle λ₁ = ' + num(l1, 2) + ' along u₁, steep λ₂ = ' + num(l2, 2) + ' along u₂', C.dim, { p: seg(p, 0.8, 1), plain: true, size: 12 });
+      } });
+    out.push({ id: 'Ad', chapter: 'The height', title: 'Multiply: A(x − c)', layout: 'map+side', view: view, dur: 4.4,
+      text: 'A times x − c gives a new arrow, one row of A at a time. ' + (round ? 'A round valley just scales x − c by λ = ' + num(l1, 2) + '.' :
+        'Seen along the valley’s directions, A stretches the part of x − c across the valley by λ₂ = ' + num(l2, 2) + ' and the part along it by λ₁ = ' + num(l1, 2) + ', so the new arrow swings toward the steep direction.'),
+      math: 'A(x − c) = (' + at(0.3, num(a11) + '·' + par(d[0]) + ' + ' + par(a12) + '·' + par(d[1])) + ', ' + at(0.5, par(a12) + '·' + par(d[0]) + ' + ' + num(a22) + '·' + par(d[1])) + ')' + at(0.85, ' = ' + pair(Ad)),
+      draw: function (g, p) {
+        base(g, p);
+        g.arrow(c, x, C.gold, 2.5, 1);
+        var R = g.sideR; g.panel(R, round ? 'A scales the arrow' : 'What A does to x − c');
+        // a small diagram of its own: x − c, its parts along u₁ and u₂, the parts stretched by λ, and their sum
+        var pa = scale(u1, a), pb = scale(u2, b), sa = scale(u1, l1 * a), sb = scale(u2, l2 * b), pts = [[0, 0], d, Ad, pa, pb, sa, sb];
+        var bx0 = Math.min.apply(null, pts.map(function (v) { return v[0]; })), bx1 = Math.max.apply(null, pts.map(function (v) { return v[0]; }));
+        var by0 = Math.min.apply(null, pts.map(function (v) { return v[1]; })), by1 = Math.max.apply(null, pts.map(function (v) { return v[1]; }));
+        var mx = Math.min(70, R[2] * 0.2), my = Math.min(44, R[3] * 0.16), inner = [R[0] + mx, R[1] + my, R[2] - 2 * mx, R[3] - my - 26], k = Math.min(inner[2] / Math.max(bx1 - bx0, 1e-9), inner[3] / Math.max(by1 - by0, 1e-9));
+        var O = [inner[0] + (inner[2] - (bx1 - bx0) * k) / 2 - bx0 * k, inner[1] + (inner[3] - (by1 - by0) * k) / 2 + by1 * k];
+        function Q(v) { return [O[0] + v[0] * k, O[1] - v[1] * k]; }
+        function tip(v, text, col, q) { var A0 = Q(v), l = len(v) || 1; g.labelPx(A0[0] + v[0] / l * 12, A0[1] - v[1] / l * 12, text, col, { p: q, size: 12, align: v[0] > 0.3 * l ? 'left' : v[0] < -0.3 * l ? 'right' : 'center' }); }
+        var ctx = g.ctx; ctx.strokeStyle = C.faint; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(R[0] + 10, O[1]); ctx.lineTo(R[0] + R[2] - 10, O[1]); ctx.moveTo(O[0], R[1] + 30); ctx.lineTo(O[0], R[1] + R[3] - 8); ctx.stroke();
+        g.arrowPx(O, Q(d), C.blue, 2.5); tip(d, 'x − c', C.blue, 1);
+        if (!round) {
+          var grow = seg(p, 0.35, 0.75), la = scale(u1, a * mix(1, l1, grow)), lb = scale(u2, b * mix(1, l2, grow));
+          ctx.globalAlpha = seg(p, 0.1, 0.3) * 0.8; g.arrowPx(O, Q(pa), C.green, 1.5, [4, 3]); g.arrowPx(O, Q(pb), C.orange, 1.5, [4, 3]); ctx.globalAlpha = 1;
+          g.arrowPx(O, Q(la), C.green, 2.5); g.arrowPx(O, Q(lb), C.orange, 2.5);
+          tip(sa, 'along × λ₁ = ' + num(l1, 2), C.green, seg(p, 0.45, 0.65)); tip(sb, 'across × λ₂ = ' + num(l2, 2), C.orange, seg(p, 0.45, 0.65));
+          var s2 = seg(p, 0.75, 0.95);
+          if (s2 > 0) { ctx.globalAlpha = s2; ctx.setLineDash([3, 3]); ctx.strokeStyle = C.faint; ctx.beginPath(); ctx.moveTo(Q(sa)[0], Q(sa)[1]); ctx.lineTo(Q(Ad)[0], Q(Ad)[1]); ctx.lineTo(Q(sb)[0], Q(sb)[1]); ctx.stroke(); ctx.setLineDash([]); g.arrowPx(O, Q(Ad), C.gold, 3); ctx.globalAlpha = 1; tip(Ad, 'A(x − c) = ' + pair(Ad), C.gold, s2); }
+        } else { var s3 = seg(p, 0.4, 0.9); g.arrowPx(O, Q(scale(d, mix(1, l1, s3))), C.gold, 3); tip(Ad, 'A(x − c) = ' + pair(Ad), C.gold, s3); }
+      } });
+    out.push({ id: 'dot', chapter: 'The height', title: 'Then (x − c)ᵀ times A(x − c)', layout: 'side', dur: 3.6,
+      text: '(x − c)ᵀ is x − c laid on its side, ready to multiply A(x − c) part by part: the first parts together, the second parts together, then add. This is called a dot product, and it gives a single number.',
+      math: '(x − c)ᵀA(x − c) = ' + at(0.3, par(d[0]) + '·' + par(Ad[0])) + at(0.55, ' + ' + par(d[1]) + '·' + par(Ad[1])) + at(0.8, ' = ' + num(d[0] * Ad[0]) + ' + ' + par(d[1] * Ad[1]) + ' = ' + num(q)),
+      draw: function (g, p) {
+        g.bars(g.sideR, [
+          { name: 'first parts: ' + num(d[0]) + ' × ' + num(Ad[0]), value: d[0] * Ad[0], col: C.blue },
+          { name: 'second parts: ' + num(d[1]) + ' × ' + num(Ad[1]), value: d[1] * Ad[1], col: C.violet },
+          { name: '(x − c)ᵀA(x − c)', value: q, col: C.gold }], p, { total: true, title: 'Multiply part by part, then add', nameW: 260, d: 3 });
+      } });
+    out.push({ id: 'half', chapter: 'The height', title: 'Half of it: the valley’s height', layout: 'map', view: view, dur: 3.2,
+      text: 'Halve it: ½·' + num(q) + ' = ' + num(val) + '. That is the valley’s height at x, and every spot on the lit ring has the same height. ' +
+        '(The ½ is there so that the slope of the valley comes out as exactly A(x − c), the arrow of the last steps.)',
+      math: '½(x − c)ᵀA(x − c) = ½·' + num(q) + at(0.5, ' = ' + num(val)),
+      draw: function (g, p) {
+        base(g, p, true); g.ring(val, C.gold, 3, seg(p, 0.3, 0.6)); g.hero(x, cx.hero, 1);
+        g.label(x, 'valley height ' + num(val), C.gold, { dx: 14, dy: -16, p: seg(p, 0.5, 0.7) });
+      } });
+    if (!round) {
+      var T = Math.max(Math.abs(a), Math.abs(b)) * 1.35 || 1, top = 0.5 * Math.max(l1, l2) * T * T;
+      out.push({ id: 'parts', chapter: 'The height', title: 'Why it is a valley', layout: 'side', dur: 4.2,
+        text: 'The same number another way. x − c goes a = ' + num(a) + ' along the valley (u₁) and b = ' + num(b) + ' across it (u₂). Each part costs height like a parabola, ½·λ·(part)²: ' +
+          'along, ½·' + num(l1, 2) + '·' + par(a) + '² = ' + num(0.5 * l1 * a * a) + '; across, ½·' + num(l2, 2) + '·' + par(b) + '² = ' + num(0.5 * l2 * b * b) + '. ' +
+          'Together ' + num(val) + ', as before. A step across the valley costs ' + num(Math.max(l1, l2) / Math.min(l1, l2), 1) + ' times the height of the same step along it.',
+        math: '½(λ₁a² + λ₂b²) = ' + at(0.45, num(0.5 * l1 * a * a)) + at(0.7, ' + ' + num(0.5 * l2 * b * b)) + at(0.9, ' = ' + num(val)),
+        draw: function (g, p) {
+          var R = g.sideR, h2 = (R[3] - 8) / 2, top1 = [R[0], R[1], R[2], h2], bot = [R[0], R[1] + h2 + 8, R[2], h2];
+          [[top1, l1, a, C.green, 'along the valley: ½·λ₁·a²', 0.1], [bot, l2, b, C.orange, 'across the valley: ½·λ₂·b²', 0.35]].forEach(function (row) {
+            var pl = g.plot(row[0], [-T, T], [0, top], { title: row[4] }), lam = row[1], t1 = row[2], s0 = row[5];
+            pl.frame('', ''); pl.curve(function (t) { return 0.5 * lam * t * t; }, row[3], 2, seg(p, s0, s0 + 0.2));
+            var tt = t1 * seg(p, s0 + 0.2, s0 + 0.45); pl.point(tt, 0.5 * lam * tt * tt, row[3], seg(p, s0 + 0.2, s0 + 0.3) > 0 ? num(0.5 * lam * tt * tt) : '', seg(p, s0 + 0.2, s0 + 0.3), tt < 0 ? 'left' : 'right');
+          });
+        } });
+    }
+  });
+
+  // ------------------------------------------------------------ the weather: ripples, black holes, and the sum
+  register('weather', function (cx, out) {
+    var land = cx.land, x = cx.x, W = land.weather || {}, rip = land.ripples, hol = land.holes;
+    if (rip) {
+      var rx = rip.R(x), view = around([x], 0, Math.min(cx.span, 5 * W.L));
+      out.push({ id: 'ripples', chapter: 'The weather', title: 'Ripples: R(x)', layout: 'map', view: view, dur: 4.6,
+        text: 'Ripples are six waves laid over the land, each running its own way with its own start. Each wave is about L = ' + num(W.L) + ' long (ripple length ' + num(cx.p.ripL, 2) + ' × map width ' + num(cx.span, 2) + ') ' +
+          'and together they are about A = ' + num(W.A) + ' high (ripple height ' + num(cx.p.ripA, 2) + ' × the land’s height range ' + num(land.heightRange, 2) + '). At x they add R(x) = ' + num(rx, 4) + '.',
+        math: 'R(x) = ' + frac('A', '√6') + '·Σₖ sin(ωₖ·x + φₖ)' + at(0.85, ' = ' + num(rx, 4)),
+        draw: function (g, p) {
+          g.land(rip.R, { id: 'R', rings: 0, alpha: seg(p, 0.7, 0.95) });
+          g.axes();
+          var v = g.vis, ctx = g.ctx;
+          rip.waves.forEach(function (wv, k) {
+            var q = seg(p, 0.05 + k * 0.1, 0.15 + k * 0.1) * (1 - 0.7 * seg(p, 0.7, 0.9)); if (!(q > 0)) return;
+            var wl = len(wv.w), n = scale(wv.w, 1 / wl), tdir = [-n[1], n[0]], cen = [(v[0] + v[1]) / 2, (v[2] + v[3]) / 2], reach = (v[1] - v[0]) * 0.8;
+            var s0 = dot(cen, n), first = Math.ceil(((s0 - reach) * wl + wv.phi - Math.PI / 2) / TAU), last = Math.floor(((s0 + reach) * wl + wv.phi - Math.PI / 2) / TAU);
+            g.clip(g.mapR); ctx.globalAlpha = q * 0.75;
+            for (var m = first; m <= last; m++) { var off = (Math.PI / 2 + TAU * m - wv.phi) / wl, base = add(scale(n, off), tdir, dot(cen, tdir)); g.line(add(base, tdir, -reach), add(base, tdir, reach), k % 2 ? C.blue : C.violet, 1.2, 1); }
+            ctx.globalAlpha = 1; ctx.restore();
+          });
+          g.hero(x, cx.hero, 1);
+          g.label(x, 'R(x) = ' + num(rx, 4), C.gold, { dx: 14, dy: -16, p: seg(p, 0.85, 1) });
+        } });
+    }
+    if (hol) {
+      var bx = hol.B(x), near = hol.at.map(function (q) { return { q: q, d: len(sub(x, q)) }; }).sort(function (a, b) { return a.d - b.d; })[0];
+      out.push({ id: 'holes', chapter: 'The weather', title: 'Black holes: B(x)', layout: 'map+side', view: cx.landView, dur: 4.4,
+        text: 'Black holes are narrow, deep pits: each is a bell-shaped dip of depth D = ' + num(hol.D, 3) + ' and width w = ' + num(hol.w, 3) + ' at its spot pⱼ. ' +
+          'Far from them B is almost 0. The nearest hole is ' + num(near.d) + ' away (' + num(near.d / hol.w, 1) + ' widths), so at x, B(x) = ' + num(bx, 4) + '.',
+        math: 'B(x) = −Σⱼ D·exp(−' + frac('|x − pⱼ|²', '2w²') + ')' + at(0.85, ' = ' + num(bx, 4)),
+        draw: function (g, p) {
+          g.land(cx.J, cx.shade); g.axes();
+          hol.at.forEach(function (q, k) { g.halo(q, Math.max(4, hol.w * g.s), C.red, seg(p, 0.1 + 0.1 * k, 0.2 + 0.1 * k), 2); g.halo(q, Math.max(7, 2 * hol.w * g.s), C.red, seg(p, 0.15 + 0.1 * k, 0.25 + 0.1 * k), 1, [3, 3]); });
+          g.hero(x, cx.hero, 1); g.line(x, near.q, C.red, 1.5, seg(p, 0.45, 0.65), [5, 4]); g.label(lerp2(x, near.q, 0.5), num(near.d) + ' away', C.red, { dy: -14, p: seg(p, 0.6, 0.75) });
+          var R = g.sideR, rmax = Math.max(4 * hol.w, Math.min(near.d * 1.15, 12 * hol.w)), pl = g.plot(R, [0, rmax], [-hol.D * 1.08, hol.D * 0.15], { title: 'one pit, seen from the side' });
+          pl.frame('distance from its centre', 'B'); pl.curve(function (r) { return -hol.D * Math.exp(-r * r / (2 * hol.w * hol.w)); }, C.red, 2.2, seg(p, 0.3, 0.6));
+          var dd = Math.min(near.d, rmax); pl.point(dd, -hol.D * Math.exp(-dd * dd / (2 * hol.w * hol.w)), cx.hero === 'you' ? C.gold : HERO[cx.hero].col, near.d > rmax ? 'x is farther out' : 'x', seg(p, 0.6, 0.75));
+        } });
+    }
+    var items = cx.parts.slice();
+    if (rip) items.push({ name: 'ripples R(x)', value: rip.R(x), col: C.blue });
+    if (hol) items.push({ name: 'black holes B(x)', value: hol.B(x), col: C.red });
+    if (items.length > 1) {
+      items.push({ name: cx.hero === 'tw' ? 'f(x)' : 'J(x)', value: cx.Jx, col: C.ink });
+      out.push({ id: 'total', chapter: 'The weather', title: 'Add the parts: the height J(x)', layout: 'side', dur: 3.4,
+        text: (cx.hero === 'tw' ? 'Add the parts: the Wanderer’s height at x is f(x) = ' : 'Add the parts: the height at x is J(x) = ') + num(cx.Jx, 4) + '.' + (cx.haze ? ' In this haze nobody can know this number exactly: every tap of the ground carries an error of about σ = ' + num(cx.sigma, 4) + '.' : ''),
+        math: (cx.hero === 'tw' ? 'f(x) = ' : 'J(x) = ') + items.slice(0, -1).map(function (it, k) { return at(0.2 + 0.5 * k / items.length, (k ? ' + ' : '') + par(it.value, 4)); }).join('') + at(0.85, ' = ' + num(cx.Jx, 4)),
+        draw: function (g, p) { g.bars(g.sideR, items, p, { total: true, title: 'The height, part by part', nameW: 220 }); } });
+    }
+  });
+
+  // ------------------------------------------------------------ feeling the slope: the staff, the four taps, the slopes
+  register('taps', function (cx, out) {
+    var x = cx.x, h = cx.h, taps = cx.taps, J = cx.J, land = cx.land, names = ['East', 'West', 'North', 'South'], dirs = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+    var gT = [(taps[0].J - taps[1].J) / (2 * h), (taps[2].J - taps[3].J) / (2 * h)], mid = (taps[0].J + taps[1].J + taps[2].J + taps[3].J) / 4;
+    var who = cx.you ? 'you' : cx.who, has = cx.you ? 'have' : 'has', zoom = cx.zoom;
+    function ground(g) { g.land(J, { id: 'J', rings: 9 }); g.axes(); }
+    function tapCol(k) { return taps[k].J > mid ? C.orange : C.blue; }
+    out.push({ id: 'staff', chapter: 'Feeling the slope', title: 'The staff: h', layout: 'map', view: zoom, dur: 3.4,
+      text: 'In the fog nobody can see the land. A hero learns heights only by tapping the ground with a staff, a length h from where it stands: ' +
+        'h = staff share × map width = ' + num(cx.p.staff || 0.01, 3) + ' × ' + num(cx.span, 2) + ' = ' + num(h, 4) + '. We zoom in to look closely at the ground around x.',
+      math: 'h = ' + num(cx.p.staff || 0.01, 3) + ' × ' + num(cx.span, 2) + ' = ' + at(0.5, num(h, 4)),
+      draw: function (g, p) {
+        ground(g); g.hero(x, cx.hero, 1);
+        g.halo(x, h * g.s, C.gold, seg(p, 0.35, 0.55), 1.5, [5, 4]);
+        dirs.forEach(function (dv, k) { g.line(x, add(x, dv, h), C.faint, 1.5, seg(p, 0.45 + 0.08 * k, 0.6 + 0.08 * k)); });
+        g.label(add(x, [0.5, 0.5], h * 0.72), 'h = ' + num(h, 4), C.gold, { dx: 8, p: seg(p, 0.7, 0.9) });
+      } });
+    out.push({ id: 'four', chapter: 'Feeling the slope', title: 'Four taps, four heights', layout: 'map', view: zoom, dur: 4.2,
+      text: 'The staff touches the ground four times: east, west, north and south of x, each h away. Each tap gives the height there, worked out with the same formula J. ' +
+        (cx.haze ? 'In this haze every tap is off by a random amount of about σ = ' + num(cx.sigma, 4) + ', and nobody can tell by how much. ' : '') +
+        'Orange taps are higher than the average of the four, blue ones lower.',
+      math: taps.map(function (tp, k) { return at(0.15 + 0.2 * k, names[k] + ' ' + pair(tp.at) + ': J = ' + num(tp.J, 4)); }).join('<br>'),
+      draw: function (g, p) {
+        ground(g); g.hero(x, cx.hero, 1); g.halo(x, h * g.s, C.faint, 1, 1, [5, 4]);
+        taps.forEach(function (tp, k) {
+          var s = seg(p, 0.1 + 0.2 * k, 0.25 + 0.2 * k); g.tap(tp.at, C.gold, seg(p, 0.1 + 0.2 * k, 0.35 + 0.2 * k)); g.dot(tp.at, 6, tapCol(k), s);
+          g.label(tp.at, names[k] + ' ' + num(tp.J, 4), tapCol(k), { dx: k === 1 ? -110 : 10, dy: k === 2 ? -16 : k === 3 ? 16 : -14, p: s });
+        });
+      } });
+    function slopeStep(id, i1, i2, axis) {
+      var a = taps[i1], b = taps[i2], s = (a.J - b.J) / (2 * h), along = axis === 0 ? [1, 0] : [0, 1], nm = axis === 0 ? ['East', 'West'] : ['North', 'South'];
+      var line = function (t) { var q = x.slice(); q[axis] = t; return J(q); }, t0 = x[axis], tr = [t0 - 2.6 * h, t0 + 2.6 * h];
+      var vs = [], k; for (k = 0; k <= 40; k++) vs.push(line(tr[0] + (tr[1] - tr[0]) * k / 40)); vs.push(a.J, b.J);
+      var vlo = Math.min.apply(null, vs), vhi = Math.max.apply(null, vs), pad = (vhi - vlo) * 0.25 || 1e-3;
+      var fall = s < 0, dirWord = axis === 0 ? (fall ? 'east' : 'west') : (fall ? 'north' : 'south');
+      out.push({ id: id, chapter: 'Feeling the slope', title: nm[0] + ' minus ' + nm[1].toLowerCase() + ': the slope along x' + (axis ? '₂' : '₁'), layout: 'map+side', view: zoom, dur: 4.6,
+        text: 'Going from the ' + nm[1].toLowerCase() + ' tap to the ' + nm[0].toLowerCase() + ' tap moves 2h = ' + num(2 * h, 4) + (axis ? ' north' : ' east') + ' and changes the height by J' + (axis ? '<sub>North</sub> − J<sub>South</sub>' : '<sub>East</sub> − J<sub>West</sub>') + ' = ' + num(a.J, 4) + ' − ' + par(b.J, 4) + ' = ' + num(a.J - b.J, 4) + '. ' +
+          'Height change over distance is the slope: ' + num(a.J - b.J, 4) + '/' + num(2 * h, 4) + ' = ' + num(s) + '. ' + (Math.abs(s) < 1e-9 ? 'The land is level this way.' : 'The land falls toward the ' + dirWord + '.') +
+          (cx.haze ? ' The haze moved the taps off the true ground (the curve), so this slope is a little wrong.' : ''),
+        math: '∂J/∂x' + (axis ? '₂' : '₁') + ' ≈ ' + frac('J<sub>' + nm[0] + '</sub> − J<sub>' + nm[1] + '</sub>', '2h') + at(0.45, ' = ' + frac(num(a.J, 4) + ' − ' + par(b.J, 4), num(2 * h, 4))) + at(0.85, ' = ' + num(s)),
+        draw: function (g, p) {
+          ground(g); g.hero(x, cx.hero, 1);
+          g.line(b.at, a.at, C.gold, 2.5, seg(p, 0.05, 0.25)); g.dot(a.at, 6, tapCol(i1), 1); g.dot(b.at, 6, tapCol(i2), 1);
+          g.label(a.at, nm[0], tapCol(i1), { dx: 8, dy: -12 }); g.label(b.at, nm[1], tapCol(i2), { dx: axis ? 8 : -50, dy: axis ? 14 : -12 });
+          var pl = g.plot(g.sideR, tr, [vlo - pad, vhi + pad], { title: 'the ground along x' + (axis ? '₂' : '₁') + ', seen from the side' });
+          pl.frame('x' + (axis ? '₂' : '₁') + ' →', 'J');
+          pl.curve(line, C.dim, 1.8, seg(p, 0.05, 0.3));
+          pl.point(b.at[axis], b.J, tapCol(i2), nm[1] + ' ' + num(b.J, 4), seg(p, 0.25, 0.35), 'left');
+          pl.point(a.at[axis], a.J, tapCol(i1), nm[0] + ' ' + num(a.J, 4), seg(p, 0.35, 0.45), 'right');
+          pl.seg(b.at[axis], b.J, a.at[axis], a.J, C.gold, 2.5, seg(p, 0.45, 0.6));
+          pl.run(b.at[axis], a.at[axis], Math.min(a.J, b.J) - pad * 0.45, 'run 2h = ' + num(2 * h, 4), C.ink, seg(p, 0.55, 0.7));
+          pl.rise(Math.max(a.at[axis], b.at[axis]) + 0.15 * h, b.J, a.J, 'rise ' + num(a.J - b.J, 4), C.ink, seg(p, 0.65, 0.8));
+          g.labelPx(pl.box[0] + pl.box[2] / 2, pl.box[1] + 14, 'slope = rise/run = ' + num(s), C.gold, { align: 'center', p: seg(p, 0.85, 1), size: 13 });
+        } });
+      return s;
+    }
+    slopeStep('ew', 0, 1, 0); slopeStep('ns', 2, 3, 1);
+    var gl = len(gT), k0 = gl > 0 ? 0.32 * 7.2 * h / gl : 1;
+    out.push({ id: 'grad', chapter: 'Feeling the slope', title: 'The gradient ∇J: both slopes in one arrow', layout: 'map', view: zoom, dur: 4.4,
+      text: 'Put the two slopes together as one arrow, the gradient ∇J ≈ ' + pair(gT) + ': ' + num(Math.abs(gT[0])) + (gT[0] < 0 ? ' westward' : ' eastward') + ' and ' + num(Math.abs(gT[1])) + (gT[1] < 0 ? ' southward' : ' northward') + ', drawn shrunk to fit. ' +
+        'It points straight uphill, at right angles to the ring of equal height through x. Its length, ' + num(gl) + ', says how steep the ground is.',
+      math: '∇J ≈ (∂J/∂x₁, ∂J/∂x₂) = ' + at(0.75, pair(gT)),
+      draw: function (g, p) {
+        ground(g); g.ring(cx.Jx, C.ink, 2, seg(p, 0.05, 0.25)); g.hero(x, cx.hero, 1);
+        var e1 = add(x, [gT[0] * k0, 0]), tip = add(x, gT, k0);
+        g.arrow(x, e1, C.violet, 2.5, seg(p, 0.2, 0.4)); g.label(e1, num(gT[0]), C.violet, { dx: gT[0] < 0 ? -60 : 8, dy: 14, p: seg(p, 0.3, 0.45) });
+        g.arrow(e1, tip, C.violet, 2.5, seg(p, 0.4, 0.6)); g.label(lerp2(e1, tip, 0.5), num(gT[1]), C.violet, { dx: 8, p: seg(p, 0.5, 0.65) });
+        g.arrow(x, tip, C.orange, 3.5, seg(p, 0.62, 0.85)); g.tipLabel(tip, gT, '∇J, uphill', C.orange, seg(p, 0.8, 1));
+        if (gl > 0) g.square(x, scale(gT, 1 / gl), [-gT[1] / gl, gT[0] / gl], 12, C.ink, seg(p, 0.85, 1));
+      } });
+    // the exact slope: the parts' slopes, tip to tail, beside the taps' arrow
+    var parts = cx.gradParts.slice(), gx = cx.gTrue;
+    if (land.ripples) parts.push({ name: 'ripples ∇R(x)', vec: land.ripples.grad(x), col: C.blue });
+    if (land.holes) parts.push({ name: 'black holes ∇B(x)', vec: land.holes.grad(x), col: C.red });
+    var top = Math.max(len(gx), gl, 1e-12), k1 = 0.32 * 7.2 * h / top;
+    var tapNote = cx.haze ? 'The taps can differ because haze perturbs every measured height' + (land.ripples || land.holes ? ', and finite spacing also averages the changing slope between the taps.' : '.') :
+      (land.ripples || land.holes ? 'The taps can differ because finite spacing averages a slope that changes between the taps.' : 'On this quadratic land, centred taps recover the exact slope; any displayed mismatch is only rounding.');
+    out.push({ id: 'exact', chapter: 'Feeling the slope', title: 'The slope, exactly', layout: 'map', view: zoom, dur: 4.4,
+      text: 'The formula also gives the slope exactly, with no taps: ' + parts.map(function (q) { return q.name + ' = ' + pair(q.vec); }).join(', ') + (parts.length > 1 ? ', together ' : ': ') + '∇J(x) = ' + pair(gx) + '. ' +
+        'The taps said ' + pair(gT) + '. ' + tapNote + ' ' +
+        (cx.haze ? 'In this haze the heroes cannot use the formula: they only have their taps.' : cx.you ? 'Your staff only ever gives the taps.' : 'In clear air the heroes use the exact slope.'),
+      math: '∇J(x) = ' + parts.map(function (q, k) { return at(0.15 + 0.25 * k, (k ? ' + ' : '') + pair(q.vec)); }).join('') + at(0.8, ' = ' + pair(gx)),
+      draw: function (g, p) {
+        ground(g); g.hero(x, cx.hero, 1);
+        var from = x;
+        parts.forEach(function (q, k) { var to = add(from, q.vec, k1), s = seg(p, 0.1 + 0.25 * k, 0.3 + 0.25 * k); g.arrow(from, to, q.col, 2.5, s); from = to; });
+        g.arrow(x, add(x, gx, k1), C.ink, 3.5, seg(p, 0.7, 0.9));
+        g.arrow(x, add(x, gT, k1), C.orange, 2, seg(p, 0.85, 1), [6, 4]);
+        g.legend(parts.map(function (q) { return [q.col, q.name + ' = ' + pair(q.vec)]; }).concat([[C.ink, 'exact ∇J = ' + pair(gx)], [C.orange, 'taps ∇J ≈ ' + pair(gT), [6, 4]]]), seg(p, 0.05, 0.2));
+      } });
+  });
+
+  // ------------------------------------------------------------ the Pilgrim's stride
+  register('pgStride', function (cx, out) {
+    var rec = cx.rec; if (!rec) return;
+    var x = cx.x, g0 = rec.g, a = cx.p.alpha, stp = scale(g0, -a), raw = rec.raw, nx = rec.x, gl = len(g0), k0 = gl > 0 ? 0.32 * 7.2 * cx.h / gl : 1, land = cx.land;
+    out.push({ id: 'down', chapter: 'The stride', title: 'Downhill is −∇J', layout: 'map', view: cx.zoom, dur: 3.2,
+      text: 'The gradient points uphill, so the Pilgrim turns the other way: downhill is −∇J = ' + pair(scale(g0, -1)) + '.' + (cx.haze ? ' (In this haze it uses the slope its taps gave.)' : ''),
+      math: '−∇J = ' + at(0.6, pair(scale(g0, -1))),
+      draw: function (g, p) {
+        g.land(cx.J, { id: 'J', rings: 9 }); g.axes(); g.hero(x, 'pg', 1);
+        var ang = Math.atan2(g0[1], g0[0]) + Math.PI * seg(p, 0.2, 0.7), dir = [Math.cos(ang), Math.sin(ang)];
+        g.arrow(x, add(x, dir, gl * k0), p < 0.7 ? C.orange : C.ink, 3.5, 1); g.tipLabel(add(x, dir, gl * k0), dir, p < 0.7 ? '∇J' : 'downhill, −∇J', p < 0.7 ? C.orange : C.ink, 1);
+      } });
+    var v2 = around([x, raw, nx], 0.5, 12 * cx.h);
+    out.push({ id: 'alpha', chapter: 'The stride', title: 'How far: α times the slope', layout: 'map', view: v2, dur: 3.6,
+      text: 'The Pilgrim has no memory and no map. Its stride is always the same share α = ' + num(a) + ' of the slope: −α∇J = −' + num(a) + '·' + pair(g0) + ' = ' + pair(stp) + '. On steep ground the stride is long; on flat ground it is short.',
+      math: '−α∇J = −' + num(a) + '·' + pair(g0) + at(0.6, ' = ' + pair(stp)),
+      draw: function (g, p) {
+        g.land(cx.J, cx.shade); g.axes(); g.hero(x, 'pg', 1);
+        g.arrow(x, raw, C.ink, 3.5, seg(p, 0.2, 0.75)); g.label(lerp2(x, raw, 0.55), '−α∇J', C.ink, { dx: 10, dy: -14, p: seg(p, 0.6, 0.8) });
+        if (land.box) { var b = land.box; g.path([[b[0], b[0]], [b[1], b[0]], [b[1], b[1]], [b[0], b[1]], [b[0], b[0]]], C.blue, 2, 1); }
+      } });
+    out.push({ id: 'new', chapter: 'The stride', title: 'The new spot', layout: 'map', view: v2, dur: 3.6,
+      text: 'x ← x − α∇J = ' + pair(x) + ' + ' + pair(stp) + ' = ' + pair(raw) + '. ' + (rec.clipped ? 'That spot lies outside the ' + (cx.key === 'wall' ? 'wall' : 'realm') + ', so the Pilgrim is set back to the nearest spot inside, ' + pair(nx) + '. ' : '') +
+        'There the height is J = ' + num(rec.J, 4) + ', ' + (rec.J < cx.Jx ? 'down' : 'up') + ' from ' + num(cx.Jx, 4) + '.',
+      math: 'x ← x − α∇J = ' + at(0.4, pair(raw)) + (rec.clipped ? at(0.7, ' → set back to ' + pair(nx)) : '') + '<br>' + at(0.85, 'J: ' + num(cx.Jx, 4) + ' → ' + num(rec.J, 4)),
+      draw: function (g, p) {
+        g.land(cx.J, cx.shade); g.axes();
+        if (land.box) { var b = land.box; g.path([[b[0], b[0]], [b[1], b[0]], [b[1], b[1]], [b[0], b[1]], [b[0], b[0]]], C.blue, 2, 1); }
+        var m1 = seg(p, 0.1, 0.55), at1 = lerp2(x, raw, m1);
+        g.path([x, at1], 'rgba(255,176,113,0.6)', 2.5, 1);
+        if (rec.clipped) { var m2 = seg(p, 0.6, 0.8); g.line(raw, nx, C.blue, 2, m2, [5, 4]); g.hero(m2 > 0 ? lerp2(raw, nx, m2) : at1, 'pg', 1); }
+        else g.hero(at1, 'pg', 1);
+        g.label(x, 'J = ' + num(cx.Jx, 4), C.dim, { dx: 12, dy: 16 });
+        g.label(nx, 'J = ' + num(rec.J, 4), C.gold, { dx: 12, dy: -16, p: seg(p, 0.85, 1) });
+      } });
+    var w = cx.walk, ahead = w.slice(cx.k, Math.min(w.length, cx.k + 9)).map(function (d) { return d.x; });
+    if (ahead.length > 2) {
+      var turns = 0; for (var j = 2; j < ahead.length; j++) { var s1 = sub(ahead[j - 1], ahead[j - 2]), s2 = sub(ahead[j], ahead[j - 1]); if (dot(s1, s2) < -0.3 * len(s1) * len(s2)) turns++; }
+      out.push({ id: 'again', chapter: 'The stride', title: 'And again, day after day', layout: 'map', view: around(ahead, 0.35, 10 * cx.h), dur: 4.2,
+        text: 'Tomorrow the Pilgrim starts from the new spot and does it all again: four taps, the slope, one stride. Here are its next ' + (ahead.length - 1) + ' days.' +
+          (turns >= 2 ? ' Each stride overshoots the valley’s floor, so the Pilgrim zigzags from side to side: its fixed share α cannot tell a steep side from a long way down.' : ''),
+        math: 'x<sub>k+1</sub> = x<sub>k</sub> − α∇J(x<sub>k</sub>)',
+        draw: function (g, p) {
+          g.land(cx.J, cx.shade); g.axes();
+          var n = ahead.length - 1, s = seg(p, 0.05, 0.9) * n, kk = Math.floor(s), f = s - kk;
+          g.path(ahead.slice(0, kk + 1).concat(kk < n ? [lerp2(ahead[kk], ahead[kk + 1], ease(f))] : []), C.orange, 2.5, 1);
+          ahead.slice(1, kk + 1).forEach(function (q, m) { g.dot(q, 4, C.orange, 1); g.label(q, 'day ' + (cx.k + m + 1), C.dim, { dx: 8, dy: -10, size: 11 }); });
+          g.hero(kk < n ? lerp2(ahead[kk], ahead[kk + 1], ease(f)) : ahead[n], 'pg', 1);
+        } });
+    }
+  });
+
+  // ------------------------------------------------------------ your own move
+  register('youDown', function (cx, out) {
+    var x = cx.x, gT = cx.gTaps, gl = len(gT), k0 = gl > 0 ? 0.32 * 7.2 * cx.h / gl : 1, dn = scale(gT, -1), ang = Math.atan2(dn[1], dn[0]);
+    var names = ['east', 'north-east', 'north', 'north-west', 'west', 'south-west', 'south', 'south-east'], toward = names[Math.round(((ang % TAU) + TAU) % TAU / (Math.PI / 4)) % 8];
+    out.push({ id: 'walk', chapter: 'Your move', title: 'Downhill is −∇J: turn and walk', layout: 'map', view: cx.zoom, dur: 3.4,
+      text: 'Your taps say the land rises toward ∇J ≈ ' + pair(gT) + ', so downhill is −∇J = ' + pair(dn) + ', toward the ' + toward + '. ' +
+        'Turn to face it and walk (W). The slope changes as you go, so feel again (F) every few steps: that is gradient descent, done by hand.',
+      math: '−∇J = ' + at(0.6, pair(dn)),
+      draw: function (g, p) {
+        g.land(cx.J, { id: 'J', rings: 9 }); g.axes(); g.hero(x, 'you', 1);
+        var a0 = Math.atan2(gT[1], gT[0]) + Math.PI * seg(p, 0.2, 0.7), dir = [Math.cos(a0), Math.sin(a0)];
+        g.arrow(x, add(x, dir, gl * k0), p < 0.7 ? C.orange : C.ink, 3.5, 1); g.tipLabel(add(x, dir, gl * k0), dir, p < 0.7 ? '∇J' : 'downhill: walk this way', p < 0.7 ? C.orange : C.ink, 1);
+      } });
+  });
+
+  return { register: register, open: open, openSteps: openSteps, onStep: function (f) { stepHook = f; }, go: function (n) { playing = false; playLabel(); go(n); }, close: close, key: key, debug: debug, plan: plan, H: H, Kit: Kit,
+           isOpen: function () { return opened; }, onClose: function (f) { closeHook = f; },
+           steps: function () { return steps.map(function (s) { return { id: s.id, chapter: s.chapter, title: s.title, text: s.text, math: s.math, layout: s.layout }; }); } };
+})();
+</script>
+<script>
+// The training-plan case study of the tutorial "The Coach and the Physio" (the_coach_and_the_physio.html): an
+// athlete's next hard session is one plan q = (t, w), the day it happens and its load.  The Coach wants the session
+// with the greatest training benefit, read off the predicted readiness curve; the Physio keeps the session inside a
+// set of safety rules.  The two negotiate with ADMM in scaled form: the Coach's copy x, the Physio's copy z, a
+// tether of stiffness rho, and the planning log u.  After the session happens, the readiness curve changes and the
+// next plan is negotiated: the recovery cycle is the outer loop, ADMM the inner one.  Plain JavaScript (Node 12).
+var Plan = (function () {
+  function copy(o, extra) { var r = {}, k; for (k in o) r[k] = o[k]; for (k in (extra || {})) r[k] = extra[k]; return r; }
+  function sub(a, b) { return [a[0] - b[0], a[1] - b[1]]; }
+  function add(a, b) { return [a[0] + b[0], a[1] + b[1]]; }
+  function scale(a, s) { return [a[0] * s, a[1] * s]; }
+  function dot(a, b) { return a[0] * b[0] + a[1] * b[1]; }
+  function norm(a) { return Math.hypot(a[0], a[1]); }
+
+  // ---------------------------------------------------------------- the body: the readiness curve
+  // Every hard session leaves two traces that fade at different speeds: fitness, small and slow (k1, tau1), and
+  // fatigue, large and fast (k2, tau2).  Readiness is their sum over the sessions done so far, on top of the rested
+  // baseline 1: a dip right after a session, a recovery, a crest (the supercompensation), and a return to baseline.
+  function readiness(history, p) {
+    return function (t) {
+      var r = 1;
+      for (var i = 0; i < history.length; i++) {
+        var dt = t - history[i].t; if (dt < 0) continue;
+        r += history[i].w / p.wRef * (p.k1 * Math.exp(-dt / p.tau1) - p.k2 * Math.exp(-dt / p.tau2));
+      }
+      return r;
+    };
+  }
+  // the crest of one session's trace, in days after it (where fitness minus fatigue is largest)
+  function crestOf(p) { return p.tau1 * p.tau2 / (p.tau1 - p.tau2) * Math.log(p.k2 * p.tau1 / (p.k1 * p.tau2)); }
+
+  // ---------------------------------------------------------------- the Coach: the benefit of a session
+  // A session of load w on a day of readiness r gains w * (r - r0), less a * w^2 for doing too much at once; below
+  // readiness r0 a session does harm.  The Coach's cost is minus the benefit.
+  function benefit(r, p) { return function (q) { return q[1] * (r(q[0]) - p.r0) - p.a * q[1] * q[1]; }; }
+  // tMin: a plan cannot come before the last session, so the map is flat there (no cliff at day 0 in the shading)
+  function cost(r, p, tMin) { var b = benefit(r, p); return function (q) { return -b(tMin == null ? q : [Math.max(q[0], tMin), q[1]]); }; }
+  // the lowest point of a function of one number on [lo, hi]: a fine grid, then golden-section refinement
+  function argmin1(f, lo, hi, n) {
+    n = n || 1200; var best = lo, bv = Infinity, i;
+    for (i = 0; i <= n; i++) { var t = lo + (hi - lo) * i / n, v = f(t); if (v < bv) { bv = v; best = t; } }
+    var a = Math.max(lo, best - (hi - lo) / n), b = Math.min(hi, best + (hi - lo) / n), gr = (Math.sqrt(5) - 1) / 2;
+    var c = b - gr * (b - a), d = a + gr * (b - a), fc = f(c), fd = f(d);
+    for (i = 0; i < 60; i++) { if (fc < fd) { b = d; d = c; fd = fc; c = b - gr * (b - a); fc = f(c); } else { a = c; c = d; fc = fd; d = a + gr * (b - a); fd = f(d); } }
+    var m = (a + b) / 2; return { t: m, v: f(m) };
+  }
+  // The Coach's step: the lowest point of cost + rho/2 |q - v|^2.  For each day t the load is exact,
+  // w(t) = (g(t) + rho v_w) / (2a + rho) with g = r - r0; what remains is one number, t, searched on a fine grid.
+  // With rho -> 0 this is the Coach's own best session, the crest of the curve with load g / 2a.
+  function coachStep(prob, v, rho) {
+    var p = prob.p, g = function (t) { return prob.r(t) - p.r0; };
+    function wOf(t) { return (g(t) + rho * v[1]) / (2 * p.a + rho); }
+    function h(t) { var w = wOf(t), gt = g(t); return -w * gt + p.a * w * w + rho / 2 * ((t - v[0]) * (t - v[0]) + (w - v[1]) * (w - v[1])); }
+    var m = argmin1(h, p.tRange[0], p.tRange[1]);
+    return { x: [m.t, wOf(m.t)], value: m.v, along: h, loadOf: wOf };
+  }
+
+  // ---------------------------------------------------------------- the Physio: the rules, a convex polygon
+  // Each rule is a half-plane a.q <= b of the plan q = (t, w): the day comes after the recovery time, the load is
+  // at most `ramp` times the last session's, the load allowed grows with the days of rest taken (the workload
+  // rule), the session leaves `taper` days before the race, and a load is not negative.
+  function rules(history, p) {
+    var last = history[history.length - 1];
+    return [
+      { id: 'recovery', a: [-1, 0], b: -(last.t + p.recovery), name: 'recovery: at least ' + p.recovery + ' days after the last hard session', short: 't ≥ ' + fmt(last.t + p.recovery) },
+      { id: 'ramp', a: [0, 1], b: p.ramp * last.w, name: 'ramp: at most ' + Math.round((p.ramp - 1) * 100) + '% more load than last time', short: 'w ≤ ' + fmt(p.ramp * last.w) },
+      { id: 'workload', a: [-p.s, 1], b: p.w0 - p.s * last.t, name: 'workload: the load allowed grows with the rest taken', short: 'w ≤ ' + fmt(p.w0) + ' + ' + fmt(p.s) + '·(t − ' + fmt(last.t) + ')' },
+      { id: 'taper', a: [1, 0], b: p.race - p.taper, name: 'taper: no hard session in the last ' + p.taper + ' days before the race (day ' + p.race + ')', short: 't ≤ ' + fmt(p.race - p.taper) },
+      { id: 'load', a: [0, -1], b: 0, name: 'a load is not negative', short: 'w ≥ 0' }
+    ];
+  }
+  function fmt(v) { var s = (Math.round(v * 100) / 100).toString(); return s; }
+  function satisfied(rl, q, tol) { tol = tol == null ? 1e-9 : tol; return dot(rl.a, q) <= rl.b + tol; }
+  function inside(rs, q, tol) { for (var i = 0; i < rs.length; i++) if (!satisfied(rs[i], q, tol)) return false; return true; }
+  // the polygon of all the rules: a big box cut by each half-plane in turn (Sutherland–Hodgman)
+  function polygon(rs, p) {
+    var box = [[p.tRange[0] - 5, p.wRange[0] - 5], [p.tRange[1] + 5, p.wRange[0] - 5], [p.tRange[1] + 5, p.wRange[1] + 5], [p.tRange[0] - 5, p.wRange[1] + 5]], poly = box;
+    rs.forEach(function (rl) {
+      var out = [];
+      for (var i = 0; i < poly.length; i++) {
+        var A = poly[i], B = poly[(i + 1) % poly.length], fa = rl.b - dot(rl.a, A), fb = rl.b - dot(rl.a, B);
+        if (fa >= 0) out.push(A);
+        if ((fa >= 0) !== (fb >= 0)) { var s = fa / (fa - fb); out.push([A[0] + s * (B[0] - A[0]), A[1] + s * (B[1] - A[1])]); }
+      }
+      poly = out;
+    });
+    var area = 0; for (var i = 0; i < poly.length; i++) { var A = poly[i], B = poly[(i + 1) % poly.length]; area += A[0] * B[1] - B[0] * A[1]; }
+    return { verts: poly, area: Math.abs(area) / 2, empty: poly.length < 3 || Math.abs(area) < 1e-9 };
+  }
+  // the Physio's step: the nearest point of the polygon, exact (the point itself if inside, else the nearest point of
+  // the nearest edge)
+  function project(poly, rs, q) {
+    if (inside(rs, q)) return q.slice();
+    var best = null, bd = Infinity, V = poly.verts;
+    for (var i = 0; i < V.length; i++) {
+      var A = V[i], B = V[(i + 1) % V.length], d = sub(B, A), L2 = dot(d, d), s = L2 > 0 ? Math.max(0, Math.min(1, dot(sub(q, A), d) / L2)) : 0, f = add(A, scale(d, s)), dist = norm(sub(q, f));
+      if (dist < bd) { bd = dist; best = f; }
+    }
+    return best;
+  }
+  // which rules hold with equality at q (the edges q stands on)
+  function active(rs, q, tol) { return rs.filter(function (rl) { return Math.abs(dot(rl.a, q) - rl.b) <= (tol == null ? 1e-6 : tol); }); }
+
+  // ---------------------------------------------------------------- one planning problem
+  function problem(history, p) {
+    history = history.slice();   // the curve must not change when later sessions join the season's history
+    var r = readiness(history, p), J = cost(r, p, history[history.length - 1].t), rs = rules(history, p), poly = polygon(rs, p);
+    var free = coachStep({ p: p, r: r }, [0, 0], 1e-12).x;
+    var prob = { p: p, history: history.slice(), last: history[history.length - 1], r: r, J: J, benefit: benefit(r, p), rules: rs, poly: poly, free: free, freeJ: J(free), empty: poly.empty };
+    prob.crest = argmin1(function (t) { return -r(t); }, p.tRange[0], p.tRange[1]).t;
+    prob.freeZ = poly.empty ? null : project(poly, rs, free);
+    prob.best = poly.empty ? null : bestSafe(prob);
+    return prob;
+  }
+  // the best safe session by brute force: a coarse grid over the polygon's box, then a fine one around the best cell
+  function bestSafe(prob) {
+    var V = prob.poly.verts, t0 = Infinity, t1 = -Infinity, w0 = Infinity, w1 = -Infinity;
+    V.forEach(function (q) { t0 = Math.min(t0, q[0]); t1 = Math.max(t1, q[0]); w0 = Math.min(w0, q[1]); w1 = Math.max(w1, q[1]); });
+    function scan(ta, tb, wa, wb, n) {
+      var best = null, bv = Infinity;
+      for (var i = 0; i <= n; i++) for (var j = 0; j <= n; j++) {
+        var q = [ta + (tb - ta) * i / n, wa + (wb - wa) * j / n]; if (!inside(prob.rules, q)) continue;
+        var v = prob.J(q); if (v < bv) { bv = v; best = q; }
+      }
+      return best;
+    }
+    var q = scan(t0, t1, w0, w1, 240), h = Math.max(t1 - t0, w1 - w0) / 240;
+    for (var k = 0; k < 3; k++) { var q2 = scan(q[0] - 2 * h, q[0] + 2 * h, q[1] - 2 * h, q[1] + 2 * h, 80); if (q2) q = q2; h = 4 * h / 80; }
+    // the exact lowest point along the edge the grid found: a golden search along it
+    var act = active(prob.rules, q, 3 * h);
+    if (act.length === 1) {
+      var rl = act[0], dir = [-rl.a[1], rl.a[0]], base = q.slice();
+      var m = argmin1(function (s) { var qq = add(base, scale(dir, s)); return inside(prob.rules, qq, 1e-9) ? prob.J(qq) : Infinity; }, -0.5, 0.5, 400);
+      q = add(base, scale(dir, m.t));
+    }
+    return { q: q, J: prob.J(q), active: active(prob.rules, q, 1e-4).map(function (rl) { return rl.id; }) };
+  }
+
+  // ---------------------------------------------------------------- the negotiation: ADMM in scaled form
+  // Rounds k = 1, 2, ...: the aim v = z - u, the Coach's step x, the Physio's step z = proj(x + u), the log
+  // u <- u + x - z.  With o.ropeAlone the log is wiped after every round: the tether without memory.
+  function solve(prob, o) {
+    o = o || {}; var p = prob.p, rho = o.rho == null ? p.rho : o.rho, maxRounds = o.rounds || p.maxRounds, tol = p.tol;
+    var x = (o.start || prob.free).slice(), z = project(prob.poly, prob.rules, x), u = [0, 0];
+    var rounds = [{ k: 0, x: x, z: z, u: u, v: null, primal: norm(sub(x, z)), dual: null, zPrev: null, uPrev: null, xPrev: null }], stop = null;
+    for (var k = 1; k <= maxRounds; k++) {
+      var v = sub(z, u), step = coachStep(prob, v, rho), nx = step.x, nz = project(prob.poly, prob.rules, add(nx, u)), nu = o.ropeAlone ? [0, 0] : add(u, sub(nx, nz));
+      var rec = { k: k, v: v, x: nx, z: nz, u: nu, xPrev: x, zPrev: z, uPrev: u, primal: norm(sub(nx, nz)), dual: rho * norm(sub(nz, z)), gap: sub(nx, nz), stepValue: step.value };
+      rounds.push(rec); x = nx; z = nz; u = nu;
+      if (!o.ropeAlone && rec.primal <= tol && rec.dual <= tol) { stop = k; break; }
+    }
+    var fin = rounds[rounds.length - 1];
+    return { rounds: rounds, final: fin, stop: stop, rho: rho, tol: tol, plan: fin.z, converged: stop != null, ropeAlone: !!o.ropeAlone };
+  }
+
+  // ---------------------------------------------------------------- the season: plan, train, plan again
+  function season(p) {
+    var history = p.history.map(function (h) { return copy(h); }), plans = [];
+    for (var n = 0; n < p.maxSessions; n++) {
+      var prob = problem(history, p);
+      if (prob.empty) { plans.push({ prob: prob, sol: null, empty: true }); break; }
+      var sol = solve(prob), alone = solve(prob, { ropeAlone: true, rounds: p.ropeAloneRounds });
+      plans.push({ prob: prob, sol: sol, alone: alone, empty: false });
+      history.push({ t: sol.plan[0], w: sol.plan[1] });   // the session the athlete does is the safe plan
+    }
+    return { plans: plans, history: history, sessions: history.slice(p.history.length) };
+  }
+  function build(over) {
+    var p = copy(PRESET, over), s = season(p), first = s.plans[0];
+    return { p: p, season: s, first: first, prob: first.prob, sol: first.sol, alone: first.alone, history: s.history, sessions: s.sessions, crest: crestOf(p) };
+  }
+
+  var PRESET = { k1: 1.0, tau1: 5, k2: 1.5, tau2: 1.5, wRef: 5, r0: 0.6, a: 0.05,
+                 recovery: 2, ramp: 1.1, w0: 1.0, s: 0.9, taper: 3, race: 14,
+                 rho: 0.1, tol: 0.01, maxRounds: 80, ropeAloneRounds: 10, maxSessions: 4,
+                 history: [{ t: 0, w: 5 }], tRange: [0, 12], wRange: [0, 10] };
+  return { PRESET: PRESET, build: build, season: season, problem: problem, solve: solve, readiness: readiness, crestOf: crestOf, benefit: benefit, cost: cost,
+           coachStep: coachStep, rules: rules, polygon: polygon, project: project, inside: inside, satisfied: satisfied, active: active, bestSafe: bestSafe, argmin1: argmin1,
+           sub: sub, add: add, scale: scale, dot: dot, norm: norm, copy: copy };
+})();
+if (typeof module !== 'undefined') module.exports = Plan;
+</script>
+<script>
+// The drawing parts of the tutorial "The Coach and the Physio" (plan_course.js): the map of plans (days across,
+// load up), the two specialists, the safe polygon and its rules, the tether, the planning log, and the side panels:
+// the readiness curve, the Coach's scan, the two gauges, and the season's calendar.  The kit g comes from board.js.
+var PlanParts = (function () {
+  'use strict';
+  var B = window.Board; if (!B) return null;
+  var H = B.H, C = H.C, seg = H.seg, num = H.num, clamp = H.clamp, mix = H.mix, backOut = H.backOut, nice = H.nice, sub = H.sub, add = H.add, scale = H.scale, len = H.len;
+  var TAU = 2 * Math.PI, COACH = '#e6e9ee', PHYSIO = C.blue, LOG = C.orange, AIM = C.violet, SAFE = 'rgba(169,205,246,0.10)';
+  function places(step) { return clamp(Math.ceil(-Math.log(step) / Math.LN10 - 1e-9), 0, 7); }
+  function rrect(c, x, y, w, h, r) { r = Math.min(r, w / 2, h / 2); c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r); c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath(); }
+  function subscript(n) { var d = '₀₁₂₃₄₅₆₇₈₉'; return String(n).split('').map(function (q) { return d.charAt(Number(q)); }).join(''); }
+
+  // ------------------------------------------------------------ the map of plans
+  function axes(g, xl, yl) {
+    var c = g.ctx, R = g.mapR, v = g.vis, step = nice((v[1] - v[0]) / 5), d = places(step);
+    c.font = '11px ' + g.mono; c.fillStyle = C.dim; c.strokeStyle = C.faint; c.lineWidth = 1; c.textAlign = 'center'; c.textBaseline = 'bottom';
+    for (var t = Math.ceil(v[0] / step) * step; t <= v[1]; t += step) { var a = g.P([t, v[2]]); if (a[0] < R[0] + 18 || a[0] > R[0] + R[2] - 24) continue; c.beginPath(); c.moveTo(a[0], R[1] + R[3]); c.lineTo(a[0], R[1] + R[3] - 5); c.stroke(); c.fillText(num(t, d), a[0], R[1] + R[3] - 6); }
+    c.textAlign = 'left'; c.textBaseline = 'middle';
+    for (t = Math.ceil(v[2] / step) * step; t <= v[3]; t += step) { var b = g.P([v[0], t]); if (b[1] < R[1] + 22 || b[1] > R[1] + R[3] - 30) continue; c.beginPath(); c.moveTo(R[0], b[1]); c.lineTo(R[0] + 5, b[1]); c.stroke(); c.fillText(num(t, d), R[0] + 7, b[1]); }
+    c.font = '600 12px ' + g.sans; c.fillStyle = C.ink; c.textAlign = 'right'; c.textBaseline = 'bottom'; c.fillText(xl, R[0] + R[2] - 6, R[1] + R[3] - 4);
+    c.textAlign = 'left'; c.textBaseline = 'top'; c.fillText(yl, R[0] + 6, R[1] + 5);
+  }
+  // a person on the map: a disc with a letter (the Coach a pale C, the Physio a blue P); o: { dx, dy, align, size }
+  function figure(g, q, col, letter, p, label, o) {
+    if (!(p > 0)) return; o = o || {}; var c = g.ctx, a = g.P(q), r = (o.r || 9) * backOut(p), R = g.mapR;
+    g.clip(R);
+    c.beginPath(); c.arc(a[0], a[1], r + 3, 0, TAU); c.fillStyle = 'rgba(8,12,18,0.85)'; c.fill();
+    c.beginPath(); c.arc(a[0], a[1], r, 0, TAU); c.fillStyle = col; c.fill();
+    if (p > 0.6) { c.fillStyle = '#1b1406'; c.font = '700 11px ' + g.sans; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(letter, a[0], a[1] + 0.5); }
+    c.restore();
+    if (label) g.labelPx(a[0] + (o.dx == null ? 14 : o.dx), a[1] + (o.dy == null ? -12 : o.dy), label, col, { p: seg(p, 0.5, 1), align: o.align || 'left', size: o.size || 12.5 });
+  }
+  function coach(g, q, p, label, o) { figure(g, q, COACH, 'C', p, label, o); }
+  function physio(g, q, p, label, o) { figure(g, q, PHYSIO, 'P', p, label, o); }
+  // the best safe session: a gold star
+  function star(g, q, p, text, o) {
+    if (!(p > 0)) return; o = o || {}; var c = g.ctx, a = g.P(q), r = 10 * backOut(p);
+    g.clip(g.mapR); c.beginPath(); for (var i = 0; i < 10; i++) { var an = -Math.PI / 2 + i * Math.PI / 5, rr = i % 2 ? r * 0.45 : r; c.lineTo(a[0] + rr * Math.cos(an), a[1] + rr * Math.sin(an)); }
+    c.closePath(); c.fillStyle = C.gold; c.fill(); c.strokeStyle = '#8a4b00'; c.lineWidth = 1.2; c.stroke(); c.restore();
+    if (text) g.label(q, text, C.gold, { dx: o.dx == null ? 14 : o.dx, dy: o.dy == null ? 14 : o.dy, align: o.align, p: seg(p, 0.4, 1), size: 12 });
+  }
+  // the tether, drawn as a spring between two plans
+  function spring(g, a, b, p, col) {
+    if (!(p > 0)) return; var c = g.ctx, A = g.P(a), B2 = g.P(b), dx = B2[0] - A[0], dy = B2[1] - A[1], L = Math.hypot(dx, dy); if (L < 3) return;
+    var ux = dx / L, uy = dy / L, n = 9, amp = Math.min(6, L / 30), end = Math.min(14, 0.15 * L), span = L - 2 * end;
+    g.clip(g.mapR); c.globalAlpha = clamp(p, 0, 1); c.strokeStyle = col || C.orange; c.lineWidth = 2; c.lineJoin = 'round';
+    c.beginPath(); c.moveTo(A[0], A[1]); c.lineTo(A[0] + ux * end, A[1] + uy * end);
+    for (var i = 1; i < 2 * n; i++) { var t = end + span * i / (2 * n), s = i % 2 ? amp : -amp; c.lineTo(A[0] + ux * t - uy * s, A[1] + uy * t + ux * s); }
+    c.lineTo(B2[0] - ux * end, B2[1] - uy * end); c.lineTo(B2[0], B2[1]); c.stroke(); c.globalAlpha = 1; c.restore();
+  }
+  // the mark of a nearest point: a right angle at the foot, between the rule's line and the leash to the point
+  function rightAngle(g, foot, from, p) { var d = sub(from, foot), l = len(d); if (l < 1e-9 || !(p > 0)) return; var n = scale(d, 1 / l); g.square(foot, [-n[1], n[0]], n, 10, PHYSIO, p); }
+  // the safe set: the polygon of all the rules, filled faintly and outlined in the Physio's blue
+  function polygon(g, verts, o) {
+    o = o || {}; var p = o.p == null ? 1 : o.p; if (!(p > 0) || verts.length < 3) return; var c = g.ctx, P = verts.map(g.P, g);
+    g.clip(g.mapR); c.globalAlpha = clamp(p, 0, 1);
+    c.beginPath(); P.forEach(function (a, i) { if (i) c.lineTo(a[0], a[1]); else c.moveTo(a[0], a[1]); }); c.closePath();
+    if (o.fill !== false) { c.fillStyle = o.fill || SAFE; c.fill(); }
+    c.strokeStyle = o.col || PHYSIO; c.lineWidth = o.lw || 2; if (o.dash) c.setLineDash(o.dash); c.stroke(); c.setLineDash([]); c.globalAlpha = 1; c.restore();
+  }
+  // the line of one rule, a.q = b, across the visible map, drawn as far as progress p; o: { col, dash, label, at (0..1 along
+  // the line), dx, dy, align, labelP }.  The forbidden side gets short hatch marks.
+  function ruleLine(g, rule, p, o) {
+    if (!(p > 0)) return; o = o || {}; var v = g.vis, a = rule.a, b = rule.b, pts = [];
+    function push(q) { if (q[0] >= v[0] - 1e-9 && q[0] <= v[1] + 1e-9 && q[1] >= v[2] - 1e-9 && q[1] <= v[3] + 1e-9) pts.push(q); }
+    if (Math.abs(a[1]) > 1e-12) { push([v[0], (b - a[0] * v[0]) / a[1]]); push([v[1], (b - a[0] * v[1]) / a[1]]); }
+    if (Math.abs(a[0]) > 1e-12) { push([(b - a[1] * v[2]) / a[0], v[2]]); push([(b - a[1] * v[3]) / a[0], v[3]]); }
+    if (pts.length < 2) return; var A = pts[0], Bq = pts[pts.length - 1]; for (var i = 1; i < pts.length; i++) if (len(sub(pts[i], A)) > len(sub(Bq, A))) Bq = pts[i];
+    if (A[0] > Bq[0]) { var tmp = A; A = Bq; Bq = tmp; }
+    g.line(A, Bq, o.col || PHYSIO, o.lw || 2, p, o.dash);
+    // hatches on the forbidden side (where a.q > b)
+    var c = g.ctx, PA = g.P(A), PB = g.P(Bq), L = Math.hypot(PB[0] - PA[0], PB[1] - PA[1]), ux = (PB[0] - PA[0]) / L, uy = (PB[1] - PA[1]) / L;
+    var nrm = [a[0], -a[1]], nl = Math.hypot(nrm[0], nrm[1]); nrm = [nrm[0] / nl, nrm[1] / nl];   // the forbidden side in canvas pixels (y down)
+    g.clip(g.mapR); c.globalAlpha = 0.55 * clamp(p, 0, 1); c.strokeStyle = o.col || PHYSIO; c.lineWidth = 1;
+    c.beginPath(); for (var s = 10; s < L * clamp(p, 0, 1); s += 12) { var x = PA[0] + ux * s, y = PA[1] + uy * s; c.moveTo(x, y); c.lineTo(x + nrm[0] * 7, y + nrm[1] * 7); } c.stroke(); c.globalAlpha = 1; c.restore();
+    if (o.label) { var at = o.at == null ? 0.5 : o.at, q = [A[0] + (Bq[0] - A[0]) * at, A[1] + (Bq[1] - A[1]) * at]; g.label(q, o.label, o.col || PHYSIO, { dx: o.dx || 0, dy: o.dy == null ? -14 : o.dy, align: o.align || 'center', p: o.labelP == null ? seg(p, 0.6, 1) : o.labelP, size: 12 }); }
+  }
+
+  // ------------------------------------------------------------ panels
+  function lines(g, R, items, p, title, o) {
+    o = o || {}; var n = items.length, top = R[1] + (title ? 44 : 16), rowH = Math.min(o.rowH || 34, (R[3] - (top - R[1]) - 8) / n);
+    g.panel(R, title);
+    items.forEach(function (it, i) { var q = it.p != null ? it.p : seg(p, i / (n + 0.4), (i + 1) / (n + 0.4)); if (!(q > 0)) return; g.labelPx(R[0] + 14 + (it.indent || 0), top + rowH * i + rowH / 2, it.text, it.col || C.ink, { size: it.size || 12.5, plain: true, mono: !!it.mono, p: q }); });
+  }
+  function table(g, R, rows, p, title, o) {
+    o = o || {}; var n = rows.length + (o.head ? 1 : 0), top = R[1] + 40, rowH = Math.min(40, (R[3] - 50) / n), mid = R[0] + 12 + Math.min(o.leftW || 230, R[2] * 0.42);
+    g.panel(R, title); var all = (o.head ? [o.head] : []).concat(rows);
+    all.forEach(function (r, i) {
+      var q = seg(p, i / (n + 0.5), (i + 1) / (n + 0.5)); if (!(q > 0)) return; var y = top + rowH * i + rowH / 2, head = o.head && i === 0;
+      g.labelPx(R[0] + 12, y, r[0], head ? C.dim : (o.leftCol || C.gold), { size: head ? 11.5 : 12.5, plain: true, p: q });
+      g.labelPx(mid, y, r[1], head ? C.dim : (o.rightCol || C.ink), { size: head ? 11.5 : 12.5, plain: true, p: q, mono: !!o.mono });
+      if (head) { var c = g.ctx; c.strokeStyle = C.faint; c.beginPath(); c.moveTo(R[0] + 10, y + rowH / 2 - 4); c.lineTo(R[0] + R[2] - 10, y + rowH / 2 - 4); c.stroke(); }
+    });
+  }
+  function split(R, share, gap) {
+    gap = gap || 8;
+    if (R[2] >= R[3] * 1.25 && R[2] >= 600) { var w = Math.round((R[2] - gap) * share); return [[R[0], R[1], w, R[3]], [R[0] + w + gap, R[1], R[2] - w - gap, R[3]]]; }
+    var h = Math.round((R[3] - gap) * share); return [[R[0], R[1], R[2], h], [R[0], R[1] + h + gap, R[2], R[3] - h - gap]];
+  }
+  // The readiness curve r(t) over days, with the rested baseline and the harm line; o: { r, rOld, t: [t0, t1],
+  // v: [lo, hi], p, title, r0, sessions: [{t, w}], marks: [{t, text, col, side}], old (label for rOld), short }.
+  function curvePanel(g, R, o) {
+    var p = o.p == null ? 1 : o.p, pl = g.plot(R, o.t, o.v, { title: o.title }), short = pl.box[3] < 200;
+    pl.frame(short ? 'days' : 'days since the last hard session', 'readiness');
+    pl.seg(o.t[0], 1, o.t[1], 1, 'rgba(242,245,248,0.45)', 1.2, seg(p, 0, 0.2), [5, 4]); g.labelPx(pl.X(o.t[1]) - 4, pl.Y(1) - 11, 'rested baseline 1', C.dim, { align: 'right', size: 11, plain: true, p: seg(p, 0.05, 0.2) });
+    if (o.r0 != null) { pl.seg(o.t[0], o.r0, o.t[1], o.r0, C.red, 1.2, seg(p, 0, 0.2), [3, 4]); g.labelPx(pl.X(o.t[1]) - 4, pl.Y(o.r0) - 12, 'below ' + num(o.r0, 1) + ' a session does harm', C.red, { align: 'right', size: 11, plain: true, p: seg(p, 0.05, 0.2) }); }
+    (o.sessions || []).forEach(function (s, i) { var q = seg(p, 0.1 + 0.1 * i, 0.2 + 0.1 * i); if (!(q > 0)) return; pl.seg(s.t, o.v[0], s.t, o.v[0] + (o.v[1] - o.v[0]) * 0.18 * s.w / 5, s.col || C.gold, 6, q); if (s.text && !short) g.labelPx(pl.X(s.t) + 8, pl.Y(o.v[0] + (o.v[1] - o.v[0]) * 0.09 * s.w / 5), s.text, s.col || C.gold, { size: 11, plain: true, p: q }); });
+    if (o.rOld) { pl.curve(o.rOld, 'rgba(242,245,248,0.35)', 1.8, seg(p, 0.1, 0.3)); if (o.old) g.labelPx(pl.X(o.oldAt || o.t[1]) - 4, pl.Y(o.rOld(o.oldAt || o.t[1])) - 12, o.old, C.dim, { align: 'right', size: 11, plain: true, p: seg(p, 0.2, 0.35) }); }
+    pl.curve(o.r, o.col || C.gold, 2.4, seg(p, o.from == null ? 0.2 : o.from, o.to == null ? 0.75 : o.to));
+    (o.marks || []).forEach(function (m) {
+      var q = m.p != null ? m.p : seg(p, m.at == null ? 0.75 : m.at, (m.at == null ? 0.75 : m.at) + 0.12);
+      if (short) { pl.point(m.t, o.r(m.t), m.col || C.gold, '', q); g.labelPx(pl.X(m.t) - 10, pl.Y(o.r(m.t)) + 18, m.text, m.col || C.gold, { align: 'right', size: 11.5, p: seg(q, 0.4, 1) }); }   // a short plot (a phone): below, clear of the axis title
+      else pl.point(m.t, o.r(m.t), m.col || C.gold, m.text, q, m.side);
+    });
+    return pl;
+  }
+  // The Coach's scan: its cost along the days, each day with its best load; o: { along, t: [t0, t1], p, title, scan
+  // (progress of the sweep, 0..1), best: [t, value], label }.
+  function scanPanel(g, R, o) {
+    var vals = [], n = 120, i; for (i = 0; i <= n; i++) vals.push(o.along(o.t[0] + (o.t[1] - o.t[0]) * i / n));
+    var lo = Math.min.apply(null, vals), hi = Math.max.apply(null, vals), pad = 0.1 * (hi - lo) || 1, pl = g.plot(R, o.t, [lo - pad, hi + pad], { title: o.title }), short = pl.box[3] < 130;
+    pl.frame(short ? 'day' : 'the day of the session', 'cost + tether');
+    var sweep = o.scan == null ? 1 : clamp(o.scan, 0, 1);
+    pl.curve(o.along, COACH, 2.2, sweep);
+    if (sweep > 0 && sweep < 1) { var ts = o.t[0] + (o.t[1] - o.t[0]) * sweep; pl.seg(ts, lo - pad, ts, hi + pad, C.gold, 1.2, 1, [4, 3]); }
+    if (o.best && o.bestP > 0) pl.point(o.best[0], o.best[1], C.gold, o.label, o.bestP, o.best[0] > (o.t[0] + o.t[1]) / 2 ? 'left' : 'right');
+    return pl;
+  }
+  // The two gauges round by round on a log scale: the gap |x − z| and rho times the Physio's move.
+  function gaugePanel(g, R, rounds, p, o) {
+    o = o || {}; var n = rounds.length - 1, prim = rounds.map(function (r) { return r.primal; }), dual = rounds.map(function (r) { return r.dual == null ? prim[0] : r.dual; });
+    var lo = -3.2, hi = Math.log(Math.max(Math.max.apply(null, prim.concat(dual)) * 1.5, 1e-2)) / Math.LN10, pl = g.plot(R, [0, n], [lo, hi], { title: o.title || 'the two gauges, round by round (log scale)' });
+    pl.frame(o.xl || 'round', 'log₁₀');
+    function lg(a) { return function (t) { var i = Math.floor(t), fq = t - i; return Math.max(lo, Math.log(Math.max(a[Math.min(i, n)] * (1 - fq) + a[Math.min(i + 1, n)] * fq, 1e-9)) / Math.LN10); }; }
+    var s = o.upto == null ? 1 : clamp(o.upto, 0, 1);
+    if (o.tol) { pl.seg(0, Math.log(o.tol) / Math.LN10, n, Math.log(o.tol) / Math.LN10, C.dim, 1.2, 1, [4, 4]); g.labelPx(pl.X(n) - 4, pl.Y(Math.log(o.tol) / Math.LN10) - 11, 'small enough: ' + num(o.tol, 2), C.dim, { align: 'right', size: 11, plain: true }); }
+    pl.curve(lg(prim), AIM, 2.2, s); pl.curve(lg(dual), PHYSIO, 2.2, s);
+    g.labelPx(pl.box[0] + pl.box[2] - 6, pl.box[1] + 12, 'gap |x − z|: do they agree?', AIM, { size: 11.5, plain: true, align: 'right', p: seg(p, 0.1, 0.3) });
+    g.labelPx(pl.box[0] + pl.box[2] - 6, pl.box[1] + 30, 'ρ × Physio’s move: has it settled?', PHYSIO, { size: 11.5, plain: true, align: 'right', p: seg(p, 0.2, 0.4) });
+    return pl;
+  }
+  // The season on a calendar: days across, sessions as bars with their loads, the taper band and the race flag;
+  // o: { race, taper, sessions: [{t, w, text, col}], p, title, planned (index from which sessions are 'next') }.
+  function calendar(g, R, o) {
+    var p = o.p == null ? 1 : o.p, pl = g.plot(R, [0, o.race + 0.5], [0, 7], { title: o.title }), c = g.ctx;
+    pl.frame('day', 'load');
+    var tq = seg(p, 0.55, 0.7); if (tq > 0) { c.globalAlpha = 0.18 * tq; c.fillStyle = PHYSIO; c.fillRect(pl.X(o.race - o.taper), pl.box[1], pl.X(o.race) - pl.X(o.race - o.taper), pl.box[3]); c.globalAlpha = 1; g.labelPx((pl.X(o.race - o.taper) + pl.X(o.race)) / 2, pl.box[1] + 14, 'taper', PHYSIO, { align: 'center', size: 11.5, plain: true, p: tq }); }
+    var rq = seg(p, 0.7, 0.85); if (rq > 0) { pl.seg(o.race, 0, o.race, 6.5, C.red, 2, rq); g.labelPx(pl.X(o.race) - 6, pl.Y(6.5) + 2, 'race, day ' + o.race, C.red, { align: 'right', size: 11.5, plain: true, p: rq }); }
+    o.sessions.forEach(function (s, i) {
+      var q = seg(p, 0.05 + 0.16 * i, 0.2 + 0.16 * i); if (!(q > 0)) return; var x = pl.X(s.t), y0 = pl.Y(0), y1 = pl.Y(s.w * q), w = 9;
+      c.globalAlpha = 0.9; c.fillStyle = s.col || C.gold; c.fillRect(x - w / 2, y1, w, y0 - y1); c.globalAlpha = 1;
+      if (s.text) g.labelPx(x, y1 - 12, s.text, s.col || C.gold, { align: 'center', size: 11.5, plain: true, p: seg(q, 0.6, 1) });
+    });
+    return pl;
+  }
+  return { COACH: COACH, PHYSIO: PHYSIO, LOG: LOG, AIM: AIM, axes: axes, figure: figure, coach: coach, physio: physio, star: star, spring: spring, rightAngle: rightAngle, polygon: polygon, ruleLine: ruleLine,
+           lines: lines, table: table, split: split, subscript: subscript, curvePanel: curvePanel, scanPanel: scanPanel, gaugePanel: gaugePanel, calendar: calendar };
+})();
+</script>
+<script>
+// "The Coach and the Physio": an athlete's next hard session, planned as optimization with constraints and
+// negotiated with ADMM.  The Coach (x) scores sessions from the readiness curve and never looks at the rules; the
+// Physio (z) keeps the rules and never reads the curve; a tether (rho) ties their plans and the planning log (u)
+// remembers their disagreement.  Told on the player of the King's Land tutorials (board.js), with the case and
+// the solver from plan.js and the drawings from plan_parts.js.
+(function () {
+  'use strict';
+  var B = window.Board, N = window.Plan, P = window.PlanParts; if (!B || !N || !P) return;
+  var H = B.H, C = H.C, seg = H.seg, num = H.num, pair = H.pair, at = H.at, add = H.add, sub = H.sub, scale = H.scale, len = H.len, lerp2 = H.lerp2, around = H.around, ease = H.ease, clamp = H.clamp;
+  var COACH = P.COACH, PHYSIO = P.PHYSIO, LOG = P.LOG, AIM = P.AIM, subscript = P.subscript;
+
+  // ------------------------------------------------------------ the case and its negotiations
+  var d = N.build(), p = d.p, pr = d.prob, S = d.sol, R = S.rounds, A = d.alone, AR = A.rounds, rho = p.rho;
+  var free = pr.free, freeZ = pr.freeZ, best = pr.best.q, crest = pr.crest, rules = pr.rules, last = pr.last;
+  var K = 2, rec = R[K], v = rec.v, x = rec.x, z = rec.z, u = rec.u, x1 = rec.xPrev, z1 = rec.zPrev, u1 = rec.uPrev, gap = rec.gap, xu = add(x, u1);
+  var K_END = R.length - 1, fin = S.final, second = d.season.plans[1], third = d.season.plans[2], pr1 = second.prob, S1 = second.sol, R1 = S1.rounds;
+  var VIEW = [-0.4, 12.4, -0.4, 10.6];
+  function rule(id) { return rules.filter(function (r) { return r.id === id; })[0]; }
+  function rule1(id) { return pr1.rules.filter(function (r) { return r.id === id; })[0]; }
+  function plan(q) { return '(' + num(q[0], 2) + ' d, ' + num(q[1], 2) + ')'; }
+  function pr2(q) { return pair(q, 2); }
+  function shadeOf(prob, id) {
+    var lo = Infinity, hi = -Infinity;
+    for (var i = 0; i <= 40; i++) for (var j = 0; j <= 40; j++) { var val = prob.J([VIEW[0] + (VIEW[1] - VIEW[0]) * i / 40, VIEW[2] + (VIEW[3] - VIEW[2]) * j / 40]); if (val < lo) lo = val; if (val > hi) hi = val; }
+    return { lo: lo, hi: hi, id: id, rings: 12 };
+  }
+  var shade0 = shadeOf(pr, 'J0'), shade1 = shadeOf(pr1, 'J1');
+  function base(g, o) {
+    o = o || {}; var prob = o.prob || pr;
+    g.land(o.fn || prob.J, o.shade || (prob === pr ? shade0 : shade1)); P.axes(g, 'day of the session →', '↑ load');
+    if (o.poly !== false) P.polygon(g, prob.poly.verts, { p: o.polyP == null ? 1 : o.polyP });
+  }
+  // the Coach's walk downhill on its own map from a start to its favourite: a flow along the slope, for the eye
+  function flow(prob, from) {
+    var q = from.slice(), path = [q.slice()], h = 1e-4, step = 0.05;
+    for (var i = 0; i < 600; i++) {
+      var gt = (prob.J([q[0] + h, q[1]]) - prob.J([q[0] - h, q[1]])) / (2 * h), gw = (prob.J([q[0], q[1] + h]) - prob.J([q[0], q[1] - h])) / (2 * h), n = Math.hypot(gt, gw);
+      if (n < 1e-6 || len(sub(q, prob.free)) < 0.06) break;
+      q = [q[0] - step * gt / n, q[1] - step * gw / n]; path.push(q.slice());
+    }
+    path.push(prob.free.slice()); return path;
+  }
+  function along(path, q) {
+    var L = 0, segL = [], i; for (i = 1; i < path.length; i++) { segL.push(len(sub(path[i], path[i - 1]))); L += segL[i - 1]; }
+    var goal = L * clamp(q, 0, 1), pos = path[0];
+    for (i = 1; i < path.length; i++) { if (goal <= segL[i - 1]) { pos = lerp2(path[i - 1], path[i], segL[i - 1] ? goal / segL[i - 1] : 1); break; } goal -= segL[i - 1]; pos = path[i]; }
+    return pos;
+  }
+  var out = [], CH = { athlete: 'The athlete', pair: 'The Coach and the Physio', round: 'One planning round', season: 'The season', bridge: 'The same four moves elsewhere' };
+
+  // ------------------------------------------------------------ 1. the athlete
+  var rDip = pr.r(0), rCrest = pr.r(crest);
+  out.push({ id: 'curve', chapter: CH.athlete, title: 'One hard session, then the body answers', layout: 'side', dur: 6,
+    text: 'An athlete trains in a cycle. A hard session leaves two traces: fatigue, large but quick to fade, and fitness, smaller but slow to fade. Readiness, the two traces on top of the rested baseline, dips right after the session, recovers, rises above the baseline to a crest a few days later, and then drifts back down. The crest is when the next hard session pays most. Too early, and the athlete trains on fatigue; too late, and the crest is wasted. Here is the curve after the last hard session, on day 0 with a load of ' + num(last.w, 1) + ': a dip to ' + num(rDip, 2) + ', a crest of ' + num(rCrest, 2) + ' on day ' + num(crest, 2) + '.',
+    math: 'readiness r(t) = 1 + fitness − fatigue = 1 + k₁e^(−t/τ₁) − k₂e^(−t/τ₂)' + at(0.3, ';  τ₁ = ' + p.tau1 + ' d, τ₂ = ' + p.tau2 + ' d') + at(0.6, '<br>dip r(0) = ' + num(rDip, 2) + ';  crest r(' + num(crest, 2) + ') = ' + num(rCrest, 2)),
+    draw: function (g, q) {
+      P.curvePanel(g, g.sideR, { r: pr.r, t: [0, 12], v: [0.3, 1.6], p: q, title: 'readiness after one hard session', r0: p.r0, sessions: [{ t: 0, w: last.w, text: 'the last hard session, day 0' }],
+        marks: [{ t: 0.02, text: 'the dip: ' + num(rDip, 2), at: 0.22, side: 'right' }, { t: crest, text: 'the crest: ' + num(rCrest, 2) + ' on day ' + num(crest, 2), at: 0.36 }, { t: 11, text: 'back toward the baseline', at: 0.7, side: 'left' }] });
+    } });
+
+  out.push({ id: 'benefit', chapter: CH.athlete, title: 'The Coach’s map: every session scored', layout: 'map', view: VIEW, dur: 5.6,
+    text: 'The next session is one plan: the day it happens, t, and its load, w. The Coach scores every plan from the curve: a session of load w gains w × (r(t) − ' + num(p.r0, 1) + '), less ' + num(p.a, 2) + '·w² for doing too much at once; below a readiness of ' + num(p.r0, 1) + ' a session does harm. The map shows the Coach’s cost, minus the gain: dark where a session pays, bright where it hurts. The darkest spot, the Coach’s favourite, is the crest with a big load: c = ' + plan(free) + ', a gain of ' + num(-pr.freeJ, 2) + '.',
+    math: 'J(t, w) = −w·(r(t) − ' + num(p.r0, 1) + ') + ' + num(p.a, 2) + '·w²' + at(0.65, ';  lowest at c = ' + pr2(free) + ', J = ' + num(pr.freeJ, 2)),
+    draw: function (g, q) {
+      base(g, { poly: false });
+      g.line([crest, VIEW[2]], [crest, VIEW[3]], C.gold, 1.2, seg(q, 0.15, 0.4), [5, 4]); g.label([crest, 9.6], 'the crest, day ' + num(crest, 2), C.gold, { dx: 8, p: seg(q, 0.3, 0.45), size: 12 });
+      g.halo(free, 16, C.gold, seg(q, 0.5, 0.7), 1.5); P.coach(g, free, seg(q, 0.55, 0.75), 'c, the Coach’s favourite: ' + plan(free), { dx: 16, dy: -14 });
+    } });
+
+  var ruleRows = [
+    { id: 'recovery', label: 'recovery: t ≥ ' + num(rule('recovery').b * -1, 0), at: 0.82, dx: 8, align: 'left' },
+    { id: 'ramp', label: 'ramp: w ≤ ' + num(rule('ramp').b, 1), at: 0.68, dy: -14 },
+    { id: 'workload', label: 'workload: w ≤ ' + num(p.w0, 0) + ' + ' + num(p.s, 1) + '·t', at: 0.5, dx: -12, dy: -6, align: 'right' },
+    { id: 'taper', label: 'taper: t ≤ ' + num(rule('taper').b, 0), at: 0.9, dx: -8, align: 'right' }];
+  out.push({ id: 'rules', chapter: CH.athlete, title: 'The Physio’s rules: the safe plans', layout: 'map', view: VIEW, dur: 6.4,
+    text: 'The Physio reads the same plan against four rules. Recovery: at least ' + p.recovery + ' days after the last hard session. Ramp: at most ' + Math.round((p.ramp - 1) * 100) + '% more load than last time, so w ≤ ' + num(rule('ramp').b, 1) + '. Workload: the load allowed grows with the rest taken, w ≤ ' + num(p.w0, 0) + ' + ' + num(p.s, 1) + '·t, the acute-to-chronic workload ratio written for one session. Taper: no hard session in the last ' + p.taper + ' days before the race on day ' + p.race + '. Each rule is a line with a forbidden side; the plans that keep all four form the safe set C, a polygon. The Coach’s favourite lies outside it: too much load for the rest taken.',
+    math: 't ≥ ' + num(-rule('recovery').b, 0) + ',  w ≤ ' + num(rule('ramp').b, 1) + ',  w ≤ ' + num(p.w0, 0) + ' + ' + num(p.s, 1) + '·t,  t ≤ ' + num(rule('taper').b, 0) + at(0.8, ';  C: all four at once.  c = ' + pr2(free) + ' breaks the ramp and workload rules'),
+    draw: function (g, q) {
+      base(g, { poly: false });
+      ruleRows.forEach(function (rr, i) { P.ruleLine(g, rule(rr.id), seg(q, 0.05 + 0.18 * i, 0.22 + 0.18 * i), { label: rr.label, at: rr.at, dx: rr.dx, dy: rr.dy, align: rr.align }); });
+      P.polygon(g, pr.poly.verts, { p: seg(q, 0.78, 0.95) }); g.label([7.2, 2.6], 'C, the safe plans', PHYSIO, { align: 'center', p: seg(q, 0.85, 1), size: 12.5 });
+      P.coach(g, free, 1, 'c: outside C', { dx: 16, dy: -14 });
+    } });
+
+  var physioHome = [8.4, 3.4];
+  out.push({ id: 'one', chapter: CH.athlete, title: 'One athlete, one next session', layout: 'map', view: VIEW, dur: 5.6,
+    text: 'Only one session will happen, so the plan handed to the athlete must be one plan, and it must be both good and safe: the best plan inside C, the gold star, a session on day ' + num(best[0], 2) + ' with a load of ' + num(best[1], 2) + '. But the two halves of that job want different skills. Scoring plans is easy for someone who reads the curve and ignores the rules. Keeping the rules is easy for someone who checks the lines and never reads the curve. Doing both at once is the hard part. So the club has two specialists, the Coach and the Physio, and the athlete gets a plan only on the day both put their names to the same one.',
+    math: 'one plan: the lowest J with (t, w) in C' + at(0.5, '<br>two copies: x, the Coach’s, hunts the lowest J;  z, the Physio’s, keeps the rules;  at the end x = z'),
+    draw: function (g, q) {
+      base(g); P.star(g, best, seg(q, 0, 0.2), 'the best safe session ' + plan(best), { dx: -14, dy: 18, align: 'right' });
+      P.coach(g, free, seg(q, 0.25, 0.4), 'the Coach scores plans', { dx: 16, dy: -14 }); P.physio(g, physioHome, seg(q, 0.4, 0.55), 'the Physio keeps the rules', { dx: 16, dy: 16 });
+      g.line(free, best, AIM, 1.5, seg(q, 0.6, 0.8), [5, 4]); g.line(physioHome, best, AIM, 1.5, seg(q, 0.6, 0.8), [5, 4]);
+      g.label([7.0, 6.2], 'both must end on the star', AIM, { align: 'center', p: seg(q, 0.8, 1), size: 12 });
+    } });
+
+  // ------------------------------------------------------------ 2. the Coach and the Physio
+  var introView = around([free, freeZ, best], 1.2, 5), walk = flow(pr, [7.2, 9.2]);
+  out.push({ id: 'coach-role', chapter: CH.pair, title: 'Meet the Coach: x', layout: 'map', view: introView, dur: 5.4,
+    text: 'The Coach’s job: find the lowest point of whatever it is asked to minimise. Asked about its own cost alone, it reads the curve, walks downhill to the crest and loads up: c = ' + plan(free) + ', the darkest spot of the map, J = ' + num(pr.freeJ, 2) + '. It never looks at the rules, and c breaks two of them: no use to the athlete on its own. But add any pull to the map, and the Coach will find the new lowest point just as surely. That is the skill the club hired.',
+    math: 'the Coach: x = argmin J(x) + (whatever pulls on it)' + at(0.6, ';  with nothing pulling: c = ' + pr2(free) + ', outside C'),
+    draw: function (g, q) {
+      base(g); P.star(g, best, 1);
+      var s = seg(q, 0.1, 0.7), pos = along(walk, s); g.path(walk, 'rgba(230,233,238,0.55)', 2, s, [4, 4]);
+      P.coach(g, pos, 1, s >= 1 ? 'c, the lowest point of all' : '', { dx: 16, dy: -14 });
+      g.label(free, 'outside C: breaks the ramp and workload rules', C.red, { dx: 16, dy: 16, p: seg(q, 0.75, 0.95), size: 12 });
+    } });
+
+  var samples = [[7.6, 4.0], [8.6, 7.3], free].map(function (q0) { return { q: q0, z: N.project(pr.poly, pr.rules, q0) }; });
+  out.push({ id: 'physio-role', chapter: CH.pair, title: 'Meet the Physio: z', layout: 'map', view: around([free, freeZ, best, samples[1].q], 0.8, 5), dur: 5.8,
+    text: 'The Physio’s job: given any plan, step to the nearest safe plan. A safe plan stays where it is; a plan outside C is pulled straight to the nearest rule line, at a right angle, or to a corner where two rules meet. Asked about the Coach’s favourite c, the Physio answers Π(c) = ' + plan(freeZ) + ': the corner of the ramp and workload lines. Safe, but not the best safe session: the star is ' + num(freeZ[0] - best[0], 1) + ' days earlier and a little lighter. The Physio never reads the curve, so on its own it cannot find the best safe session either.',
+    math: 'the Physio: z = Π<sub>C</sub>(any plan), the nearest safe plan' + at(0.6, ';  Π<sub>C</sub>(c) = ' + pr2(freeZ) + ', not the star ' + pr2(best)),
+    draw: function (g, q) {
+      base(g); P.star(g, best, 1);
+      samples.forEach(function (s, i) {
+        var qq = seg(q, 0.05 + 0.24 * i, 0.3 + 0.24 * i), moved = len(sub(s.q, s.z)) > 1e-9;
+        g.dot(s.q, 5, i === 2 ? COACH : C.ink, seg(qq, 0, 0.3));
+        if (moved) { g.arrow(s.q, s.z, PHYSIO, 2.5, seg(qq, 0.3, 0.8)); P.rightAngle(g, s.z, s.q, seg(qq, 0.8, 1)); } else g.halo(s.q, 10, PHYSIO, seg(qq, 0.3, 0.8), 1.5);
+        if (qq > 0.7) { g.dot(s.z, 7, PHYSIO, seg(qq, 0.7, 1)); g.label(s.z, i === 2 ? 'Π(c): safe, not best' : moved ? 'nearest safe plan' : 'already safe: stays', PHYSIO, { dx: i === 2 ? 12 : 10, dy: i === 2 ? -16 : 14, p: seg(qq, 0.7, 1), size: 12 }); }
+      });
+      P.coach(g, free, seg(q, 0.55, 0.65), 'c', { dx: 14, dy: -12 });
+    } });
+
+  var xr = R[1].x, reach = Math.sqrt(2 * Math.max(pr.J(freeZ) - pr.freeJ, 0) / rho), ropeFree = function (q0) { var dq = sub(q0, freeZ); return pr.J(q0) + rho / 2 * (dq[0] * dq[0] + dq[1] * dq[1]); };
+  out.push({ id: 'rope', chapter: CH.pair, title: 'Tie them with a tether', layout: 'map', view: around([free, freeZ, xr, best], 0.6, 4.5), dur: 5.8,
+    text: 'Tie the two with a tether of stiffness ρ = ' + num(rho, 1) + '. Now the Coach minimises its cost plus the tether’s pull toward the Physio’s plan, and the Physio steps to the nearest safe plan to the Coach’s. Each still does only what it is good at; the tether makes them care about each other. The shading is the map as the Coach now feels it, the tether tied to the Physio at z = ' + plan(freeZ) + ': the cost ρ/2·|x − z|² is added. Pulled by the tether, the Coach moves from c to ' + plan(xr) + '. No plan farther than ' + num(reach, 2) + ' from the Physio can beat the Physio’s own: the dashed ring. A weaker tether lets them disagree more; a stiffer one keeps them closer and slows the Coach down.',
+    math: 'the Coach now minimises J(x) + ρ/2·|x − z|²,  ρ = ' + num(rho, 1) + at(0.6, ';  the Physio takes Π<sub>C</sub>(x)'),
+    draw: function (g, q) {
+      g.land(ropeFree, { id: 'ropeFree', rings: 10 }); P.axes(g, 'day of the session →', '↑ load'); P.polygon(g, pr.poly.verts); P.star(g, best, 1);
+      g.dot(freeZ, 7, PHYSIO, 1); g.label(freeZ, 'the Physio, z', PHYSIO, { dx: 12, dy: 16, size: 12 });
+      var s = seg(q, 0.55, 0.9), pos = lerp2(free, xr, s);
+      P.spring(g, pos, freeZ, seg(q, 0.05, 0.3)); P.coach(g, pos, 1, s >= 1 ? 'pulled to ' + plan(xr) : s <= 0 ? 'the Coach at c' : '', { dx: 16, dy: -14 });
+      if (reach > 0) g.halo(freeZ, reach * g.s, C.ink, seg(q, 0.7, 0.9), 1.2, [5, 4]);
+    } });
+
+  var nlN = AR.length - 1, nlX = AR.map(function (r) { return r.x; }), nlZ = AR.map(function (r) { return r.z; }), nlEndX = nlX[nlN], nlEndZ = nlZ[nlN], nlGap = AR[nlN].primal;
+  var nlGaps = AR.map(function (r) { return r.primal; }), admmGaps = []; for (var ai = 0; ai <= nlN; ai++) admmGaps.push(R[Math.min(ai, K_END)].primal);
+  out.push({ id: 'without-ledger', chapter: CH.pair, title: 'The tether pulls, but does not remember', layout: 'map+side', view: around(nlX.concat(nlZ).concat([best]), 0.5, 4), dur: 6.6,
+    text: 'Let them go with the tether alone, each round forgetting the last: the Coach to the lowest point of cost plus tether, the Physio to the nearest safe plan, and again. The Coach always stops uphill of the rules, asking for more than the Physio allows, the tether stretched by the slope of its map; the Physio stands on the workload line. They settle a fixed gap apart. After ' + nlN + ' rounds the gap is still ' + num(nlGap, 2) + ': the Coach at ' + plan(nlEndX) + ', the Physio at ' + plan(nlEndZ) + ', on the rule line but not at the star. Nothing can be handed to the athlete, because the two never name the same session. The tether pulls; it does not remember.',
+    math: 'tether alone: x ← argmin J + ρ/2·|x − z|²,  z ← Π<sub>C</sub>(x)' + at(0.55, '<br>after ' + nlN + ' rounds: gap ' + num(nlGap, 2) + ', z = ' + pr2(nlEndZ) + ';  the star ' + pr2(best)),
+    draw: function (g, q) {
+      base(g); P.star(g, best, 1);
+      var s = seg(q, 0, 0.8) * nlN, kk = Math.floor(s), fr = s - kk;
+      for (var i = 1; i <= Math.min(kk, nlN); i++) { g.dot(nlX[i], 3, 'rgba(230,233,238,0.7)', 1); g.dot(nlZ[i], 3, C.red, 1); }
+      var hx = kk >= nlN ? nlX[nlN] : lerp2(nlX[kk], nlX[kk + 1], ease(Math.min(1, fr * 2)));
+      var hz = kk >= nlN ? nlZ[nlN] : fr < 0.5 ? nlZ[kk] : lerp2(nlZ[kk], nlZ[kk + 1], ease((fr - 0.5) * 2));
+      P.spring(g, hx, hz, 1, C.red); P.coach(g, hx, 1); P.physio(g, hz, 1);
+      g.labelPx(g.mapR[0] + 12, g.mapR[1] + 30, 'round ' + Math.min(kk, nlN) + ', tether alone', C.red, { size: 13 });
+      if (q > 0.85) { g.label(nlEndZ, 'a fixed gap of ' + num(nlGap, 2), C.red, { dx: -14, dy: 18, align: 'right', size: 12 }); g.label(nlEndZ, 'z = ' + pr2(nlEndZ) + ', not the star', C.red, { dx: -14, dy: 38, align: 'right', size: 12 }); }
+      var RR = g.sideR, hi = Math.max.apply(null, nlGaps.concat(admmGaps)) * 1.15 || 1, pl = g.plot(RR, [0, nlN], [0, hi], { title: 'the gap between the two, round by round' }); pl.frame('round', 'gap |x − z|');
+      pl.curve(function (t) { var i = Math.floor(t), fq = t - i; return nlGaps[Math.min(i, nlN)] * (1 - fq) + nlGaps[Math.min(i + 1, nlN)] * fq; }, C.red, 2.2, clamp(s / nlN, 0, 1));
+      pl.curve(function (t) { var i = Math.floor(t), fq = t - i; return admmGaps[Math.min(i, nlN)] * (1 - fq) + admmGaps[Math.min(i + 1, nlN)] * fq; }, PHYSIO, 2.2, seg(q, 0.85, 1));
+      g.labelPx(pl.X(nlN) - 4, pl.Y(nlGaps[nlN]) - 12, 'tether alone: the gap stays', C.red, { align: 'right', size: 11.5, plain: true, p: seg(q, 0.8, 0.9) });
+      g.labelPx(pl.X(nlN) - 4, pl.Y(hi * 0.22), 'with the log (next): the gap closes', PHYSIO, { align: 'right', size: 11.5, plain: true, p: seg(q, 0.9, 1) });
+    } });
+
+  var entries = []; for (var ej = 1; ej < K; ej++) entries.push({ k: ej, gap: sub(R[ej].x, R[ej].z) });
+  out.push({ id: 'ledger-role', chapter: CH.pair, title: 'The planning log: u', layout: 'map+side', view: around([z1, x1, add(z1, u1)], 2.2, 4), dur: 5.8,
+    text: 'So the Physio keeps a log. At the end of every round it writes down the gap, by how much and in which direction the Coach asked for more than it allowed: u ← u + (x − z). The log is not fatigue, fitness or training done; it records only how the two copies have disagreed. Repeated disagreement in one direction piles up; disagreement the other way cancels some of it. Round 1 ended with the Coach at x₁ = ' + plan(x1) + ' and the Physio at z₁ = ' + plan(z1) + ', so the first entry is the gap ' + pr2(sub(x1, z1)) + ': earlier and heavier than allowed. The log reads u₁ = ' + pr2(u1) + '. Next round the Physio will use it.',
+    math: 'u<sub>k</sub> = u<sub>k−1</sub> + (x<sub>k</sub> − z<sub>k</sub>)' + at(0.5, ';  u₁ = (0, 0) + ' + pr2(sub(x1, z1)) + ' = ' + pr2(u1)),
+    draw: function (g, q) {
+      base(g);
+      entries.forEach(function (e, i) { var qq = seg(q, 0.05 + 0.5 * i / entries.length, 0.2 + 0.5 * i / entries.length); g.arrow(R[e.k].z, R[e.k].x, AIM, 2.5, qq); });
+      g.dot(z1, 7, PHYSIO, 1); g.label(z1, 'z₁', PHYSIO, { dx: 10, dy: 16, size: 12 }); P.coach(g, x1, 1, 'x₁', { dx: 12, dy: -14 });
+      g.label(lerp2(z1, x1, 0.5), 'the gap x₁ − z₁', AIM, { dx: 12, dy: 0, p: seg(q, 0.2, 0.4), size: 12 });
+      g.arrow(z1, add(z1, u1), LOG, 3, seg(q, 0.6, 0.85)); g.label(add(z1, u1), 'u₁ = ' + pr2(u1), LOG, { dx: -14, dy: 14, align: 'right', p: seg(q, 0.8, 1), size: 12 });
+      var RR = g.sideR; g.panel(RR, 'The planning log');
+      var rows = entries.map(function (e) { return { text: 'round ' + e.k + ':  ' + pr2(e.gap), col: AIM }; });
+      rows.push({ text: 'total u' + subscript(K - 1) + ' = ' + pr2(u1), col: LOG }); rows.push({ text: 'disagreement, not fatigue or fitness', col: C.dim });
+      rows.forEach(function (r, i) { var qq = seg(q, 0.1 + 0.6 * i / rows.length, 0.25 + 0.6 * i / rows.length); g.labelPx(RR[0] + 16, RR[1] + 56 + 30 * i, r.text, r.col, { plain: true, mono: true, p: qq }); });
+    } });
+
+  // ------------------------------------------------------------ 3. one planning round
+  out.push({ id: 'aim', chapter: CH.round, title: 'Aim past the Physio: v = z − u', layout: 'map+side', view: around([z1, v, x1, add(z1, u1)], 1.2, Math.max(3, 1.4 * len(u1))), dur: 5,
+    text: 'The log says: you asked for ' + pr2(u1) + ' more than I allowed. So the Physio tells the Coach to aim not at z₁ but past it by the log, the other way: the aim is v₂ = z₁ − u₁ = ' + plan(v) + ', later and lighter than the Physio’s own plan. Why past, and why subtract? The tether’s cost ρ/2·|x − z + u|² is the same number as ρ/2·|x − (z − u)|²: a tether tied to v. A disagreement that repeats is corrected a little harder each round, until the Coach lands on the Physio.',
+    math: '|x − z + u|² = |x − (z − u)|²,  so its centre is v = z − u' + at(0.55, '<br>v₂ = ' + pr2(z1) + ' − ' + pr2(u1) + ' = ' + pr2(v)),
+    draw: function (g, q) {
+      base(g); g.dot(z1, 7, PHYSIO, 1); g.label(z1, 'start at z₁', PHYSIO, { dx: -8, dy: -16, align: 'right', size: 12 }); P.coach(g, x1, 1, 'x₁', { dx: 12, dy: -14 });
+      g.arrow(z1, v, AIM, 3, seg(q, 0.25, 0.58)); g.label(lerp2(z1, v, 0.5), 'past it by the log, −u₁', AIM, { dx: -10, dy: -10, align: 'right', p: seg(q, 0.45, 0.68), size: 12 });
+      g.dot(v, 6, AIM, seg(q, 0.55, 0.7)); g.halo(v, 12, AIM, seg(q, 0.6, 0.75), 1.5);
+      g.label(v, 'the aim v₂ = ' + pr2(v), AIM, { dx: -10, dy: 20, align: 'right', p: seg(q, 0.68, 0.86), size: 12 });
+      var RR = g.sideR; g.panel(RR, 'Build the aim');
+      g.labelPx(RR[0] + 16, RR[1] + 55, '1. the Physio   z₁ = ' + pr2(z1), PHYSIO, { plain: true, mono: true, p: seg(q, 0.08, 0.3) });
+      g.labelPx(RR[0] + 16, RR[1] + 91, '2. the log      u₁ = ' + pr2(u1), LOG, { plain: true, mono: true, p: seg(q, 0.28, 0.5) });
+      g.labelPx(RR[0] + 16, RR[1] + 127, '3. past it by  −u₁ = ' + pr2(scale(u1, -1)), AIM, { plain: true, mono: true, p: seg(q, 0.48, 0.7) });
+      g.labelPx(RR[0] + 16, RR[1] + 163, '4. the aim      v₂ = ' + pr2(v), C.gold, { plain: true, mono: true, p: seg(q, 0.68, 0.9) });
+    } });
+
+  var step2 = N.coachStep(pr, v, rho), ropeV = function (q0) { var dq = sub(q0, v); return pr.J(q0) + rho / 2 * (dq[0] * dq[0] + dq[1] * dq[1]); };
+  out.push({ id: 'coach', chapter: CH.round, title: 'The Coach’s step: scan the days, then the load', layout: 'map+side', view: around([x1, v, x], 0.6, 3.5), dur: 5.8,
+    text: 'The Coach is told: find the lowest point of the cost plus a tether to v₂ = ' + plan(v) + '. For each day t the best load is a formula, w = (r(t) − ' + num(p.r0, 1) + ' + ρ·v<sub>w</sub>)/(2·' + num(p.a, 2) + ' + ρ); what remains is one number, the day, which the Coach finds by scanning the days and keeping the lowest. The panel shows that scan. Lowest on day ' + num(x[0], 2) + ', then w = ' + num(x[1], 2) + ': x₂ = ' + plan(x) + '. The shading is the map plus the tether, as the Coach feels it this round.',
+    math: 'w(t) = (r(t) − r₀ + ρ·v<sub>w</sub>)/(2a + ρ)' + at(0.45, ';  scan t: lowest on day ' + num(x[0], 2)) + at(0.8, ';  x₂ = ' + pr2(x)),
+    draw: function (g, q) {
+      g.land(ropeV, { id: 'ropeV', rings: 10 }); P.axes(g, 'day of the session →', '↑ load'); P.polygon(g, pr.poly.verts);
+      g.dot(v, 6, AIM, 1); g.label(v, 'the aim v₂', AIM, { dx: 10, dy: 16, size: 12 });
+      var s = seg(q, 0.62, 0.95), pos = lerp2(x1, x, s); g.path([x1, x], C.ink, 2, s, [4, 3]);
+      P.spring(g, pos, v, 1); P.coach(g, pos, 1, s >= 1 ? 'x₂ = ' + pr2(x) : s <= 0 ? 'x₁' : '', { dx: 12, dy: -14 });
+      P.scanPanel(g, g.sideR, { along: step2.along, t: [0, 12], title: 'the Coach’s scan: cost + tether, per day', scan: seg(q, 0.08, 0.58), best: [x[0], step2.value], bestP: seg(q, 0.58, 0.7), label: 'lowest: day ' + num(x[0], 2) });
+    } });
+
+  out.push({ id: 'physio', chapter: CH.round, title: 'The Physio’s step', layout: 'map', view: around([x, xu, z, v], 0.6, 3), dur: 4.6,
+    text: 'Now the Physio moves, with the new x₂ and the start-of-round log u₁ held fixed. It starts from the Coach’s plan plus the log, x₂ + u₁ = ' + pr2(x) + ' + ' + pr2(u1) + ' = ' + pr2(xu) + ', and steps straight to the nearest safe plan: z₂ = ' + plan(z) + ', on the workload line. Why add the log? The same tether cost, |x − z + u|² = |z − (x + u)|², is smallest at the safe z nearest x + u.',
+    math: '|x − z + u|² = |z − (x + u)|²' + at(0.42, '<br>z₂ = Π<sub>C</sub>(x₂ + u₁)') + at(0.75, ' = Π<sub>C</sub>' + pr2(xu) + ' = ' + pr2(z)),
+    draw: function (g, q) {
+      base(g); P.coach(g, x, 1, 'x₂', { dx: 12, dy: 14 });
+      g.arrow(x, xu, LOG, 2, seg(q, 0.1, 0.35)); g.dot(xu, 5, C.ink, seg(q, 0.3, 0.4)); g.label(xu, 'x₂ + u₁', C.ink, { dx: -10, dy: -14, align: 'right', p: seg(q, 0.35, 0.5) });
+      g.line(xu, z, PHYSIO, 2, seg(q, 0.5, 0.75), [5, 4]); P.rightAngle(g, z, xu, seg(q, 0.7, 0.85));
+      P.physio(g, z, seg(q, 0.7, 0.85), 'z₂, the nearest safe plan', { dx: 14, dy: 16 });
+    } });
+
+  out.push({ id: 'ledger', chapter: CH.round, title: 'The log, updated', layout: 'map', view: around([z, add(z, u1), add(z, u), x], 1.2, 3.5), dur: 4.6,
+    text: 'The Physio writes this round’s gap into the log: u₂ = u₁ + (x₂ − z₂) = ' + pr2(u1) + ' + ' + pr2(gap) + ' = ' + pr2(u) + '. The Coach asked for earlier and heavier again, so the entry grows. A small gap means the two nearly agree. But agreement alone is not enough to stop: the Physio must also have stopped moving. When all is settled the log holds the rule’s toll: ρu is the force with which the workload rule holds the Coach back.',
+    math: 'u₂ = u₁ + x₂ − z₂' + at(0.45, '<br>= ' + pr2(u1) + ' + ' + pr2(gap)) + at(0.85, ' = ' + pr2(u)),
+    draw: function (g, q) {
+      base(g); g.dot(z, 7, PHYSIO, 1); g.label(z, 'z₂', PHYSIO, { dx: 10, dy: 18, size: 12 }); P.coach(g, x, 1, 'x₂', { dx: 12, dy: -14 });
+      var tipOld = add(z, u1);
+      g.arrow(z, tipOld, 'rgba(255,176,113,0.55)', 2.5, seg(q, 0.05, 0.3)); g.label(lerp2(z, tipOld, 0.25), 'old log u₁', 'rgba(255,176,113,0.9)', { dx: 12, dy: 10, p: seg(q, 0.2, 0.4), size: 12 });
+      g.arrow(tipOld, add(tipOld, gap), AIM, 2.5, seg(q, 0.35, 0.6)); g.label(lerp2(tipOld, add(tipOld, gap), 0.5), '+ this round’s gap', AIM, { dx: 12, dy: -6, p: seg(q, 0.5, 0.65), size: 12 });
+      g.arrow(z, add(z, u), LOG, 3.5, seg(q, 0.65, 0.9)); g.tipLabel(add(z, u), u, 'new log u₂ = ' + pr2(u), LOG, seg(q, 0.85, 1));
+    } });
+
+  var ahead = R.slice(K), xs = ahead.map(function (r) { return r.x; }), zs = ahead.map(function (r) { return r.z; }), nA = ahead.length - 1;
+  out.push({ id: 'again', chapter: CH.round, title: 'Round after round, until they agree', layout: 'map+side', view: around(xs.concat(zs), 0.6, 2.5), dur: 6,
+    text: 'Each round repeats the four moves: the aim, the Coach’s step, the Physio’s step, the log. Here are the rounds from the second on. The two stop only when both gauges are small: the gap between them, |x − z|, the primal residual, and the Physio’s move since the last round times ρ, the dual residual. Agreement alone is not enough: a Physio still on the move has not settled on the plan. Stability alone is not enough: a settled Physio the Coach still disagrees with has no plan to file. Both gauges are below ' + num(p.tol, 2) + ' after round ' + K_END + ': ' + num(fin.primal, 4) + ' and ' + num(fin.dual, 4) + '.',
+    math: 'stop when |x − z| and ρ·|z<sub>new</sub> − z<sub>old</sub>| are both small' + at(0.6, ';  round ' + K_END + ': ' + num(fin.primal, 4) + ' and ' + num(fin.dual, 4)),
+    draw: function (g, q) {
+      base(g); P.star(g, best, 1); var s = seg(q, 0.05, 0.85) * nA, kk = Math.floor(s), f2 = s - kk;
+      g.path(xs.slice(0, kk + 1).concat(kk < nA ? [lerp2(xs[kk], xs[kk + 1], ease(f2))] : []), 'rgba(230,233,238,0.8)', 2, 1);
+      g.path(zs.slice(0, kk + 1).concat(kk < nA ? [lerp2(zs[kk], zs[kk + 1], ease(f2))] : []), PHYSIO, 2, 1);
+      for (var m = 1; m <= Math.min(kk, nA); m++) { g.dot(xs[m], 3, COACH, 1); g.dot(zs[m], 3, PHYSIO, 1); }
+      var hx = kk < nA ? lerp2(xs[kk], xs[kk + 1], ease(f2)) : xs[nA], hz = kk < nA ? lerp2(zs[kk], zs[kk + 1], ease(f2)) : zs[nA];
+      P.spring(g, hx, hz, 1); P.physio(g, hz, 1); g.halo(hz, 15, PHYSIO, 1, 2); P.coach(g, hx, 1); g.labelPx(g.mapR[0] + 12, g.mapR[1] + 30, 'round ' + (K + Math.min(kk, nA)), C.gold, { size: 13 });
+      P.gaugePanel(g, g.sideR, R, q, { upto: (K + s) / K_END, tol: p.tol });
+    } });
+
+  var lastRows = R.slice(Math.max(1, K_END - 2)).map(function (r) { return { text: 'round ' + r.k + ':  gap ' + num(r.primal, 4) + ',  ρ × move ' + num(r.dual, 4) + (r.primal <= p.tol && r.dual <= p.tol ? '  ✓' : ''), col: r.k === K_END ? C.gold : C.ink, mono: true }; });
+  out.push({ id: 'ready', chapter: CH.round, title: 'When is the plan ready?', layout: 'map+side', view: around([best, z1, x1], 1.0, 2.5), dur: 5,
+    text: 'After round ' + K_END + ' the gap is ' + num(fin.primal, 4) + ' and the Physio’s move times ρ is ' + num(fin.dual, 4) + ': both gauges are below ' + num(p.tol, 2) + ', so the Coach and the Physio put their names to one plan, z' + subscript(K_END) + ' = ' + plan(fin.z) + '. It is the star, the best safe session, found without anyone ever scoring the whole safe set: the Coach only ever scored, the Physio only ever kept the rules, and the log carried their disagreement across the rounds. The plan goes to the athlete: a hard session on day ' + num(fin.z[0], 2) + ' with a load of ' + num(fin.z[1], 2) + ', inside every rule.',
+    math: 'the plan: (t, w) = ' + pr2(fin.z) + ';  the star ' + pr2(best) + at(0.6, '<br>the log settled at u = ' + pr2(fin.u) + ':  ρu = ' + pr2(scale(fin.u, rho)) + ' is the workload rule’s toll'),
+    draw: function (g, q) {
+      base(g); P.star(g, best, 1, 'the best safe session', { dx: -14, dy: 18, align: 'right' });
+      g.path(R.slice(1).map(function (r) { return r.x; }), 'rgba(230,233,238,0.45)', 1.5, seg(q, 0, 0.3), [3, 3]); g.path(R.slice(1).map(function (r) { return r.z; }), 'rgba(169,205,246,0.5)', 1.5, seg(q, 0, 0.3), [3, 3]);
+      P.spring(g, fin.x, fin.z, seg(q, 0.3, 0.4)); P.physio(g, fin.z, seg(q, 0.3, 0.45)); P.coach(g, fin.x, seg(q, 0.35, 0.5), 'x = z: one plan', { dx: 14, dy: -16 });
+      var tollTip = add(fin.z, scale(fin.u, 0.4)); g.arrow(fin.z, tollTip, LOG, 2.5, seg(q, 0.55, 0.8)); g.label(lerp2(fin.z, tollTip, 0.5), 'the settled log: the rule’s toll', LOG, { dx: 12, dy: -4, p: seg(q, 0.75, 0.9), size: 12 });
+      P.lines(g, g.sideR, lastRows.concat([{ text: 'both below ' + num(p.tol, 2) + ': file the plan', col: C.gold }, { text: 'session: day ' + num(fin.z[0], 2) + ', load ' + num(fin.z[1], 2), col: C.gold }]), q, 'The two gauges');
+    } });
+
+  // ------------------------------------------------------------ 4. the season
+  var s1 = d.sessions[0], crest1 = pr1.crest, free1 = pr1.free, best1 = pr1.best.q;
+  out.push({ id: 'trained', chapter: CH.season, title: 'The athlete trains, and the curve moves', layout: 'map+side', view: VIEW, dur: 6.4,
+    text: 'The athlete does the session on day ' + num(s1.t, 2) + '. The body answers again: a new dip, a new recovery, and a crest on day ' + num(crest1, 2) + ' that is higher than the last, ' + num(pr1.r(crest1), 2) + ' against ' + num(rCrest, 2) + ', because the fitness of the earlier session is still there. The planning problem is rebuilt from the new curve and the new last session: recovery now says t ≥ ' + num(-rule1('recovery').b, 2) + ', ramp w ≤ ' + num(rule1('ramp').b, 2) + ', workload w ≤ ' + num(p.w0, 0) + ' + ' + num(p.s, 1) + '·(t − ' + num(s1.t, 2) + '); the taper line stays at day ' + num(rule1('taper').b, 0) + '. The map is new, the safe set is new, and the Coach’s favourite moved to ' + plan(free1) + '. The recovery cycle is the outer loop; the negotiation is the inner one.',
+    math: 'history: day 0 (load ' + num(last.w, 1) + '), day ' + num(s1.t, 2) + ' (load ' + num(s1.w, 2) + ')' + at(0.5, '<br>new rules: t ≥ ' + num(-rule1('recovery').b, 2) + ',  w ≤ ' + num(rule1('ramp').b, 2) + ',  w ≤ ' + num(p.w0, 0) + ' + ' + num(p.s, 1) + '·(t − ' + num(s1.t, 2) + '),  t ≤ ' + num(rule1('taper').b, 0)),
+    draw: function (g, q) {
+      g.land(pr1.J, shade1); P.axes(g, 'day of the session →', '↑ load');
+      P.polygon(g, pr.poly.verts, { p: seg(q, 0.05, 0.2), fill: false, dash: [4, 4], col: 'rgba(169,205,246,0.45)' });
+      g.dot([s1.t, s1.w], 6, C.gold, seg(q, 0.05, 0.2)); g.label([s1.t, s1.w], 'session 1, done', C.gold, { dx: -12, dy: 18, align: 'right', p: seg(q, 0.1, 0.25), size: 12 });
+      P.polygon(g, pr1.poly.verts, { p: seg(q, 0.35, 0.55) }); g.label([8.8, 1.6], 'the new safe set', PHYSIO, { align: 'center', p: seg(q, 0.5, 0.65), size: 12 });
+      P.coach(g, free1, seg(q, 0.65, 0.8), 'the new favourite ' + plan(free1), { dx: -14, dy: 18, align: 'right' }); P.star(g, best1, seg(q, 0.8, 0.95), 'the next best safe session', { dx: 0, dy: 22, align: 'center' });
+      P.curvePanel(g, g.sideR, { r: pr1.r, rOld: pr.r, old: 'before session 1', oldAt: 9.5, t: [0, 12], v: [0.3, 1.8], p: q, title: 'readiness, with session 1 done', r0: p.r0, from: 0.3, to: 0.7,
+        sessions: [{ t: 0, w: last.w, text: 'day 0' }, { t: s1.t, w: s1.w, text: 'day ' + num(s1.t, 2) }], marks: [{ t: crest1, text: 'new crest ' + num(pr1.r(crest1), 2) + ' on day ' + num(crest1, 2), at: 0.62, side: 'left' }] });
+    } });
+
+  var xs1 = R1.map(function (r) { return r.x; }), zs1 = R1.map(function (r) { return r.z; }), n1 = R1.length - 1, fin1 = S1.final, nextRec = third ? third.prob.rules.filter(function (r) { return r.id === 'recovery'; })[0] : null;
+  out.push({ id: 'next', chapter: CH.season, title: 'The next negotiation', layout: 'map+side', view: around(xs1.concat(zs1).concat([best1]), 0.6, 3.5), dur: 6.4,
+    text: 'The same four moves on the new map, from the Coach’s new favourite. In ' + n1 + ' rounds both gauges are below ' + num(p.tol, 2) + ' and the two put their names to z = ' + plan(fin1.z) + ': a hard session on day ' + num(fin1.z[0], 2) + ' with a load of ' + num(fin1.z[1], 2) + ', on the workload line, ' + num(rule1('taper').b - fin1.z[0], 1) + ' days before the taper. Then the rules close the window: the next hard session could not come before day ' + (nextRec ? num(-nextRec.b, 2) : '—') + ', after the taper has begun. The next thing on the calendar is the race.',
+    math: 'plan 2: ' + pr2(fin1.z) + ' after ' + n1 + ' rounds' + at(0.6, ';  plan 3: recovery t ≥ ' + (nextRec ? num(-nextRec.b, 2) : '—') + ' and taper t ≤ ' + num(rule1('taper').b, 0) + ' leave no safe session: the race'),
+    draw: function (g, q) {
+      g.land(pr1.J, shade1); P.axes(g, 'day of the session →', '↑ load'); P.polygon(g, pr1.poly.verts); P.star(g, best1, 1);
+      var s = seg(q, 0.05, 0.85) * n1, kk = Math.floor(s), f2 = s - kk;
+      g.path(xs1.slice(0, kk + 1).concat(kk < n1 ? [lerp2(xs1[kk], xs1[kk + 1], ease(f2))] : []), 'rgba(230,233,238,0.8)', 2, 1);
+      g.path(zs1.slice(0, kk + 1).concat(kk < n1 ? [lerp2(zs1[kk], zs1[kk + 1], ease(f2))] : []), PHYSIO, 2, 1);
+      for (var m = 1; m <= Math.min(kk, n1); m++) { g.dot(xs1[m], 3, COACH, 1); g.dot(zs1[m], 3, PHYSIO, 1); }
+      var hx = kk < n1 ? lerp2(xs1[kk], xs1[kk + 1], ease(f2)) : xs1[n1], hz = kk < n1 ? lerp2(zs1[kk], zs1[kk + 1], ease(f2)) : zs1[n1];
+      P.spring(g, hx, hz, 1); P.physio(g, hz, 1); P.coach(g, hx, 1, kk >= n1 ? 'plan 2: ' + plan(fin1.z) : '', { dx: 14, dy: -16 }); g.labelPx(g.mapR[0] + 12, g.mapR[1] + 30, 'round ' + Math.min(kk, n1), C.gold, { size: 13 });
+      P.gaugePanel(g, g.sideR, R1, q, { upto: s / n1, tol: p.tol });
+    } });
+
+  var calSessions = [{ t: 0, w: last.w, text: 'day 0: ' + num(last.w, 1), col: C.dim }].concat(d.sessions.map(function (s, i) { return { t: s.t, w: s.w, text: 'day ' + num(s.t, 2) + ': ' + num(s.w, 2) }; }));
+  out.push({ id: 'block', chapter: CH.season, title: 'The block, and the line to remember', layout: 'side', dur: 6,
+    text: 'The season so far: the last hard session on day 0, the two negotiated sessions on days ' + num(d.sessions[0].t, 2) + ' and ' + num(d.sessions[1].t, 2) + ', the taper, and the race on day ' + p.race + '. Every session was chosen the same way, and the way fits in one line. The curve tempts, the Physio constrains, the tether coordinates, and the planning log makes every unresolved disagreement return.',
+    math: 'outer loop: train → measure → rebuild the curve and the rules → negotiate → train' + at(0.6, '<br>inner loop: aim → the Coach’s step → the Physio’s step → the log, until both gauges are small'),
+    draw: function (g, q) { P.calendar(g, g.sideR, { race: p.race, taper: p.taper, sessions: calSessions, p: q, title: 'the training block' }); } });
+
+  // ------------------------------------------------------------ 5. the same four moves elsewhere
+  out.push({ id: 'bridge', chapter: CH.bridge, title: 'What this shares with a decoder', layout: 'side', dur: 6,
+    text: 'The pattern is the one of the Twins in the King’s Land and of CAJODE’s receiver. One shared unknown has two copies: one that minimises a cost and never looks at the constraints, one that is projected onto the constraint set and never looks at the cost. A tether of stiffness ρ ties the copies, and a log of signed disagreement shifts the aim. Here the copies are a training plan, the cost is minus the training benefit, and the set is a polygon of safety rules. In a decoder the copies are the bits of a codeword, the cost is the misfit to what was received, and the set is the parity rules. The four moves are the same; only the cost and the set change.',
+    math: 'aim v = z − u  →  x = argmin J + ρ/2·|x − v|²  →  z = Π<sub>C</sub>(x + u)  →  u ← u + x − z',
+    draw: function (g, q) { var RR = P.split(g.sideR, 0.5); P.lines(g, RR[0], [{ text: 'the unknown: a plan (t, w)', col: C.gold }, { text: 'the cost: minus the training benefit', col: COACH }, { text: 'the set: four safety rules, a polygon', col: PHYSIO }, { text: 'the projection: the nearest safe plan', col: PHYSIO }], q, 'Here'); P.lines(g, RR[1], [{ text: 'the unknown: the bits of a codeword', col: C.gold }, { text: 'the cost: the misfit to what was received', col: COACH }, { text: 'the set: the parity rules', col: PHYSIO }, { text: 'the projection: onto each parity rule', col: PHYSIO }], q, 'In a decoder'); } });
+
+  out.push({ id: 'differences', chapter: CH.bridge, title: 'What is different', layout: 'side', dur: 5.6,
+    text: 'Two unknowns here against thousands in a decoder, so the Coach can scan every day; a decoder cannot scan every codeword and takes a few taps of the staff instead. The rules here are four lines, so the Physio’s step is exact and cheap; parity rules are many, each with its own copy and its own log. And there is no cyclic redundancy check for a training plan: the test comes later, when the athlete trains and the next measurement says whether the curve was right.',
+    math: 'same four moves;  different cost, set, size, and test',
+    draw: function (g, q) { var RR = P.split(g.sideR, 0.5); P.lines(g, RR[0], [{ text: 'two unknowns: scan every day', col: COACH }, { text: 'four rules: one exact projection', col: PHYSIO }, { text: 'one log for the one plan', col: LOG }, { text: 'the test: the next measurement', col: C.gold }], q, 'The plan'); P.lines(g, RR[1], [{ text: 'thousands of bits: a few taps', col: COACH }, { text: 'many parity rules: one copy each', col: PHYSIO }, { text: 'one log per copy', col: LOG }, { text: 'the test: syndrome and CRC', col: C.gold }], q, 'The decoder'); } });
+
+  // ------------------------------------------------------------ player, chapter bar, keyboard, and deep links
+  var chapters = [];
+  out.forEach(function (s, i) { if (!chapters.length || chapters[chapters.length - 1].name !== s.chapter) chapters.push({ name: s.chapter, start: i, n: 0 }); chapters[chapters.length - 1].n++; });
+  var bar = document.getElementById('progress');
+  if (bar) {
+    bar.innerHTML = chapters.map(function (ch, k) { return '<button type="button" class="seg" data-k="' + k + '" style="flex-grow:' + ch.n + '" title="' + ch.name + '"><span class="fill"></span><span class="name">' + ch.name + '</span></button>'; }).join('');
+    bar.addEventListener('click', function (e) { var b = e.target.closest ? e.target.closest('[data-k]') : null; if (b) B.go(chapters[+b.getAttribute('data-k')].start); });
+  }
+  B.onStep(function (i) {
+    if (!bar) return;
+    Array.prototype.forEach.call(bar.querySelectorAll('[data-k]'), function (b, k) { var ch = chapters[k], f = clamp((i - ch.start + 1) / ch.n, 0, 1); b.querySelector('.fill').style.width = Math.round(f * 100) + '%'; b.classList.toggle('on', i >= ch.start && i < ch.start + ch.n); });
+  });
+  document.addEventListener('keydown', function (e) { if (e.ctrlKey || e.metaKey || e.altKey) return; if (e.target && /^(INPUT|SELECT|TEXTAREA|BUTTON|SUMMARY)$/.test(e.target.tagName) && (e.key === ' ' || e.key === 'Enter')) return; B.key(e); });
+  B.openSteps(out, { embedded: true });
+  window.course = { steps: out, chapters: chapters, plan: d };
+  var hash = (window.location && window.location.hash) || '', ms = /step=([^&]+)/.exec(hash), mp = /p=([0-9.]+)/.exec(hash);
+  if (ms) { var st = decodeURIComponent(ms[1]); B.debug({ step: /^\d+$/.test(st) ? +st : st, p: mp ? +mp[1] : 1 }); }
+})();
+</script>
+<script>
+// A phone reader reaches Next at the foot of a long story card.  Every change of step should bring the new
+// animation back into view; wide screens keep their present position.  Watching the count also covers autoplay,
+// keyboard, contents and chapter navigation without replacing the course's own step callback.
+(function () {
+  'use strict';
+  var count = document.getElementById('board-count'), board = document.getElementById('board');
+  if (!count || !board || !window.MutationObserver) return;
+  new MutationObserver(function () {
+    if (!window.matchMedia || !window.matchMedia('(max-width: 820px)').matches) return;
+    requestAnimationFrame(function () { requestAnimationFrame(function () { board.scrollIntoView({ block: 'start', behavior: 'auto' }); }); });
+  }).observe(count, { childList: true, characterData: true, subtree: true });
+})();
+</script>
+</body>
+</html>

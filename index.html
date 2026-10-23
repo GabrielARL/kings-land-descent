@@ -453,7 +453,7 @@ body.racing #map { cursor: pointer; }
     <nav class="tabs" role="tablist" aria-label="Lands">
       <button class="tab" role="tab" id="tab-canyon" data-land="canyon">The canyon</button>
       <button class="tab" role="tab" id="tab-wall" data-land="wall">The kingdom wall</button>
-      <button class="tab" role="tab" id="tab-fort" data-land="fort">The old fort</button>
+      <button class="tab" role="tab" id="tab-fort" data-land="fort">Two-bit parity</button>
       <button class="tab" role="tab" id="tab-ridge" data-land="ridge">Behind a ridge</button>
       <button class="tab" role="tab" id="tab-misty" data-land="misty">The misty hills</button>
     </nav>
@@ -507,7 +507,7 @@ body.racing #map { cursor: pointer; }
             <div class="tc-inner">
               <div class="tc-eyebrow">King’s Land Descent</div>
               <h3>The Apprentice’s Trial</h3>
-              <p>The King has summoned you. Fog lies on his land, and three heroes must find its lowest places: the Pilgrim, the Cartographer and the Twins. Walk with them, learn one complete ADMM circuit, connect the Old Fort to CAJODE, and diagnose the misty hills.</p>
+              <p>The King has summoned you. Fog lies on his land, and three heroes must find its lowest places: the Pilgrim, the Cartographer and the Twins. Walk with them, learn one complete ADMM circuit, connect a self-checking light board to CAJODE, and diagnose the misty hills.</p>
               <div class="tc-actions">
                 <button type="button" class="btn primary" id="trial-begin">Begin the trial</button>
                 <button type="button" class="btn" id="trial-race">Race the heroes</button>
@@ -551,7 +551,7 @@ body.racing #map { cursor: pointer; }
                   <tr><td>four taps of the staff, h away</td><td>J(x ± h e₁) and J(x ± h e₂)</td></tr>
                   <tr><td>the slope they give</td><td>∇J ≈ ((J<sub>E</sub> − J<sub>W</sub>)/2h, (J<sub>N</sub> − J<sub>S</sub>)/2h), pointing uphill</td></tr>
                   <tr><td>one day (<kbd>N</kbd>)</td><td>one iteration</td></tr>
-                  <tr><td>the wall, the tower’s law</td><td>a constraint x ∈ C</td></tr>
+                  <tr><td>the wall, a parity check</td><td>a constraint x ∈ C</td></tr>
                   <tr><td>ripples, haze, black holes</td><td>extra local hollows, noisy repeated measurements, narrow pits that give no clue until sampled</td></tr>
                 </table>
                 <h4>The Pilgrim: gradient descent</h4>
@@ -560,9 +560,9 @@ body.racing #map { cursor: pointer; }
                 <ol><li>Feel: four taps, the slope ∇J.</li><li>Journal: its last m strides, and how the slope changed over each, tell it how the land curves; it bends its course to d = −H∇J.</li><li>Test strides: 1, ½, ¼, … until the height falls by enough (the Armijo test).</li><li>Turn and stride.</li></ol>
                 <h4>The Twins: ADMM</h4>
                 <p>ADMM temporarily makes two copies of one decision because the cost and the law are easier to handle separately. The Wanderer updates x; the Warden updates z; the scaled dual variable u records signed disagreement.</p>
-                <ol><li>Aim: v = z − u, the Warden’s spot corrected by the ledger.</li><li>Wanderer: lower f(x) + ρ/2·|x − v|². On the wall f = J; at the fort f omits the law term because the Warden enforces that law.</li><li>Warden: take the lawful spot nearest x + u. This projection is the constraint form shown here; general ADMM may give the second copy another cost.</li><li>Ledger: u ← u + x − z.</li><li>Stop only when both are small: the primal residual |x − z| (agreement) and the dual residual ρ|z<sub>new</sub> − z<sub>old</sub>| (the lawful copy has nearly stopped moving).</li></ol>
-                <h4>From the Old Fort to CAJODE</h4>
-                <p>The fort is a toy with two bits, one parity check, and a known channel. CAJODE has one shared variable for each coded bit, replica variables constrained to each check’s parity polytope, and a scaled dual variable for every bit occurrence in a check. A full circuit computes one weight for every received sample, updates all shared variables, recomputes the weights, updates all channel coefficients, projects every check’s replicas, and then updates every scaled dual variable. Passing every parity check and the CRC can accept a decoded word; it does not prove continuous convergence or stationarity.</p>
+                <ol><li>Aim: v = z − u, the Warden’s spot corrected by the ledger.</li><li>Wanderer: lower f(x) + ρ/2·|x − v|². On the wall f = J; in the two-bit parity plot f omits the parity term because the Warden enforces that check.</li><li>Warden: take the lawful spot nearest x + u. This projection is the constraint form shown here; general ADMM may give the second copy another cost.</li><li>Ledger: u ← u + x − z.</li><li>Stop only when both are small: the primal residual |x − z| (agreement) and the dual residual ρ|z<sub>new</sub> − z<sub>old</sub>| (the lawful copy has nearly stopped moving).</li></ol>
+                <h4>From the light board to CAJODE</h4>
+                <p>A 3 × 3 self-checking light board makes overlapping parity checks visible: every lamp belongs to one row check and one column check. The observed glow is converted by a channel model into a channel LLR; it is not itself the LLR. CAJODE has one shared variable for each coded bit, replica variables constrained to each check’s parity polytope, and a scaled dual variable for every bit occurrence in a check. A full circuit computes one robust weight for every received sample, updates all shared variables, recomputes the weights, updates all channel coefficients, projects every check’s replicas, and then updates every scaled dual variable. Passing every parity check and the CRC can accept a decoded word; it does not prove continuous convergence or stationarity.</p>
                 <h4>How to play</h4>
                 <p><b>The Apprentice’s Trial</b> teaches all of this in nine short lessons. <b>The King’s Race</b> takes turns: each turn you spend 4 action points (walk, feel, scout), then each hero lives one day; the first to the treasure, or the lowest after 25 turns, wins. Or explore freely: walk, feel the slope (<kbd>F</kbd>), talk (<kbd>E</kbd>), and click a hero under View to follow its days. The chip under the ground plot (<kbd>J</kbd>) gives the day’s key numbers, and ▶ Step by step (<kbd>B</kbd>) works every one of them out in small animated steps, in a scene of its own.</p>
               </section>
@@ -668,7 +668,7 @@ body.racing #map { cursor: pointer; }
   <footer class="foot">
     <p>The rules are the tale's. The Pilgrim takes a fixed stride and is set back inside the box. The Cartographer is deck p9's L-BFGS: a two-loop recursion over the last m pages, strides halved from 1 until the height falls enough. On a boxed land it walks on x = tanh t. The Twins show scaled-form ADMM with penalty ρ, the Warden’s nearest-lawful-point step, and both residual stopping tests.</p>
     <p>In the view through the fog the land is drawn one screen column at a time, near to far, the way 1990s games drew terrain (Retro shows it at Doom’s 320 × 200), with heights on a square-root scale (downhill stays downhill). The misty hills add six random waves and haze to every tap of the ground; the Weather settings add them to any land. With ripples or haze, this game approximately solves the Wanderer’s update with small downhill steps.</p>
-    <p>With their first settings, the canyon and the wall give the tale's own numbers. In the canyon, the Pilgrim comes within 0.01 of the spring after 21 strides and the Cartographer after 4. At the wall, the Pilgrim comes within 0.001 of the treasure after 10 strides, the Twins after 9 days and the Cartographer after 6. The fort and the ridge use CORAL's three terms (deck p5) on two sentries under one tower.</p>
+    <p>With their first settings, the canyon and the wall give the tale's own numbers. In the canyon, the Pilgrim comes within 0.01 of the spring after 21 strides and the Cartographer after 4. At the wall, the Pilgrim comes within 0.001 of the treasure after 10 strides, the Twins after 9 days and the Cartographer after 6. The two-bit parity and ridge lands use CORAL's three terms (deck p5): fixed evidence, a pull to binary endpoints, and a parity-violation penalty.</p>
   </footer>
 </div>
 <script>
@@ -2234,8 +2234,8 @@ var Board = (function () {
 })();
 </script>
 <script>
-// The parts of the step-by-step board that only some days need: the height of the tower lands (the old fort and the
-// ridge), the Cartographer's journal, reading and stride tests, and the Twins' aim, rope, Warden and ledger.  Each
+// The parts of the step-by-step board that only some days need: the height of the two-bit parity lands, the
+// Cartographer's journal, reading and stride tests, and the Twins' aim, rope, Warden and ledger.  Each
 // part is registered with Board.register(name, function (cx, out, H) { ... out.push(step) ... }); see board.js.
 (function () {
   'use strict';
@@ -2253,16 +2253,16 @@ var Board = (function () {
     return String(n).split('').map(function (q) { return d.charAt(Number(q)); }).join('');
   }
 
-  // ------------------------------------------------------------ the tower lands: two sentries' cards
+  // ------------------------------------------------------------ the two-bit parity lands
   B.register('towerHeight', function (cx, out) {
     var land = cx.land, P = cx.p, x = cx.x, y = land.y, s2 = P.s2, mb = P.muB, mp = P.muP, s = land.lawSign, tw = cx.hero === 'tw';
     var dx = [x[0] - y[0], x[1] - y[1]], lan = (dx[0] * dx[0] + dx[1] * dx[1]) / (2 * s2);
     var f1 = Math.pow(1 - x[0] * x[0], 2), f2 = Math.pow(1 - x[1] * x[1], 2), fl = mb * (f1 + f2);
     var r = 1 - s * x[0] * x[1], law = mp * r * r;
     var gLan = [dx[0] / s2, dx[1] / s2], gFl = [-4 * mb * x[0] * (1 - x[0] * x[0]), -4 * mb * x[1] * (1 - x[1] * x[1])], gLaw = [-2 * mp * r * s * x[1], -2 * mp * r * s * x[0]];
-    cx.parts.push({ name: 'lanterns', value: lan, col: C.gold }, { name: 'flags', value: fl, col: C.green });
-    cx.gradParts.push({ name: 'lanterns (x − y)/σ²', vec: gLan, col: C.gold }, { name: 'flags', vec: gFl, col: C.green });
-    if (!tw) { cx.parts.push({ name: 'the law', value: law, col: C.violet }); cx.gradParts.push({ name: 'the law', vec: gLaw, col: C.violet }); }
+    cx.parts.push({ name: 'fixed evidence', value: lan, col: C.gold }, { name: 'binary-end pull', value: fl, col: C.green });
+    cx.gradParts.push({ name: 'evidence (x − y)/σ²', vec: gLan, col: C.gold }, { name: 'binary-end pull', vec: gFl, col: C.green });
+    if (!tw) { cx.parts.push({ name: 'parity penalty', value: law, col: C.violet }); cx.gradParts.push({ name: 'parity penalty', vec: gLaw, col: C.violet }); }
     var view = [-1.32, 1.32, -1.32, 1.32], T = land.treasure, seg2 = land.lawSegment, weather = !!(land.ripples || land.holes);
     var lanFn = function (q) { return ((q[0] - y[0]) * (q[0] - y[0]) + (q[1] - y[1]) * (q[1] - y[1])) / (2 * s2); };
     var flFn = function (q) { return mb * (Math.pow(1 - q[0] * q[0], 2) + Math.pow(1 - q[1] * q[1], 2)); };
@@ -2273,65 +2273,64 @@ var Board = (function () {
       CORN.forEach(function (q, i) {
         var ok = q[0] * q[1] === s, q0 = seg(p, i * 0.1, i * 0.1 + 0.2), col = marks ? (ok ? C.blue : C.orange) : C.ink;
         g.dot(q, 5, col, q0);
-        g.label(q, order(q) + (marks ? (ok ? ' lawful' : ' broken') : ''), col, { dx: q[0] > 0 ? 9 : -9, dy: q[1] > 0 ? -13 : 14, align: q[0] > 0 ? 'left' : 'right', p: q0, size: 12 });
+        g.label(q, order(q) + (marks ? (ok ? ' passes' : ' fails') : ''), col, { dx: q[0] > 0 ? 9 : -9, dy: q[1] > 0 ? -13 : 14, align: q[0] > 0 ? 'left' : 'right', p: q0, size: 12 });
       });
     }
-    var lean = function (v) { return Math.abs(v) < 0.2 ? 'is unsure' : v > 0 ? 'leans to +' : 'leans to −'; };
-    out.push({ id: 'cards', chapter: 'The height', title: 'Two sentries, two cards', layout: 'map', view: view, dur: 4,
-      text: 'On this land a spot is a pair of cards, one for each of two sentries: x₁ for the first, x₂ for the second. A card lies between −1 and +1. ' +
-        '+1 and −1 are the two flags a sentry can raise; a card in between means the sentry is still unsure. The four corners of the square are the four orders the sentries could give, and the King’s true order is ' + order(T) + '. ' +
-        'Today the first sentry ' + lean(x[0]) + ' (x₁ = ' + num(x[0]) + ') and the second ' + lean(x[1]) + ' (x₂ = ' + num(x[1]) + ').',
-      math: at(0.75, 'x = (x₁, x₂) = ' + pair(x) + ', each card in [−1, 1]'),
+    var lean = function (v) { return Math.abs(v) < 0.2 ? 'is near the threshold' : v > 0 ? 'leans to bit 1' : 'leans to bit 0'; };
+    out.push({ id: 'cards', chapter: 'The height', title: 'Two relaxed bit coordinates', layout: 'map', view: view, dur: 4,
+      text: 'A point x = (x₁, x₂) holds two relaxed signed bit values, each between −1 and +1. At an endpoint, −1 represents bit 0 and +1 represents bit 1; an interior value is still undecided. The square’s four corners are 00, 01, 10 and 11. The evidence-selected passing endpoint is ' + order(T) + '. ' +
+        'Today coordinate 1 ' + lean(x[0]) + ' (x₁ = ' + num(x[0]) + ') and coordinate 2 ' + lean(x[1]) + ' (x₂ = ' + num(x[1]) + ').',
+      math: at(0.75, 'x = (x₁, x₂) = ' + pair(x) + ', each coordinate in [−1, 1]'),
       draw: function (g, p) {
         g.land(cx.J, { lo: cx.shade.lo, hi: cx.shade.hi, id: 'J', alpha: 0.45, pits: cx.shade.pits }); g.axes();
         square(g, seg(p, 0, 0.3)); corners(g, seg(p, 0.2, 0.7), false);
-        g.halo(T, 14, C.gold, seg(p, 0.6, 0.75), 2.5); g.label(T, 'the true order', C.gold, { dx: T[0] > 0 ? 18 : -18, dy: T[1] > 0 ? 14 : -14, align: T[0] > 0 ? 'left' : 'right', p: seg(p, 0.65, 0.8) });
+        g.halo(T, 14, C.gold, seg(p, 0.6, 0.75), 2.5); g.label(T, 'selected passing endpoint', C.gold, { dx: T[0] > 0 ? 18 : -18, dy: T[1] > 0 ? 14 : -14, align: T[0] > 0 ? 'left' : 'right', p: seg(p, 0.65, 0.8) });
         g.hero(x, cx.hero, seg(p, 0.7, 0.85));
         var q = seg(p, 0.82, 1), v = g.vis; g.line(x, [x[0], v[2]], C.gold, 1.5, q, [5, 4]); g.line(x, [v[0], x[1]], C.gold, 1.5, q, [5, 4]);
       } });
-    out.push({ id: 'formula', chapter: 'The height', title: 'The King’s formula: three parts', layout: 'map', view: view, dur: 3.6,
-      text: 'The height of a spot is the King’s formula J(x), in three parts: the lanterns, the flags and the tower’s law' + (weather ? ', with the weather added on top' : '') + '. ' +
-        (tw ? 'The Wanderer carries only the first two: its twin, the Warden, keeps the law instead. ' : '') + 'Dark is low and warm is high. We take the parts one at a time.',
-      math: 'J(x) = ' + at(0.25, 'lanterns') + at(0.45, ' + flags') + at(0.65, ' + law') + (land.ripples ? at(0.8, ' + R(x)') : '') + (land.holes ? at(0.85, ' + B(x)') : '') + (tw ? at(0.9, '<br>the Wanderer’s land: f(x) = J(x) − law') : ''),
+    out.push({ id: 'formula', chapter: 'The height', title: 'The two-bit objective: three parts', layout: 'map', view: view, dur: 3.6,
+      text: 'The objective J(x) has three parts: fit to the fixed evidence, a pull toward binary endpoints, and a parity-violation penalty' + (weather ? ', with the weather added on top' : '') + '. ' +
+        (tw ? 'The Wanderer carries the first two; the Warden enforces the parity set instead of adding its penalty. ' : '') + 'Dark is low and warm is high. We take the parts one at a time.',
+      math: 'J(x) = ' + at(0.25, 'evidence fit') + at(0.45, ' + binary-end pull') + at(0.65, ' + parity penalty') + (land.ripples ? at(0.8, ' + R(x)') : '') + (land.holes ? at(0.85, ' + B(x)') : '') + (tw ? at(0.9, '<br>the Wanderer’s objective: f(x) = J(x) − parity penalty') : ''),
       draw: function (g, p) { g.land(cx.J, { lo: cx.shade.lo, hi: cx.shade.hi, id: 'J', alpha: seg(p, 0, 0.6), pits: cx.shade.pits }); g.axes(); square(g, 1); g.hero(x, cx.hero, seg(p, 0.5, 0.7)); } });
-    out.push({ id: 'lanterns', chapter: 'The height', title: 'The lanterns: what the sentries saw', layout: 'map', view: view, dur: 4.2,
-      text: 'The lanterns say y = (y₁, y₂) = ' + pair(y, 2) + ': what each sentry saw in the night. The first part grows with the distance from y, ' +
-        '[(x₁ − y₁)² + (x₂ − y₂)²]/(2σ²). σ² = ' + num(s2, 2) + ' says how far the lanterns can be trusted: the smaller it is, the harder they pull. Here x − y = ' + pair(dx) + ', so the lanterns add ' + num(lan, 4) + '.',
-      math: 'lanterns = ' + frac('(x₁ − y₁)² + (x₂ − y₂)²', '2σ²') + at(0.5, ' = ' + frac(par(dx[0]) + '² + ' + par(dx[1]) + '²', num(2 * s2, 2))) + at(0.85, ' = ' + num(lan, 4)),
+    out.push({ id: 'lanterns', chapter: 'The height', title: 'Fit the fixed evidence', layout: 'map', view: view, dur: 4.2,
+      text: 'The fixed evidence is y = (y₁, y₂) = ' + pair(y, 2) + '. The first part grows with the distance from y, ' +
+        '[(x₁ − y₁)² + (x₂ − y₂)²]/(2σ²). The variance σ² = ' + num(s2, 2) + ' sets the evidence strength: the smaller it is, the harder y pulls. Here x − y = ' + pair(dx) + ', so the evidence term adds ' + num(lan, 4) + '.',
+      math: 'evidence fit = ' + frac('(x₁ − y₁)² + (x₂ − y₂)²', '2σ²') + at(0.5, ' = ' + frac(par(dx[0]) + '² + ' + par(dx[1]) + '²', num(2 * s2, 2))) + at(0.85, ' = ' + num(lan, 4)),
       draw: function (g, p) {
         g.land(lanFn, { id: 'lan', rings: 10 }); g.axes(); square(g, 1, 'rgba(242,245,248,0.35)');
         g.dot(y, 7, C.gold, seg(p, 0, 0.15)); g.halo(y, 12 + 8 * seg(p, 0.1, 0.4), C.gold, seg(p, 0.05, 0.2) * (1 - seg(p, 0.4, 0.55)));
-        g.label(y, 'y, the lanterns', C.gold, { dx: 12, dy: -14, p: seg(p, 0.1, 0.25) });
+        g.label(y, 'y, fixed evidence', C.gold, { dx: 12, dy: -14, p: seg(p, 0.1, 0.25) });
         g.hero(x, cx.hero, 1);
         var corner = [x[0], y[1]];
         g.line(y, corner, C.violet, 2, seg(p, 0.25, 0.45), [6, 4]); g.line(corner, x, C.violet, 2, seg(p, 0.45, 0.6), [6, 4]);
         g.label(lerp2(y, corner, 0.5), 'x₁ − y₁ = ' + num(dx[0]), C.violet, { dy: 16, p: seg(p, 0.35, 0.5), align: 'center' });
         g.label(lerp2(corner, x, 0.5), 'x₂ − y₂ = ' + num(dx[1]), C.violet, { dx: 10, p: seg(p, 0.55, 0.65) });
-        g.ring(lan, C.gold, 2.5, seg(p, 0.7, 0.85)); g.label(x, 'lanterns ' + num(lan, 4), C.gold, { dx: 14, dy: -16, p: seg(p, 0.85, 1) });
+        g.ring(lan, C.gold, 2.5, seg(p, 0.7, 0.85)); g.label(x, 'evidence fit ' + num(lan, 4), C.gold, { dx: 14, dy: -16, p: seg(p, 0.85, 1) });
       } });
     var fmax = mb * 1.08;
-    out.push({ id: 'flags', chapter: 'The height', title: 'The flags: each card wants +1 or −1', layout: 'map+side', view: view, dur: 4.4,
-      text: 'The second part pulls each card toward a flag. Each card adds μ_b(1 − t²)²: 0 at t = −1 and at t = +1, and largest at t = 0, so an unsure card costs height. ' +
-        'With μ_b = ' + num(mb, 2) + ': card 1 (x₁ = ' + num(x[0]) + ') adds ' + num(mb * f1, 4) + ', card 2 (x₂ = ' + num(x[1]) + ') adds ' + num(mb * f2, 4) + ', together ' + num(fl, 4) + '.',
-      math: 'flags = μ_b[(1 − x₁²)² + (1 − x₂²)²] = ' + at(0.45, num(mb, 2) + '·[' + num(f1, 4) + ' + ' + num(f2, 4) + ']') + at(0.85, ' = ' + num(fl, 4)),
+    out.push({ id: 'flags', chapter: 'The height', title: 'Pull each value toward a binary endpoint', layout: 'map+side', view: view, dur: 4.4,
+      text: 'The second part pulls each coordinate toward −1 or +1. Each coordinate adds μ_b(1 − t²)²: 0 at either endpoint and largest at t = 0, so an undecided interior value costs height. ' +
+        'With μ_b = ' + num(mb, 2) + ': coordinate 1 (x₁ = ' + num(x[0]) + ') adds ' + num(mb * f1, 4) + ', coordinate 2 (x₂ = ' + num(x[1]) + ') adds ' + num(mb * f2, 4) + ', together ' + num(fl, 4) + '.',
+      math: 'binary-end pull = μ_b[(1 − x₁²)² + (1 − x₂²)²] = ' + at(0.45, num(mb, 2) + '·[' + num(f1, 4) + ' + ' + num(f2, 4) + ']') + at(0.85, ' = ' + num(fl, 4)),
       draw: function (g, p) {
         g.land(flFn, { id: 'flags', rings: 8 }); g.axes(); square(g, 1, 'rgba(242,245,248,0.35)'); g.hero(x, cx.hero, 1);
         CORN.forEach(function (q) { g.halo(q, 9, C.green, seg(p, 0.05, 0.25), 1.5); });
-        var pl = g.plot(g.sideR, [-1.2, 1.2], [0, fmax], { title: 'one card’s part: μ_b(1 − t²)²' });
+        var pl = g.plot(g.sideR, [-1.2, 1.2], [0, fmax], { title: 'one coordinate’s part: μ_b(1 − t²)²' });
         pl.frame('t →', ''); pl.curve(function (t) { return mb * Math.pow(1 - t * t, 2); }, C.green, 2.2, seg(p, 0.1, 0.4));
-        pl.point(x[0], mb * f1, C.orange, 'card 1: ' + num(mb * f1, 4), seg(p, 0.45, 0.6), x[0] > 0.5 ? 'left' : 'right');
-        pl.point(x[1], mb * f2, C.blue, 'card 2: ' + num(mb * f2, 4), seg(p, 0.6, 0.75), x[1] > 0.5 ? 'left' : 'right');
+        pl.point(x[0], mb * f1, C.orange, 'coordinate 1: ' + num(mb * f1, 4), seg(p, 0.45, 0.6), x[0] > 0.5 ? 'left' : 'right');
+        pl.point(x[1], mb * f2, C.blue, 'coordinate 2: ' + num(mb * f2, 4), seg(p, 0.6, 0.75), x[1] > 0.5 ? 'left' : 'right');
       } });
     var lawOK = CORN.filter(function (q) { return q[0] * q[1] === s; }).map(order).join(' and ');
-    out.push({ id: 'law', chapter: 'The height', title: 'The tower’s law', layout: 'map', view: view, dur: 4.4,
-      text: 'The tower has one law. s = +1 says the two flags must agree; s = −1 that they must differ. Here s = ' + (s > 0 ? '+1' : '−1') + ', so the lawful orders are ' + lawOK + '. ' +
-        'The third part, μ_p(1 − s·x₁x₂)², is 0 where s·x₁x₂ = 1 and grows as the cards break the law; μ_p = ' + num(mp, 2) + ' says how hard the law pushes. At x, s·x₁x₂ = ' + num(s * x[0] * x[1]) + ', so the law adds ' + num(law, 4) + '.' +
-        (tw ? ' The Wanderer does not carry this part: the Warden keeps the law, standing on the lawful line between the two lawful corners.' : ''),
-      math: 'law = μ_p(1 − s·x₁x₂)² = ' + at(0.45, num(mp, 2) + '·(1 − ' + par(s * x[0] * x[1]) + ')²') + at(0.85, ' = ' + num(law, 4)),
+    out.push({ id: 'law', chapter: 'The height', title: 'The parity penalty', layout: 'map', view: view, dur: 4.4,
+      text: 'The sign s chooses the check. s = +1 means even parity, so the endpoint signs agree; s = −1 means odd parity, so they differ. Here s = ' + (s > 0 ? '+1' : '−1') + ', so the passing endpoints are ' + lawOK + '. ' +
+        'The third part, μ_p(1 − s·x₁x₂)², is 0 where s·x₁x₂ = 1 and grows with parity violation; μ_p = ' + num(mp, 2) + ' sets its strength. At x, s·x₁x₂ = ' + num(s * x[0] * x[1]) + ', so the penalty adds ' + num(law, 4) + '.' +
+        (tw ? ' The Wanderer does not carry this part: the Warden projects onto the parity-polytope line between the two passing endpoints.' : ''),
+      math: 'parity penalty = μ_p(1 − s·x₁x₂)² = ' + at(0.45, num(mp, 2) + '·(1 − ' + par(s * x[0] * x[1]) + ')²') + at(0.85, ' = ' + num(law, 4)),
       draw: function (g, p) {
         g.land(lawFn, { id: 'law', rings: 9 }); g.axes(); square(g, 1, 'rgba(242,245,248,0.35)'); corners(g, seg(p, 0.05, 0.5), true);
-        g.line(seg2[0], seg2[1], C.blue, 3, seg(p, 0.45, 0.7)); g.label(lerp2(seg2[0], seg2[1], 0.3), 'the lawful line', C.blue, { dx: 10, dy: -10, p: seg(p, 0.6, 0.75) });
-        g.hero(x, cx.hero, 1); g.ring(law, C.violet, 2.5, seg(p, 0.7, 0.85)); g.label(x, 'law ' + num(law, 4), C.violet, { dx: 14, dy: -16, p: seg(p, 0.85, 1) });
+        g.line(seg2[0], seg2[1], C.blue, 3, seg(p, 0.45, 0.7)); g.label(lerp2(seg2[0], seg2[1], 0.3), 'parity polytope', C.blue, { dx: 10, dy: -10, p: seg(p, 0.6, 0.75) });
+        g.hero(x, cx.hero, 1); g.ring(law, C.violet, 2.5, seg(p, 0.7, 0.85)); g.label(x, 'penalty ' + num(law, 4), C.violet, { dx: 14, dy: -16, p: seg(p, 0.85, 1) });
       } });
   });
 
@@ -2622,7 +2621,7 @@ var Board = (function () {
     if (!rec) return;
     var x = rec.from, z = rec.zFrom, u = rec.uFrom, v = rec.v, xn = rec.x, zn = rec.z, un = rec.u, tower = land.kind === 'tower', box = land.box;
     var wall = cx.key === 'wall', noLaw = !tower && !box, f = land.f, T = land.treasure, x0 = w[0].x;
-    var lawName = tower ? 'the lawful line' : wall ? 'the wall' : 'the realm', lawWord = tower ? 'on the lawful line' : wall ? 'inside the wall' : 'inside the realm';
+    var lawName = tower ? 'the parity-polytope line' : wall ? 'the wall' : 'the realm', lawWord = tower ? 'on the parity-polytope line' : wall ? 'inside the wall' : 'inside the realm';
     // the Wanderer's own lowest spot, with nothing pulling on it: the valley's floor, or the lowest point of the cards'
     // land; there is none to name where the land has no formula
     var free = land.kind === 'quad' ? land.c.slice() : land.exactStep ? land.wanderer([0, 0], 1e-9) : null;
@@ -2680,14 +2679,14 @@ var Board = (function () {
 
     var freeJ = free ? f(free) : null, TJ = f(T);
     out.push({ id: 'wanderer-role', chapter: 'The Twins', title: 'Meet the Wanderer: x', layout: 'map', view: introView, dur: 5.2,
-      text: free ? 'The Wanderer’s job: find the lowest point of whatever it is asked to minimise. Asked about the land alone, it feels the slope and walks to ' + (tower ? 'the lowest point of lanterns and flags' : 'the valley’s floor') + ', c = ' + pair(free) + ', where J = ' + num(freeJ, 3) + '. It never looks at the law' + (freeOut ? ', and that spot is ' + (tower ? 'off the lawful line' : 'outside ' + lawName) + ': no use to the King on its own.' : '.') + ' But add any pull to the land, and the Wanderer will find the new lowest point just as surely. That is the skill the King hired.' :
+      text: free ? 'The Wanderer’s job: find the lowest point of whatever it is asked to minimise. Asked about the land alone, it feels the slope and walks to ' + (tower ? 'the lowest point of the evidence fit and binary-end pull' : 'the valley’s floor') + ', c = ' + pair(free) + ', where J = ' + num(freeJ, 3) + '. It never looks at the law' + (freeOut ? ', and that spot is ' + (tower ? 'off the parity-polytope line' : 'outside ' + lawName) + ': no use to the King on its own.' : '.') + ' But add any pull to the land, and the Wanderer will find the new lowest point just as surely. That is the skill the King hired.' :
         'The Wanderer’s job: find the lowest point of whatever it is asked to minimise. On this land no formula gives that point, so it walks downhill in small steps, feeling the way with its staff. It never looks at the law.',
       math: 'the Wanderer: x = argmin f(x) + (whatever pulls on it)' + (free ? at(0.6, ';  with nothing pulling: c = ' + pair(free) + (freeOut ? ', outside C' : '')) : ''),
       draw: function (g, p) {
         base(g); g.flag(x0, 1); star(g, T, 1);
         if (free) {
           var q = seg(p, 0.1, 0.7); g.path([x0, free], 'rgba(230,233,238,0.6)', 2, q, [4, 4]); g.hero(lerp2(x0, free, q), 'tw', 1, q >= 1 ? 'c, the lowest point of all' : '');
-          if (freeOut) g.label(free, tower ? 'off the lawful line' : 'outside ' + lawName, C.red, { dx: 14, dy: 16, p: seg(p, 0.75, 0.95), size: 12 });
+          if (freeOut) g.label(free, tower ? 'off the parity-polytope line' : 'outside ' + lawName, C.red, { dx: 14, dy: 16, p: seg(p, 0.75, 0.95), size: 12 });
         } else g.hero(x, 'tw', 1, 'the Wanderer');
       } });
 
@@ -2695,7 +2694,7 @@ var Board = (function () {
     if (free) { var dir0 = sub(free, x0), perp = [-dir0[1], dir0[0]]; samples = [add(free, scale(perp, 0.35)), lerp2(x0, free, 0.45), free].map(function (q) { return { q: q, z: noLaw ? q : land.project(q) }; }); }
     out.push({ id: 'warden-role', chapter: 'The Twins', title: 'Meet the Warden: z', layout: 'map', view: introView, dur: 5.6,
       text: noLaw ? 'The Warden’s job: given any point, step to the nearest lawful spot. With no law every spot is lawful, so the Warden simply stands where the Wanderer stands.' :
-        'The Warden’s job: given any point, step to the nearest lawful spot, ' + (tower ? 'the nearest point of the lawful line' : 'the nearest spot ' + lawWord) + '. A lawful point stays where it is; a point outside is pulled straight to the law, at a right angle. ' + (free ? 'Asked about the Wanderer’s spot c, the Warden answers Π(c) = ' + pair(freeZ) + ': lawful, but J = ' + num(f(freeZ), 3) + ' there, above the spot to dig, where J = ' + num(TJ, 3) + '. ' : '') + 'The Warden never feels the slope, so on its own it cannot find the lowest lawful spot either.',
+        'The Warden’s job: given any point, step to the nearest lawful spot, ' + (tower ? 'the nearest point of the parity-polytope line' : 'the nearest spot ' + lawWord) + '. A lawful point stays where it is; a point outside is pulled straight to the law, at a right angle. ' + (free ? 'Asked about the Wanderer’s spot c, the Warden answers Π(c) = ' + pair(freeZ) + ': lawful, but J = ' + num(f(freeZ), 3) + ' there, above the spot to dig, where J = ' + num(TJ, 3) + '. ' : '') + 'The Warden never feels the slope, so on its own it cannot find the lowest lawful spot either.',
       math: 'the Warden: z = Π_C(any point), the nearest lawful spot' + (free && freeOut ? at(0.6, ';  Π_C(c) = ' + pair(freeZ) + ',  J = ' + num(f(freeZ), 3) + ' > ' + num(TJ, 3)) : ''),
       draw: function (g, p) {
         base(g); star(g, T, 1);
@@ -2767,7 +2766,7 @@ var Board = (function () {
     out.push({ id: 'ledger-role', chapter: 'The Twins', title: 'The Warden’s book: u', layout: 'map+side', view: bookView, dur: 5.8,
       text: 'So the Warden keeps a book. The story calls it a book or ledger; in standard scaled ADMM it is the scaled dual variable u. At the end of every circuit it writes down the gap, by how much and in which direction the Wanderer fell short of it: u ← u + (x − z). ' +
         (k === 0 ? 'At the start the book is empty, u₀ = (0, 0).' :
-          (firstGap ? (firstWallContact > 1 ? 'For the first ' + (firstWallContact - 1) + ' days of this walk the twins stood together and the book stayed empty. ' : '') + 'On day ' + firstWallContact + ' the Wanderer first ended ' + (tower ? 'off the lawful line' : 'outside ' + lawName) + ', the gap was ' + pair(firstGap) + ', and the book got its first entry. ' : 'So far the twins have always stood together and the book is empty. ') +
+          (firstGap ? (firstWallContact > 1 ? 'For the first ' + (firstWallContact - 1) + ' days of this walk the twins stood together and the book stayed empty. ' : '') + 'On day ' + firstWallContact + ' the Wanderer first ended ' + (tower ? 'off the parity-polytope line' : 'outside ' + lawName) + ', the gap was ' + pair(firstGap) + ', and the book got its first entry. ' : 'So far the twins have always stood together and the book is empty. ') +
           'Today it reads u<sub>' + k + '</sub> = ' + pair(u) + '. Tomorrow the Warden will use it.'),
       math: 'u<sub>k</sub> = u<sub>k−1</sub> + (x<sub>k</sub> − z<sub>k</sub>)' + (k > 0 ? at(0.5, ';  u<sub>' + k + '</sub> = ' + (function () { var nz = entries.filter(function (e) { return len(e.gap) > 1e-9; }).map(function (e) { return pair(e.gap); }); return nz.length ? (nz.length > 3 ? '… + ' : '') + nz.slice(-3).join(' + ') : '(0, 0)'; })() + ' = ' + pair(u)) : at(0.5, ';  u₀ = (0, 0)')),
       draw: function (g, p) {
@@ -2817,14 +2816,14 @@ var Board = (function () {
       };
     } else if (rec.exact && tower) {
       var y = land.y, s2 = P.s2, mb = P.muB, phi = function (t, i) { return (y[i] - t) * (y[i] - t) / (2 * s2) + mb * Math.pow(1 - t * t, 2) + rho / 2 * (t - v[i]) * (t - v[i]); };
-      stepText = 'The Wanderer is told: find the lowest point of lanterns and flags plus a rope to v<sub>' + k + '</sub> = ' + pair(v) + '. On a tower land each card can be chosen on its own: a card is the lowest point on [−1, 1] of its lantern part, its flag part and its share of the rope, φ(t) = (y − t)²/(2σ²) + μ_b(1 − t²)² + ρ/2·(t − v)². The lowest points: x<sub>' + (k + 1) + '</sub> = ' + pair(xn) + '.';
-      stepMath = at(0.4, 'card 1: lowest φ at ' + num(xn[0])) + at(0.7, ',  card 2: lowest φ at ' + num(xn[1]));
+      stepText = 'The Wanderer is told: find the lowest point of the evidence fit and binary-end pull plus a rope to v<sub>' + k + '</sub> = ' + pair(v) + '. On this two-bit land each coordinate can be chosen on its own: it takes the lowest point on [−1, 1] of its evidence term, binary-end pull and share of the rope, φ(t) = (y − t)²/(2σ²) + μ_b(1 − t²)² + ρ/2·(t − v)². The lowest point is x<sub>' + (k + 1) + '</sub> = ' + pair(xn) + '.';
+      stepMath = at(0.4, 'coordinate 1: lowest φ at ' + num(xn[0])) + at(0.7, ',  coordinate 2: lowest φ at ' + num(xn[1]));
       side = function (g, p) {
         var R = g.sideR, h2 = (R[3] - 8) / 2;
         [0, 1].forEach(function (i) {
           var Rr = [R[0], R[1] + i * (h2 + 8), R[2], h2], vals = []; for (var q = 0; q <= 40; q++) vals.push(phi(-1 + q / 20, i));
-          var lo = Math.min.apply(null, vals), hi = Math.max.apply(null, vals), pl = g.plot(Rr, [-1, 1], [lo - 0.08 * (hi - lo), hi + 0.08 * (hi - lo)], { title: 'card ' + (i + 1) + ': φ(t)' });
-          pl.frame('card t', ''); pl.curve(function (t) { return phi(t, i); }, i ? C.blue : C.orange, 2, seg(p, 0.1 + 0.25 * i, 0.35 + 0.25 * i));
+          var lo = Math.min.apply(null, vals), hi = Math.max.apply(null, vals), pl = g.plot(Rr, [-1, 1], [lo - 0.08 * (hi - lo), hi + 0.08 * (hi - lo)], { title: 'coordinate ' + (i + 1) + ': φ(t)' });
+          pl.frame('signed bit t', ''); pl.curve(function (t) { return phi(t, i); }, i ? C.blue : C.orange, 2, seg(p, 0.1 + 0.25 * i, 0.35 + 0.25 * i));
           pl.point(xn[i], phi(xn[i], i), C.gold, 'lowest: ' + num(xn[i]), seg(p, 0.35 + 0.25 * i, 0.5 + 0.25 * i), xn[i] > 0.3 ? 'left' : 'right');
         });
       };
@@ -2848,7 +2847,7 @@ var Board = (function () {
     out.push({ id: 'warden', chapter: 'The Twins', title: 'The Warden’s step', layout: 'map', view: view, dur: 4.4,
       text: noLaw ? 'Now the Warden moves while x<sub>' + (k + 1) + '</sub> and the start-of-day book u<sub>' + k + '</sub> are fixed. With no law on this land it simply stands at x + u = ' + pair(zn) + '.' :
         'Now the Warden moves, with the new x<sub>' + (k + 1) + '</sub> and the start-of-day book u<sub>' + k + '</sub> held fixed. It starts from the Wanderer’s spot plus the book, x<sub>' + (k + 1) + '</sub> + u<sub>' + k + '</sub> = ' + pair(xn) + ' + ' + pair(u) + ' = ' + pair(xu) + ', and steps straight to the nearest lawful spot: z<sub>' + (k + 1) + '</sub> = ' + pair(zn) + '. ' +
-        (tower ? 'On the tower that is the nearest point of the lawful line.' : 'Inside a wall that means pulling each number back within the wall, if it is outside.') + ' Why add the book? The same rope cost, |x − z + u|² = |z − (x + u)|², is smallest at the lawful z nearest x + u.',
+        (tower ? 'For the parity check that is the nearest point of the parity-polytope line.' : 'Inside a wall that means pulling each number back within the wall, if it is outside.') + ' Why add the book? The same rope cost, |x − z + u|² = |z − (x + u)|², is smallest at the lawful z nearest x + u.',
       math: '|x − z + u|² = |z − (x + u)|²' + at(0.42, '<br>z<sub>' + (k + 1) + '</sub> = Π<sub>C</sub>(x<sub>' + (k + 1) + '</sub> + u<sub>' + k + '</sub>)') + at(0.75, ' = Π<sub>C</sub>' + pair(xu) + ' = ' + pair(zn)),
       draw: function (g, p) {
         base(g); g.hero(xn, 'tw', 1, 'x' + subscript(k + 1));
@@ -3080,14 +3079,14 @@ var Game = (function () {
         R.groundPath([s[0], s[1]], blue, 3, 0.004, 0.9);
         [[1, 1], [1, -1], [-1, 1], [-1, -1]].forEach(function (q) {
           var ok = q[0] * q[1] === land.lawSign, top = R.post(q[0], q[1], 0.07, ok ? blue : orange, 3, 1);
-          if (top) tag(q[0], q[1], 0.08, (q[0] > 0 ? '+' : '−') + (q[1] > 0 ? '+' : '−') + (ok ? ' lawful' : ' broken'), ok ? 'blue' : 'orange', 12);
+          if (top) tag(q[0], q[1], 0.08, (q[0] > 0 ? '+' : '−') + (q[1] > 0 ? '+' : '−') + (ok ? ' passes' : ' fails'), ok ? 'blue' : 'orange', 12);
         });
         var y = land.y, ly = [clamp(y[0], -1.15, 1.15), clamp(y[1], -1.15, 1.15)];
-        sprites.push({ at: ly, fig: Fog.FIGURES.lantern, pal: pal('lantern'), hgt: 0.04, name: 'lanterns', colour: 'orange' });
+        sprites.push({ at: ly, fig: Fog.FIGURES.lantern, pal: pal('lantern'), hgt: 0.04, name: 'fixed evidence', colour: 'orange' });
       }
       var T = land.treasure;
       if (reveal) R.post(T[0], T[1], 0.25, orange, 2, 0.8);
-      sprites.push({ at: T, fig: Fog.FIGURES.star, pal: pal('star'), hgt: 0.02, lift: 0.006, name: m.L.kind === 'tower' ? 'true order' : 'treasure', colour: 'orange', always: reveal });
+      sprites.push({ at: T, fig: Fog.FIGURES.star, pal: pal('star'), hgt: 0.02, lift: 0.006, name: m.key === 'fort' ? 'best passing pattern' : m.L.kind === 'tower' ? 'selected pattern' : 'treasure', colour: 'orange', always: reveal });
       sprites.push({ at: m.x0, fig: Fog.FIGURES.flag, pal: pal('flag'), hgt: 0.026, name: 'start', colour: 'ink' });
       sprites.push({ at: kingAt(), fig: Fog.FIGURES.king, pal: pal('king'), hgt: 0.042, name: 'the King', colour: 'orange', who: 'king' });
     }
@@ -3199,7 +3198,7 @@ var Game = (function () {
       R.groundPath(pts, colour, 1, 0.003, 0.45);
     }
     var sprites = [];
-    var KIND = { 'the Pilgrim': 'pg', 'the Cartographer': 'lb', 'the Wanderer': 'tw', 'the Warden': 'wd', 'the King': 'king', 'lanterns': 'lantern', 'start': 'flag' };
+    var KIND = { 'the Pilgrim': 'pg', 'the Cartographer': 'lb', 'the Wanderer': 'tw', 'the Warden': 'wd', 'the King': 'king', 'fixed evidence': 'lantern', 'start': 'flag' };
     function drawSprites() {
       figs = [];
       sprites.forEach(function (s) {
@@ -3426,7 +3425,7 @@ var Game = (function () {
       trialTick();
       raceTick();
       if (!ride && !found && dist([player.x, player.y], m.land.treasure) < 0.03 * span()) {
-        found = true; say(m.L.kind === 'tower' ? 'You stand on the King’s true order, ' + flags(m.land.treasure) + '.' : (m.land.holes && m.land.holes.depth(m.land.treasure) > 0.5 ? 'You found the treasure, at the bottom of the deepest black hole.' : m.land.box ? 'You found the treasure: the lowest spot inside ' + (m.key === 'wall' ? 'the wall.' : 'the realm.') : 'You found the treasure: the lowest spot of the land.'));
+        found = true; say(m.L.kind === 'tower' ? 'You stand on the evidence-selected passing pattern, ' + flags(m.land.treasure) + '.' : (m.land.holes && m.land.holes.depth(m.land.treasure) > 0.5 ? 'You found the treasure, at the bottom of the deepest black hole.' : m.land.box ? 'You found the treasure: the lowest spot inside ' + (m.key === 'wall' ? 'the wall.' : 'the realm.') : 'You found the treasure: the lowest spot of the land.'));
       }
     }
     function markDay(o, m) {
@@ -3813,7 +3812,7 @@ var Game = (function () {
       }
       // the King
       return {
-        text: 'Welcome, apprentice. This is ' + api.landName(m.key) + '. My heroes seek ' + (land.kind === 'tower' ? 'my true order, ' + flags(land.treasure) : land.box ? 'the treasure, the lowest spot inside ' + (m.key === 'wall' ? 'my wall' : 'the realm') : 'the treasure, the lowest spot of the land') + '. Walk where you like.',
+        text: 'Welcome, apprentice. This is ' + api.landName(m.key) + '. My heroes seek ' + (land.kind === 'tower' ? 'the evidence-selected passing pattern, ' + flags(land.treasure) : land.box ? 'the treasure, the lowest spot inside ' + (m.key === 'wall' ? 'my wall' : 'the realm') : 'the treasure, the lowest spot of the land') + '. Walk where you like.',
         choices: [
           { label: 'Show me another land…', go: function () {
             return { text: 'Which land?', choices: ['canyon', 'wall', 'fort', 'ridge', 'misty'].map(function (k) { return { label: api.landName(k), go: function () { api.setLand(k); api.restart(); return node('king', 'Here is ' + api.landName(k) + '. My heroes stand at the start flag, on day 0.'); } }; }).concat([{ label: 'Back.', go: function () { return scripts('king'); } }]) };
@@ -3902,7 +3901,7 @@ var Game = (function () {
     var trial = { on: false, i: 0, state: 'off', base: null, at: 0, banner: null, notes: {}, done: false, targetShown: -1, quizFeedback: '' };
     var stats = { turned: 0, walked: 0, feels: 0, started: 0, boards: 0, boardCompletions: 0 };
     var regions = {}, rimMarks = [], hlEls = [];
-    var LESSONS = ['Find your feet', 'Feel the slope', 'The King’s counsel', 'The Pilgrim', 'The Cartographer', 'Change the rules', 'The Twins and the wall', 'The Old Fort and CAJODE', 'The misty hills'];
+    var LESSONS = ['Find your feet', 'Feel the slope', 'The King’s counsel', 'The Pilgrim', 'The Cartographer', 'Change the rules', 'The Twins and the wall', 'The light board and CAJODE', 'The misty hills'];
     var LESSON_WHY = [
       'Your height J is the cost: every hero wants it as low as it goes.',
       'Four taps give the slope ∇J; walking against it is gradient descent.',
@@ -3911,7 +3910,7 @@ var Game = (function () {
       'L-BFGS: a memory of past strides bends the course, and each stride is tested before it is taken.',
       'Too long a stride (α too big) makes gradient descent overshoot and fly off.',
       'ADMM: two copies divide the cost and the law, then the rope and ledger restore agreement.',
-      'The fort shows one parity check; CAJODE scales the pattern to shared bits, many checks and an updated channel.',
+      'The light board shows overlapping parity checks; CAJODE adds an updated channel and a larger sparse code graph.',
       'Bumps, noise and narrow pits: what each method does when the land is hard.'
     ];
     function roman(n) { return ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX'][n - 1] || String(n); }
@@ -3993,15 +3992,16 @@ var Game = (function () {
         done: function () { return chose('wd', 'What is in the ledger?'); },
         praise: 'The scaled dual variable records signed disagreement. The Twins stop only when they agree and the Warden’s copy has nearly stopped moving.' },
       { lesson: 7, setup: function () { goLand('fort'); api.restart(); ride = null; placePlayer(); },
-        king: 'The wall taught the ADMM pattern. Now look at the Old Fort, the smallest coding example in this tale: two coded bits, one parity check and a known channel. It is a bridge to CAJODE, not a simulation of the full receiver.',
-        info: true, goal: 'At the fort, the two cards are undecided bits and the blue lawful line is one parity polytope. The lantern readings stay fixed because this toy assumes the channel is known.', target: { dom: '#fog-stage', spot: 'centre', text: 'Two bits and one check' } },
+        king: 'The wall taught the ADMM split. This plot isolates the smallest even-parity check: two relaxed bit variables, fixed channel evidence, and a blue parity polytope joining the two passing patterns 00 and 11. It is a bridge to the light board, not a simulation of the full receiver.',
+        info: true, goal: 'The two coordinates are relaxed bit values. The endpoints 00 and 11 pass even parity; 01 and 10 fail. The evidence stays fixed because this toy assumes the channel is known.', target: { dom: '#fog-stage', spot: 'centre', text: 'Two bits and one check' } },
+      { lesson: 7, info: true, goal: 'The self-checking light board scales this to nine bits. Each lamp belongs to one row check and one column check. A single failed row and column locate one error only under a one-error assumption; with several uncertain glows, the channel LLRs choose among multiple parity-valid boards.' },
       { lesson: 7, info: true, goal: 'A real LDPC code has many overlapping checks. CAJODE keeps one shared variable bᵢ ∈ [0, 1] for each coded bit. Every check keeps replica variables zₐ inside its parity polytope. Each bit occurrence in a check has a scaled dual variable uₐ,ᵢ—a ledger entry for signed disagreement.' },
-      { lesson: 7, info: true, goal: 'One full CAJODE circuit computes one weight for each received sample, updates all shared variables bᵢ, recomputes those weights, updates all channel coefficients, projects each check’s replicas onto its parity polytope, and then updates every scaled dual variable. The channel update is what the fort, where the channel is known, does not show.' },
+      { lesson: 7, info: true, goal: 'One full CAJODE circuit computes one robust weight for each received sample, updates all shared variables bᵢ, recomputes those weights, updates all channel coefficients, projects each check’s replicas onto its parity polytope, and then updates every scaled dual variable. The channel update is what the fixed-evidence light board does not show.' },
       { lesson: 7, goal: 'Which statement correctly separates accepting a decoded word from continuous convergence?',
         quiz: { options: [
           'A word may pass every parity check and the CRC even while continuous residuals remain nonzero.',
           'A small primal residual by itself proves that CAJODE has converged to a stationary point.',
-          'The Old Fort includes CAJODE’s channel-coefficient update, so the two are equivalent.'
+          'The light board includes CAJODE’s channel-coefficient update, so the two are equivalent.'
         ], correct: 0, retry: 'Try again. Parity checks plus CRC test a binary word; they do not prove continuous convergence or stationarity.' } },
       { lesson: 8, setup: function () { goLand('misty'); api.restart(); ride = null; placePlayer(); },
         king: 'Now my hardest land: ripples make extra hollows, haze makes every tap a little wrong, and black holes are narrow pits that reveal themselves only when someone samples them.',
@@ -4065,7 +4065,7 @@ var Game = (function () {
       trial.on = false; trial.done = true; trial.state = 'off'; clearHL(); renderQuest(); save();
       var secs = Math.round((tnow() - stats.started) / 1000);
       trial.banner = { text: 'Trial complete', at: tnow() };
-      showNode({ npc: 'king', narration: true, text: 'Your trial is complete, apprentice. You felt the slope as the Pilgrim does, read the Cartographer’s journal, followed one full ADMM circuit, and carried the Old Fort’s lesson with one parity check into CAJODE. You also separated three hazards: ripples make extra hollows, haze changes measurements, and an unvisited narrow pit gives no local clue. In ' + Math.floor(secs / 60) + ' min ' + (secs % 60) + ' s you tapped the ground ' + stats.feels + ' times and walked ' + num(stats.walked, 1) + '. The hidden treasure is still yours to seek in free exploration.',
+      showNode({ npc: 'king', narration: true, text: 'Your trial is complete, apprentice. You felt the slope as the Pilgrim does, read the Cartographer’s journal, followed one full ADMM circuit, and carried the light board’s overlapping parity checks into CAJODE. You also separated three hazards: ripples make extra hollows, haze changes measurements, and an unvisited narrow pit gives no local clue. In ' + Math.floor(secs / 60) + ' min ' + (secs % 60) + ' s you tapped the ground ' + stats.feels + ' times and walked ' + num(stats.walked, 1) + '. The hidden treasure is still yours to seek in free exploration.',
                  choices: [{ label: 'Explore freely.', go: function () { return null; } }] });
     }
     // A lesson may lend the Cartographer a shorter journal; leaving the lesson, or the trial, gives the old one back.
@@ -4745,17 +4745,17 @@ var Game = (function () {
         'The Wanderer may step outside while the Warden stays in, and the ledger ends up holding the wall\u2019s push.'
     },
     fort: {
-      title: 'the old fort', kind: 'tower', view: E.KINDS.fort.view, cam: { az: 35, el: 34 }, treasureName: 'the true order',
+      title: 'the two-bit parity check', kind: 'tower', view: E.KINDS.fort.view, cam: { az: 35, el: 34 }, treasureName: 'best passing pattern',
       preset: E.PRESETS.fort,
-      note: '<strong>The old fort.</strong> Two sentries under one tower, whose law says their flags must agree. The lanterns read (+, \u2212), a broken order. ' +
-        'The walkers carry the law as a hill on the land (\u03bc<sub>p</sub>). The Twins carry it as the Warden, who stands only on lawful mixtures. ' +
-        'All three reach the true order (+, +); compare how many days each takes.'
+      note: '<strong>The two-bit parity check.</strong> The two coordinates are relaxed signed bit values: \u22121 means 0, +1 means 1. Their fixed evidence initially favours (+, \u2212), which fails even parity. ' +
+        'The walkers carry parity violation as a penalty hill (\u03bc<sub>p</sub>). The Twins give the check to the Warden, whose copy stays in the convex hull of the passing patterns (\u2212, \u2212) and (+, +). ' +
+        'All three reach the best passing pattern (+, +); compare how many days each takes.'
     },
     ridge: {
-      title: 'the ridge', kind: 'tower', view: E.KINDS.ridge.view, cam: { az: 35, el: 34 }, treasureName: 'the true order',
+      title: 'the ridge', kind: 'tower', view: E.KINDS.ridge.view, cam: { az: 35, el: 34 }, treasureName: 'best passing pattern',
       preset: E.PRESETS.ridge,
-      note: '<strong>Behind a ridge.</strong> The same tower, but a lower law hill and a high ridge between a flag up and a flag down. ' +
-        'The deepest hollow is the true order (+, +), yet both walkers stop in a shallower hollow where the law is broken. ' +
+      note: '<strong>Behind a ridge.</strong> The same two-bit landscape, but with a lower parity penalty and a high binary-end ridge between opposite signs. ' +
+        'The deepest hollow is the best passing pattern (+, +), yet both walkers stop in a shallower hollow whose endpoint fails parity. ' +
         'Each day the Wanderer jumps to the best spot the rope allows, so the ledger can pull it over the ridge. Set y\u2082 to \u22120.30 and the Cartographer\u2019s first stride carries over too.'
     },
     misty: {
@@ -4778,11 +4778,11 @@ var Game = (function () {
     ];
   };
   var TOWER_SPECS = [
-    { key: 'y1', sym: 'y<sub>1</sub>', name: 'Lantern reading for sentry 1', min: -1.5, max: 1.5, step: 0.01, d: 2 },
-    { key: 'y2', sym: 'y<sub>2</sub>', name: 'Lantern reading for sentry 2', min: -1.5, max: 1.5, step: 0.01, d: 2 },
-    { key: 's2', sym: '\u03c3<sup>2</sup>', name: 'Haze over the lanterns', min: 0.05, max: 2, log: true, d: 3 },
-    { key: 'muP', sym: '\u03bc<sub>p</sub>', name: 'Height of the law hill (walkers only)', min: 0, max: 20, step: 0.05, d: 2 },
-    { key: 'muB', sym: '\u03bc<sub>b</sub>', name: 'Height of the flags\u2019 ridge', min: 0, max: 4, step: 0.05, d: 2 }
+    { key: 'y1', sym: 'y<sub>1</sub>', name: 'Fixed evidence for signed bit 1', min: -1.5, max: 1.5, step: 0.01, d: 2 },
+    { key: 'y2', sym: 'y<sub>2</sub>', name: 'Fixed evidence for signed bit 2', min: -1.5, max: 1.5, step: 0.01, d: 2 },
+    { key: 's2', sym: '\u03c3<sup>2</sup>', name: 'Evidence variance', min: 0.05, max: 2, log: true, d: 3 },
+    { key: 'muP', sym: '\u03bc<sub>p</sub>', name: 'Parity-penalty height (walkers only)', min: 0, max: 20, step: 0.05, d: 2 },
+    { key: 'muB', sym: '\u03bc<sub>b</sub>', name: 'Binary-end pull', min: 0, max: 4, step: 0.05, d: 2 }
   ];
   var WEATHER_SPECS = [
     { key: 'ripA', sym: 'A', name: 'Ripple height, as a share of the land\u2019s height', min: 0, max: 0.3, step: 0.005, d: 3 },
@@ -5060,12 +5060,12 @@ var Game = (function () {
       var s = land.lawSegment;
       [[1, 1], [1, -1], [-1, 1], [-1, -1]].forEach(function (q) {
         var ok = q[0] * q[1] === land.lawSign, word = (q[0] > 0 ? '+' : '−') + (q[1] > 0 ? '+' : '−');
-        label(ctx, word + (ok ? ' lawful' : ' broken'), g.X(q[0]) + (q[0] > 0 ? -10 : 10), g.Y(q[1]) + (q[1] > 0 ? -14 : 14), q[0] > 0 ? 'right' : 'left', ok ? C.blue : C.orange);
+        label(ctx, word + (ok ? ' passes' : ' fails'), g.X(q[0]) + (q[0] > 0 ? -10 : 10), g.Y(q[1]) + (q[1] > 0 ? -14 : 14), q[0] > 0 ? 'right' : 'left', ok ? C.blue : C.orange);
       });
       var mid = [(s[0][0] + s[1][0]) / 2 + 0.06, (s[0][1] + s[1][1]) / 2 - 0.12];
-      label(ctx, 'the law', g.X(mid[0]) + 6, g.Y(mid[1]), 'left', C.blue);
+      label(ctx, 'parity polytope', g.X(mid[0]) + 6, g.Y(mid[1]), 'left', C.blue);
       var ls = lanternSpot(g);
-      label(ctx, 'lanterns', ls[0], ls[1] - 12, 'center', C.orange, 'bottom');
+      label(ctx, 'fixed evidence', ls[0], ls[1] - 12, 'center', C.orange, 'bottom');
     }
     ctx.restore();
   }
@@ -5330,9 +5330,9 @@ var Game = (function () {
     }
     var lawful = end[0] * end[1] * land.lawSign > 0, truth = Math.sign(end[0]) === Math.sign(land.treasure[0]) && Math.sign(end[1]) === Math.sign(land.treasure[1]);
     var word = signWord(end);
-    if (truth) return '<span class="good">' + when + ' at ' + word + ', the true order.</span>';
-    if (!lawful) return '<span class="bad">' + when + ' at ' + word + ': the law is broken.</span>';
-    return '<span class="bad">' + when + ' at ' + word + ': lawful, but not the King\u2019s order.</span>';
+    if (truth) return '<span class="good">' + when + ' at ' + word + ', the selected passing pattern.</span>';
+    if (!lawful) return '<span class="bad">' + when + ' at ' + word + ': the parity check fails.</span>';
+    return '<span class="bad">' + when + ' at ' + word + ': parity-valid, but not the endpoint favoured by the evidence.</span>';
   }
   function row(dt, dd) { return '<div style="display:contents"><dt>' + dt + '</dt><dd>' + dd + '</dd></div>'; }
   function updateStatus() {
@@ -5342,7 +5342,7 @@ var Game = (function () {
     // Pilgrim
     var pg = W.pg, kp = Math.min(k, pg.length - 1), dp = pg[kp], gp = land.grad(dp.x);
     var pgRows = row('Day', String(Math.min(k, model.K))) + row('Stands at', pt(dp.x)) + row('Height J', small(dp.J)) + row('Slope |\u2207J|', small(Math.hypot(gp[0], gp[1])));
-    if (tower) pgRows += row('Flags', signWord(dp.x));
+    if (tower) pgRows += row('Signed bits', signWord(dp.x));
     $('pg-stats').innerHTML = pgRows;
     var pgToday;
     if (model.info.pg.lost && k >= pg.length - 1) pgToday = 'The strides grew without end; the Pilgrim has left the map.';
@@ -5359,7 +5359,7 @@ var Game = (function () {
     var lb = W.lb, kl = Math.min(k, lb.length - 1), dl = lb[kl], gl = land.grad(dl.x);
     var lbRows = row('Day', String(Math.min(k, model.K))) + row('Stands at', pt(dl.x)) + row('Height J', small(dl.J)) + row('Slope |\u2207J|', small(Math.hypot(gl[0], gl[1])));
     lbRows += row('Journal', (kl >= 1 ? dl.pages : 0) + ' of ' + Math.round(model.p.m) + ' pages');
-    if (tower) lbRows += row('Flags', signWord(dl.x));
+    if (tower) lbRows += row('Signed bits', signWord(dl.x));
     $('lb-stats').innerHTML = lbRows;
     var lbToday;
     if (k === 0) lbToday = 'Opens an empty journal at the start flag.';
@@ -5374,7 +5374,7 @@ var Game = (function () {
     // Twins
     var tw = W.tw, kt = Math.min(k, tw.length - 1), dt = tw[kt];
     var twRows = row('Day', String(Math.min(k, model.K))) + row('Wanderer x', pt(dt.x)) + row('Warden z', pt(dt.z)) + row('Ledger u', pt(dt.u)) + row('Gap |x \u2212 z|', small(dist(dt.x, dt.z)));
-    if (tower) twRows += row('Flags', signWord(dt.x));
+    if (tower) twRows += row('Signed bits', signWord(dt.x));
     $('tw-stats').innerHTML = twRows;
     var twToday;
     if (k === 0) twToday = 'The Warden stands on the nearest lawful spot; the ledger is empty.';
@@ -5438,24 +5438,24 @@ var Game = (function () {
     } else {
       var y = land.y, s = p.law, h = 1 / (2 * p.s2);
       head('Cost: the height of the land');
-      eq('J(\\mathbf{x}) = \\underbrace{\\sum_{i=1}^{2}\\frac{(x_i-y_i)^2}{2\\sigma^2}}_{\\text{lanterns}} + \\underbrace{\\mu_b\\sum_{i=1}^{2}\\big(1-x_i^2\\big)^2}_{\\text{flags fully up or down}} + \\underbrace{\\mu_p\\big(1-s\\,x_1x_2\\big)^2}_{\\text{the law, as a hill}},\\quad -1\\le x_i\\le 1');
-      para('Here \\(x_i\\) is sentry \\(i\\)\u2019s card (+1 flag up, \u22121 flag down) and \\(s = ' + (s > 0 ? '+1' : '-1') + '\\): the tower\u2019s law is that the flags ' + (s > 0 ? 'agree' : 'differ') + '. With your settings:');
+      eq('J(\\mathbf{x}) = \\underbrace{\\sum_{i=1}^{2}\\frac{(x_i-y_i)^2}{2\\sigma^2}}_{\\text{fixed evidence}} + \\underbrace{\\mu_b\\sum_{i=1}^{2}\\big(1-x_i^2\\big)^2}_{\\text{pull to binary ends}} + \\underbrace{\\mu_p\\big(1-s\\,x_1x_2\\big)^2}_{\\text{parity penalty}},\\quad -1\\le x_i\\le 1');
+      para('Here \\(x_i\\) is relaxed signed bit \\(i\\): +1 represents bit 1 and \u22121 represents bit 0. The sign \\(s = ' + (s > 0 ? '+1' : '-1') + '\\) selects ' + (s > 0 ? 'even parity, so the endpoints agree' : 'odd parity, so the endpoints differ') + '. With your settings:');
       eq('J(\\mathbf{x}) = ' + n3(h) + '\\big[' + shift('x_1', y[0]) + '^2 + ' + shift('x_2', y[1]) + '^2\\big] + ' + n3(p.muB, 2) + '\\big[(1-x_1^2)^2 + (1-x_2^2)^2\\big] + ' + n3(p.muP, 2) + '\\,(1 ' + (s > 0 ? '-' : '+') + ' x_1x_2)^2', 'live');
       head('Gradient: the slope underfoot');
       eq('\\frac{\\partial J}{\\partial x_1} = \\frac{x_1-y_1}{\\sigma^2} - 4\\mu_b\\,x_1\\big(1-x_1^2\\big) - 2\\mu_p\\,s\\,x_2\\big(1-s\\,x_1x_2\\big)');
       eq('\\frac{\\partial J}{\\partial x_2} = \\frac{x_2-y_2}{\\sigma^2} - 4\\mu_b\\,x_2\\big(1-x_2^2\\big) - 2\\mu_p\\,s\\,x_1\\big(1-s\\,x_1x_2\\big)');
       eq('\\frac{\\partial J}{\\partial x_1} = ' + n3(1 / p.s2) + shift('x_1', y[0]) + ' - ' + n3(4 * p.muB) + '\\,x_1(1-x_1^2) ' + (s > 0 ? '-' : '+') + ' ' + n3(2 * p.muP) + '\\,x_2(1 ' + (s > 0 ? '-' : '+') + ' x_1x_2)', 'live');
-      para('The slope along \\(x_2\\) is the same with sentries 1 and 2 swapped.');
+      para('The partial derivative with respect to \\(x_2\\) is the same expression with coordinates 1 and 2 swapped.');
       head('The law');
       eq(s > 0 ? 'C = \\operatorname{conv}\\{(1,1),(-1,-1)\\} = \\{(t,t): -1\\le t\\le 1\\},\\qquad \\Pi_C(\\mathbf w) = (t,t),\\ t = \\operatorname{clip}\\!\\big(\\tfrac{w_1+w_2}{2},-1,1\\big)'
                : 'C = \\operatorname{conv}\\{(1,-1),(-1,1)\\} = \\{(t,-t): -1\\le t\\le 1\\},\\qquad \\Pi_C(\\mathbf w) = (t,-t),\\ t = \\operatorname{clip}\\!\\big(\\tfrac{w_1-w_2}{2},-1,1\\big)');
-      para('\\(C\\) is the tower\u2019s two lawful patterns and every mixture of them: its parity polytope, drawn as the blue line. The true order is the lawful corner nearest the lanterns, ' + signWord(land.treasure) + '.');
+      para('\\(C\\) is the convex hull of the two passing binary patterns: the parity polytope drawn as the blue line. The selected endpoint is the passing pattern favoured by the fixed evidence, ' + signWord(land.treasure) + '.');
     }
     if (land.ripples) {
       var rw = land.weather;
       head('Ripples');
       eq('J(\\mathbf x)\\ \\mathrel{+}=\\ R(\\mathbf x) = \\frac{A}{\\sqrt6}\\sum_{k=1}^{6}\\sin(\\omega_k\\cdot\\mathbf x + \\varphi_k),\\qquad \\nabla R(\\mathbf x) = \\frac{A}{\\sqrt6}\\sum_{k=1}^{6}\\cos(\\omega_k\\cdot\\mathbf x + \\varphi_k)\\,\\omega_k');
-      para('Six waves with random headings, lengths within 25% of \\(L = ' + n3(rw.L) + '\\) and random phases, of height \\(A = ' + n3(rw.A) + '\\) (seed ' + rw.seed + '). They add to the cost and the gradient above' + (L.kind === 'tower' ? ', and to the Twins\u2019 land.' : '.') + (L.kind === 'quad' ? ' The treasure moves with them: it is now the lowest spot of the rippled land.' : ' The true order does not move: it is still the lawful corner nearest the lanterns.'));
+      para('Six waves with random headings, lengths within 25% of \\(L = ' + n3(rw.L) + '\\) and random phases, of height \\(A = ' + n3(rw.A) + '\\) (seed ' + rw.seed + '). They add to the cost and the gradient above' + (L.kind === 'tower' ? ', and to the Twins\u2019 land.' : '.') + (L.kind === 'quad' ? ' The treasure moves with them: it is now the lowest spot of the rippled land.' : ' The selected valid endpoint does not move: it remains the passing pattern favoured by the fixed evidence.'));
     }
     if (land.holes) {
       var hl = land.holes;
@@ -5489,7 +5489,7 @@ var Game = (function () {
       '<div class="eq">\\[\\begin{aligned}\\mathbf x_{k+1} &= \\arg\\min_{\\mathbf x}\\ f(\\mathbf x) + \\tfrac{\\rho}{2}\\lVert\\mathbf x - \\mathbf z_k + \\mathbf u_k\\rVert^2 &&\\text{Wanderer}\\\\ \\mathbf z_{k+1} &= \\Pi_C(\\mathbf x_{k+1} + \\mathbf u_k) &&\\text{Warden}\\\\ \\mathbf u_{k+1} &= \\mathbf u_k + \\mathbf x_{k+1} - \\mathbf z_{k+1} &&\\text{ledger}\\end{aligned}\\]</div>' +
       '<p>On this land the Wanderer\u2019s step is</p><div class="eq">\\[' + wander + '\\]</div>' +
       (!land.exactStep ? '<p>With ripples or haze no formula gives this spot, so the Wanderer walks to it from where it stands, as an ADMM solver would: steps down the sum while they lower it (with tapped heights in haze).</p>' : '') +
-      (L.kind === 'tower' && land.exactStep ? '<p>Its slope is the cubic \\(4\\mu_b x^3 + (1/\\sigma^2 - 4\\mu_b + \\rho)\\,x - (y_i/\\sigma^2 + \\rho v_i)\\). The Wanderer checks its real roots and both ends and takes the lowest. The step is a global one, not a stride down the local slope, which is how the Wanderer can cross the flags\u2019 ridge.</p>' : '') +
+      (L.kind === 'tower' && land.exactStep ? '<p>Its slope is the cubic \\(4\\mu_b x^3 + (1/\\sigma^2 - 4\\mu_b + \\rho)\\,x - (y_i/\\sigma^2 + \\rho v_i)\\). The Wanderer checks its real roots and both ends and takes the lowest. The step is a global one, not a stride down the local slope, which is how the Wanderer can cross the binary-end ridge.</p>' : '') +
       '</div>');
     out.push('</div>');
     return out.join('');
@@ -5568,7 +5568,7 @@ var Game = (function () {
       { c: C.orange, show: state.show.pg, v: seriesOf(W.pg, function (d) { return tr(d.J); }) }
     ], { log: log, ref: log ? null : Jl });
     $('height-caption').innerHTML = (log ? 'J minus the lowest height ' + fmt(Jl, 4) + ', on a log scale. ' : 'Dashed line: the lowest point of the walkers\u2019 land, J = ' + fmt(Jl, 4) + '. ') +
-      'The Twins are measured where the Warden stands (dashed curve)' + (land.kind === 'tower' ? ', on the walkers\u2019 land, though the Twins themselves never feel its law hill.' : '.');
+      'The Twins are measured where the Warden stands (dashed curve)' + (land.kind === 'tower' ? ', on the walkers\u2019 land, though the Twins themselves never feel its parity-penalty hill.' : '.');
     if (model.L.kind === 'quad' && !model.land.box) {
       drawChart('chart-law', [], { log: false });
       $('law-caption').textContent = 'The canyon has no law, so everyone is always lawful.';
@@ -5580,7 +5580,7 @@ var Game = (function () {
       ], { log: false });
       $('law-caption').textContent = model.L.kind === 'quad'
         ? 'How far outside ' + (model.L.wall ? 'the wall' : 'the realm\u2019s edge') + ' each hero stands. The walkers never leave; the Wanderer may, and is pulled back by the ledger. The Warden is always inside.'
-        : 'How far each hero stands from the law\u2019s line (Wanderer for the Twins). The walkers only feel the law as a hill; the Warden is always on the line.';
+        : 'How far each hero stands from the parity-polytope line (Wanderer for the Twins). The walkers feel parity violation as a hill; the Warden is always on the line.';
     }
   }
 
@@ -5618,14 +5618,14 @@ var Game = (function () {
     wl.querySelector('#new-weather').addEventListener('click', function () { p.seed = 1 + Math.floor(Math.random() * 999); if (!p.ripA) p.ripA = 0.05; buildControls(); changed(); });
     if (L.kind === 'tower') {
       var seg = document.createElement('div'); seg.className = 'startline';
-      seg.innerHTML = '<span>The tower\u2019s law (s)</span><span class="seg" role="group" aria-label="The tower\u2019s law">' +
-        '<button type="button" id="law-agree" aria-pressed="' + (p.law > 0) + '">flags agree</button><button type="button" id="law-differ" aria-pressed="' + (p.law < 0) + '">flags differ</button></span>';
+      seg.innerHTML = '<span>The parity check (s)</span><span class="seg" role="group" aria-label="The parity check">' +
+        '<button type="button" id="law-agree" aria-pressed="' + (p.law > 0) + '">even: endpoints agree</button><button type="button" id="law-differ" aria-pressed="' + (p.law < 0) + '">odd: endpoints differ</button></span>';
       lf.appendChild(seg);
       seg.querySelector('#law-agree').addEventListener('click', function () { p.law = 1; buildControls(); changed(); });
       seg.querySelector('#law-differ').addEventListener('click', function () { p.law = -1; buildControls(); changed(); });
     }
     var st = document.createElement('div'); st.className = 'startline';
-    st.innerHTML = '<span>Start flag <output id="start-read"></output></span><button class="btn" type="button" id="start-reset">' + (L.kind === 'tower' ? 'Start from the lanterns' : 'Start where the tale starts') + '</button>';
+    st.innerHTML = '<span>Start flag <output id="start-read"></output></span><button class="btn" type="button" id="start-reset">' + (L.kind === 'tower' ? 'Start from the fixed evidence' : 'Start where the tale starts') + '</button>';
     lf.appendChild(st);
     st.querySelector('#start-reset').addEventListener('click', function () {
       if (L.kind === 'tower') { p.sx = null; p.sy = null; } else { p.sx = L.preset.sx; p.sy = L.preset.sy; }

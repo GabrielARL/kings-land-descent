@@ -1,5 +1,5 @@
-// The parts of the step-by-step board that only some days need: the height of the tower lands (the old fort and the
-// ridge), the Cartographer's journal, reading and stride tests, and the Twins' aim, rope, Warden and ledger.  Each
+// The parts of the step-by-step board that only some days need: the height of the two-bit parity lands, the
+// Cartographer's journal, reading and stride tests, and the Twins' aim, rope, Warden and ledger.  Each
 // part is registered with Board.register(name, function (cx, out, H) { ... out.push(step) ... }); see board.js.
 (function () {
   'use strict';
@@ -17,16 +17,16 @@
     return String(n).split('').map(function (q) { return d.charAt(Number(q)); }).join('');
   }
 
-  // ------------------------------------------------------------ the tower lands: two sentries' cards
+  // ------------------------------------------------------------ the two-bit parity lands
   B.register('towerHeight', function (cx, out) {
     var land = cx.land, P = cx.p, x = cx.x, y = land.y, s2 = P.s2, mb = P.muB, mp = P.muP, s = land.lawSign, tw = cx.hero === 'tw';
     var dx = [x[0] - y[0], x[1] - y[1]], lan = (dx[0] * dx[0] + dx[1] * dx[1]) / (2 * s2);
     var f1 = Math.pow(1 - x[0] * x[0], 2), f2 = Math.pow(1 - x[1] * x[1], 2), fl = mb * (f1 + f2);
     var r = 1 - s * x[0] * x[1], law = mp * r * r;
     var gLan = [dx[0] / s2, dx[1] / s2], gFl = [-4 * mb * x[0] * (1 - x[0] * x[0]), -4 * mb * x[1] * (1 - x[1] * x[1])], gLaw = [-2 * mp * r * s * x[1], -2 * mp * r * s * x[0]];
-    cx.parts.push({ name: 'lanterns', value: lan, col: C.gold }, { name: 'flags', value: fl, col: C.green });
-    cx.gradParts.push({ name: 'lanterns (x − y)/σ²', vec: gLan, col: C.gold }, { name: 'flags', vec: gFl, col: C.green });
-    if (!tw) { cx.parts.push({ name: 'the law', value: law, col: C.violet }); cx.gradParts.push({ name: 'the law', vec: gLaw, col: C.violet }); }
+    cx.parts.push({ name: 'fixed evidence', value: lan, col: C.gold }, { name: 'binary-end pull', value: fl, col: C.green });
+    cx.gradParts.push({ name: 'evidence (x − y)/σ²', vec: gLan, col: C.gold }, { name: 'binary-end pull', vec: gFl, col: C.green });
+    if (!tw) { cx.parts.push({ name: 'parity penalty', value: law, col: C.violet }); cx.gradParts.push({ name: 'parity penalty', vec: gLaw, col: C.violet }); }
     var view = [-1.32, 1.32, -1.32, 1.32], T = land.treasure, seg2 = land.lawSegment, weather = !!(land.ripples || land.holes);
     var lanFn = function (q) { return ((q[0] - y[0]) * (q[0] - y[0]) + (q[1] - y[1]) * (q[1] - y[1])) / (2 * s2); };
     var flFn = function (q) { return mb * (Math.pow(1 - q[0] * q[0], 2) + Math.pow(1 - q[1] * q[1], 2)); };
@@ -37,65 +37,64 @@
       CORN.forEach(function (q, i) {
         var ok = q[0] * q[1] === s, q0 = seg(p, i * 0.1, i * 0.1 + 0.2), col = marks ? (ok ? C.blue : C.orange) : C.ink;
         g.dot(q, 5, col, q0);
-        g.label(q, order(q) + (marks ? (ok ? ' lawful' : ' broken') : ''), col, { dx: q[0] > 0 ? 9 : -9, dy: q[1] > 0 ? -13 : 14, align: q[0] > 0 ? 'left' : 'right', p: q0, size: 12 });
+        g.label(q, order(q) + (marks ? (ok ? ' passes' : ' fails') : ''), col, { dx: q[0] > 0 ? 9 : -9, dy: q[1] > 0 ? -13 : 14, align: q[0] > 0 ? 'left' : 'right', p: q0, size: 12 });
       });
     }
-    var lean = function (v) { return Math.abs(v) < 0.2 ? 'is unsure' : v > 0 ? 'leans to +' : 'leans to −'; };
-    out.push({ id: 'cards', chapter: 'The height', title: 'Two sentries, two cards', layout: 'map', view: view, dur: 4,
-      text: 'On this land a spot is a pair of cards, one for each of two sentries: x₁ for the first, x₂ for the second. A card lies between −1 and +1. ' +
-        '+1 and −1 are the two flags a sentry can raise; a card in between means the sentry is still unsure. The four corners of the square are the four orders the sentries could give, and the King’s true order is ' + order(T) + '. ' +
-        'Today the first sentry ' + lean(x[0]) + ' (x₁ = ' + num(x[0]) + ') and the second ' + lean(x[1]) + ' (x₂ = ' + num(x[1]) + ').',
-      math: at(0.75, 'x = (x₁, x₂) = ' + pair(x) + ', each card in [−1, 1]'),
+    var lean = function (v) { return Math.abs(v) < 0.2 ? 'is near the threshold' : v > 0 ? 'leans to bit 1' : 'leans to bit 0'; };
+    out.push({ id: 'cards', chapter: 'The height', title: 'Two relaxed bit coordinates', layout: 'map', view: view, dur: 4,
+      text: 'A point x = (x₁, x₂) holds two relaxed signed bit values, each between −1 and +1. At an endpoint, −1 represents bit 0 and +1 represents bit 1; an interior value is still undecided. The square’s four corners are 00, 01, 10 and 11. The evidence-selected passing endpoint is ' + order(T) + '. ' +
+        'Today coordinate 1 ' + lean(x[0]) + ' (x₁ = ' + num(x[0]) + ') and coordinate 2 ' + lean(x[1]) + ' (x₂ = ' + num(x[1]) + ').',
+      math: at(0.75, 'x = (x₁, x₂) = ' + pair(x) + ', each coordinate in [−1, 1]'),
       draw: function (g, p) {
         g.land(cx.J, { lo: cx.shade.lo, hi: cx.shade.hi, id: 'J', alpha: 0.45, pits: cx.shade.pits }); g.axes();
         square(g, seg(p, 0, 0.3)); corners(g, seg(p, 0.2, 0.7), false);
-        g.halo(T, 14, C.gold, seg(p, 0.6, 0.75), 2.5); g.label(T, 'the true order', C.gold, { dx: T[0] > 0 ? 18 : -18, dy: T[1] > 0 ? 14 : -14, align: T[0] > 0 ? 'left' : 'right', p: seg(p, 0.65, 0.8) });
+        g.halo(T, 14, C.gold, seg(p, 0.6, 0.75), 2.5); g.label(T, 'selected passing endpoint', C.gold, { dx: T[0] > 0 ? 18 : -18, dy: T[1] > 0 ? 14 : -14, align: T[0] > 0 ? 'left' : 'right', p: seg(p, 0.65, 0.8) });
         g.hero(x, cx.hero, seg(p, 0.7, 0.85));
         var q = seg(p, 0.82, 1), v = g.vis; g.line(x, [x[0], v[2]], C.gold, 1.5, q, [5, 4]); g.line(x, [v[0], x[1]], C.gold, 1.5, q, [5, 4]);
       } });
-    out.push({ id: 'formula', chapter: 'The height', title: 'The King’s formula: three parts', layout: 'map', view: view, dur: 3.6,
-      text: 'The height of a spot is the King’s formula J(x), in three parts: the lanterns, the flags and the tower’s law' + (weather ? ', with the weather added on top' : '') + '. ' +
-        (tw ? 'The Wanderer carries only the first two: its twin, the Warden, keeps the law instead. ' : '') + 'Dark is low and warm is high. We take the parts one at a time.',
-      math: 'J(x) = ' + at(0.25, 'lanterns') + at(0.45, ' + flags') + at(0.65, ' + law') + (land.ripples ? at(0.8, ' + R(x)') : '') + (land.holes ? at(0.85, ' + B(x)') : '') + (tw ? at(0.9, '<br>the Wanderer’s land: f(x) = J(x) − law') : ''),
+    out.push({ id: 'formula', chapter: 'The height', title: 'The two-bit objective: three parts', layout: 'map', view: view, dur: 3.6,
+      text: 'The objective J(x) has three parts: fit to the fixed evidence, a pull toward binary endpoints, and a parity-violation penalty' + (weather ? ', with the weather added on top' : '') + '. ' +
+        (tw ? 'The Wanderer carries the first two; the Warden enforces the parity set instead of adding its penalty. ' : '') + 'Dark is low and warm is high. We take the parts one at a time.',
+      math: 'J(x) = ' + at(0.25, 'evidence fit') + at(0.45, ' + binary-end pull') + at(0.65, ' + parity penalty') + (land.ripples ? at(0.8, ' + R(x)') : '') + (land.holes ? at(0.85, ' + B(x)') : '') + (tw ? at(0.9, '<br>the Wanderer’s objective: f(x) = J(x) − parity penalty') : ''),
       draw: function (g, p) { g.land(cx.J, { lo: cx.shade.lo, hi: cx.shade.hi, id: 'J', alpha: seg(p, 0, 0.6), pits: cx.shade.pits }); g.axes(); square(g, 1); g.hero(x, cx.hero, seg(p, 0.5, 0.7)); } });
-    out.push({ id: 'lanterns', chapter: 'The height', title: 'The lanterns: what the sentries saw', layout: 'map', view: view, dur: 4.2,
-      text: 'The lanterns say y = (y₁, y₂) = ' + pair(y, 2) + ': what each sentry saw in the night. The first part grows with the distance from y, ' +
-        '[(x₁ − y₁)² + (x₂ − y₂)²]/(2σ²). σ² = ' + num(s2, 2) + ' says how far the lanterns can be trusted: the smaller it is, the harder they pull. Here x − y = ' + pair(dx) + ', so the lanterns add ' + num(lan, 4) + '.',
-      math: 'lanterns = ' + frac('(x₁ − y₁)² + (x₂ − y₂)²', '2σ²') + at(0.5, ' = ' + frac(par(dx[0]) + '² + ' + par(dx[1]) + '²', num(2 * s2, 2))) + at(0.85, ' = ' + num(lan, 4)),
+    out.push({ id: 'lanterns', chapter: 'The height', title: 'Fit the fixed evidence', layout: 'map', view: view, dur: 4.2,
+      text: 'The fixed evidence is y = (y₁, y₂) = ' + pair(y, 2) + '. The first part grows with the distance from y, ' +
+        '[(x₁ − y₁)² + (x₂ − y₂)²]/(2σ²). The variance σ² = ' + num(s2, 2) + ' sets the evidence strength: the smaller it is, the harder y pulls. Here x − y = ' + pair(dx) + ', so the evidence term adds ' + num(lan, 4) + '.',
+      math: 'evidence fit = ' + frac('(x₁ − y₁)² + (x₂ − y₂)²', '2σ²') + at(0.5, ' = ' + frac(par(dx[0]) + '² + ' + par(dx[1]) + '²', num(2 * s2, 2))) + at(0.85, ' = ' + num(lan, 4)),
       draw: function (g, p) {
         g.land(lanFn, { id: 'lan', rings: 10 }); g.axes(); square(g, 1, 'rgba(242,245,248,0.35)');
         g.dot(y, 7, C.gold, seg(p, 0, 0.15)); g.halo(y, 12 + 8 * seg(p, 0.1, 0.4), C.gold, seg(p, 0.05, 0.2) * (1 - seg(p, 0.4, 0.55)));
-        g.label(y, 'y, the lanterns', C.gold, { dx: 12, dy: -14, p: seg(p, 0.1, 0.25) });
+        g.label(y, 'y, fixed evidence', C.gold, { dx: 12, dy: -14, p: seg(p, 0.1, 0.25) });
         g.hero(x, cx.hero, 1);
         var corner = [x[0], y[1]];
         g.line(y, corner, C.violet, 2, seg(p, 0.25, 0.45), [6, 4]); g.line(corner, x, C.violet, 2, seg(p, 0.45, 0.6), [6, 4]);
         g.label(lerp2(y, corner, 0.5), 'x₁ − y₁ = ' + num(dx[0]), C.violet, { dy: 16, p: seg(p, 0.35, 0.5), align: 'center' });
         g.label(lerp2(corner, x, 0.5), 'x₂ − y₂ = ' + num(dx[1]), C.violet, { dx: 10, p: seg(p, 0.55, 0.65) });
-        g.ring(lan, C.gold, 2.5, seg(p, 0.7, 0.85)); g.label(x, 'lanterns ' + num(lan, 4), C.gold, { dx: 14, dy: -16, p: seg(p, 0.85, 1) });
+        g.ring(lan, C.gold, 2.5, seg(p, 0.7, 0.85)); g.label(x, 'evidence fit ' + num(lan, 4), C.gold, { dx: 14, dy: -16, p: seg(p, 0.85, 1) });
       } });
     var fmax = mb * 1.08;
-    out.push({ id: 'flags', chapter: 'The height', title: 'The flags: each card wants +1 or −1', layout: 'map+side', view: view, dur: 4.4,
-      text: 'The second part pulls each card toward a flag. Each card adds μ_b(1 − t²)²: 0 at t = −1 and at t = +1, and largest at t = 0, so an unsure card costs height. ' +
-        'With μ_b = ' + num(mb, 2) + ': card 1 (x₁ = ' + num(x[0]) + ') adds ' + num(mb * f1, 4) + ', card 2 (x₂ = ' + num(x[1]) + ') adds ' + num(mb * f2, 4) + ', together ' + num(fl, 4) + '.',
-      math: 'flags = μ_b[(1 − x₁²)² + (1 − x₂²)²] = ' + at(0.45, num(mb, 2) + '·[' + num(f1, 4) + ' + ' + num(f2, 4) + ']') + at(0.85, ' = ' + num(fl, 4)),
+    out.push({ id: 'flags', chapter: 'The height', title: 'Pull each value toward a binary endpoint', layout: 'map+side', view: view, dur: 4.4,
+      text: 'The second part pulls each coordinate toward −1 or +1. Each coordinate adds μ_b(1 − t²)²: 0 at either endpoint and largest at t = 0, so an undecided interior value costs height. ' +
+        'With μ_b = ' + num(mb, 2) + ': coordinate 1 (x₁ = ' + num(x[0]) + ') adds ' + num(mb * f1, 4) + ', coordinate 2 (x₂ = ' + num(x[1]) + ') adds ' + num(mb * f2, 4) + ', together ' + num(fl, 4) + '.',
+      math: 'binary-end pull = μ_b[(1 − x₁²)² + (1 − x₂²)²] = ' + at(0.45, num(mb, 2) + '·[' + num(f1, 4) + ' + ' + num(f2, 4) + ']') + at(0.85, ' = ' + num(fl, 4)),
       draw: function (g, p) {
         g.land(flFn, { id: 'flags', rings: 8 }); g.axes(); square(g, 1, 'rgba(242,245,248,0.35)'); g.hero(x, cx.hero, 1);
         CORN.forEach(function (q) { g.halo(q, 9, C.green, seg(p, 0.05, 0.25), 1.5); });
-        var pl = g.plot(g.sideR, [-1.2, 1.2], [0, fmax], { title: 'one card’s part: μ_b(1 − t²)²' });
+        var pl = g.plot(g.sideR, [-1.2, 1.2], [0, fmax], { title: 'one coordinate’s part: μ_b(1 − t²)²' });
         pl.frame('t →', ''); pl.curve(function (t) { return mb * Math.pow(1 - t * t, 2); }, C.green, 2.2, seg(p, 0.1, 0.4));
-        pl.point(x[0], mb * f1, C.orange, 'card 1: ' + num(mb * f1, 4), seg(p, 0.45, 0.6), x[0] > 0.5 ? 'left' : 'right');
-        pl.point(x[1], mb * f2, C.blue, 'card 2: ' + num(mb * f2, 4), seg(p, 0.6, 0.75), x[1] > 0.5 ? 'left' : 'right');
+        pl.point(x[0], mb * f1, C.orange, 'coordinate 1: ' + num(mb * f1, 4), seg(p, 0.45, 0.6), x[0] > 0.5 ? 'left' : 'right');
+        pl.point(x[1], mb * f2, C.blue, 'coordinate 2: ' + num(mb * f2, 4), seg(p, 0.6, 0.75), x[1] > 0.5 ? 'left' : 'right');
       } });
     var lawOK = CORN.filter(function (q) { return q[0] * q[1] === s; }).map(order).join(' and ');
-    out.push({ id: 'law', chapter: 'The height', title: 'The tower’s law', layout: 'map', view: view, dur: 4.4,
-      text: 'The tower has one law. s = +1 says the two flags must agree; s = −1 that they must differ. Here s = ' + (s > 0 ? '+1' : '−1') + ', so the lawful orders are ' + lawOK + '. ' +
-        'The third part, μ_p(1 − s·x₁x₂)², is 0 where s·x₁x₂ = 1 and grows as the cards break the law; μ_p = ' + num(mp, 2) + ' says how hard the law pushes. At x, s·x₁x₂ = ' + num(s * x[0] * x[1]) + ', so the law adds ' + num(law, 4) + '.' +
-        (tw ? ' The Wanderer does not carry this part: the Warden keeps the law, standing on the lawful line between the two lawful corners.' : ''),
-      math: 'law = μ_p(1 − s·x₁x₂)² = ' + at(0.45, num(mp, 2) + '·(1 − ' + par(s * x[0] * x[1]) + ')²') + at(0.85, ' = ' + num(law, 4)),
+    out.push({ id: 'law', chapter: 'The height', title: 'The parity penalty', layout: 'map', view: view, dur: 4.4,
+      text: 'The sign s chooses the check. s = +1 means even parity, so the endpoint signs agree; s = −1 means odd parity, so they differ. Here s = ' + (s > 0 ? '+1' : '−1') + ', so the passing endpoints are ' + lawOK + '. ' +
+        'The third part, μ_p(1 − s·x₁x₂)², is 0 where s·x₁x₂ = 1 and grows with parity violation; μ_p = ' + num(mp, 2) + ' sets its strength. At x, s·x₁x₂ = ' + num(s * x[0] * x[1]) + ', so the penalty adds ' + num(law, 4) + '.' +
+        (tw ? ' The Wanderer does not carry this part: the Warden projects onto the parity-polytope line between the two passing endpoints.' : ''),
+      math: 'parity penalty = μ_p(1 − s·x₁x₂)² = ' + at(0.45, num(mp, 2) + '·(1 − ' + par(s * x[0] * x[1]) + ')²') + at(0.85, ' = ' + num(law, 4)),
       draw: function (g, p) {
         g.land(lawFn, { id: 'law', rings: 9 }); g.axes(); square(g, 1, 'rgba(242,245,248,0.35)'); corners(g, seg(p, 0.05, 0.5), true);
-        g.line(seg2[0], seg2[1], C.blue, 3, seg(p, 0.45, 0.7)); g.label(lerp2(seg2[0], seg2[1], 0.3), 'the lawful line', C.blue, { dx: 10, dy: -10, p: seg(p, 0.6, 0.75) });
-        g.hero(x, cx.hero, 1); g.ring(law, C.violet, 2.5, seg(p, 0.7, 0.85)); g.label(x, 'law ' + num(law, 4), C.violet, { dx: 14, dy: -16, p: seg(p, 0.85, 1) });
+        g.line(seg2[0], seg2[1], C.blue, 3, seg(p, 0.45, 0.7)); g.label(lerp2(seg2[0], seg2[1], 0.3), 'parity polytope', C.blue, { dx: 10, dy: -10, p: seg(p, 0.6, 0.75) });
+        g.hero(x, cx.hero, 1); g.ring(law, C.violet, 2.5, seg(p, 0.7, 0.85)); g.label(x, 'penalty ' + num(law, 4), C.violet, { dx: 14, dy: -16, p: seg(p, 0.85, 1) });
       } });
   });
 
@@ -386,7 +385,7 @@
     if (!rec) return;
     var x = rec.from, z = rec.zFrom, u = rec.uFrom, v = rec.v, xn = rec.x, zn = rec.z, un = rec.u, tower = land.kind === 'tower', box = land.box;
     var wall = cx.key === 'wall', noLaw = !tower && !box, f = land.f, T = land.treasure, x0 = w[0].x;
-    var lawName = tower ? 'the lawful line' : wall ? 'the wall' : 'the realm', lawWord = tower ? 'on the lawful line' : wall ? 'inside the wall' : 'inside the realm';
+    var lawName = tower ? 'the parity-polytope line' : wall ? 'the wall' : 'the realm', lawWord = tower ? 'on the parity-polytope line' : wall ? 'inside the wall' : 'inside the realm';
     // the Wanderer's own lowest spot, with nothing pulling on it: the valley's floor, or the lowest point of the cards'
     // land; there is none to name where the land has no formula
     var free = land.kind === 'quad' ? land.c.slice() : land.exactStep ? land.wanderer([0, 0], 1e-9) : null;
@@ -444,14 +443,14 @@
 
     var freeJ = free ? f(free) : null, TJ = f(T);
     out.push({ id: 'wanderer-role', chapter: 'The Twins', title: 'Meet the Wanderer: x', layout: 'map', view: introView, dur: 5.2,
-      text: free ? 'The Wanderer’s job: find the lowest point of whatever it is asked to minimise. Asked about the land alone, it feels the slope and walks to ' + (tower ? 'the lowest point of lanterns and flags' : 'the valley’s floor') + ', c = ' + pair(free) + ', where J = ' + num(freeJ, 3) + '. It never looks at the law' + (freeOut ? ', and that spot is ' + (tower ? 'off the lawful line' : 'outside ' + lawName) + ': no use to the King on its own.' : '.') + ' But add any pull to the land, and the Wanderer will find the new lowest point just as surely. That is the skill the King hired.' :
+      text: free ? 'The Wanderer’s job: find the lowest point of whatever it is asked to minimise. Asked about the land alone, it feels the slope and walks to ' + (tower ? 'the lowest point of the evidence fit and binary-end pull' : 'the valley’s floor') + ', c = ' + pair(free) + ', where J = ' + num(freeJ, 3) + '. It never looks at the law' + (freeOut ? ', and that spot is ' + (tower ? 'off the parity-polytope line' : 'outside ' + lawName) + ': no use to the King on its own.' : '.') + ' But add any pull to the land, and the Wanderer will find the new lowest point just as surely. That is the skill the King hired.' :
         'The Wanderer’s job: find the lowest point of whatever it is asked to minimise. On this land no formula gives that point, so it walks downhill in small steps, feeling the way with its staff. It never looks at the law.',
       math: 'the Wanderer: x = argmin f(x) + (whatever pulls on it)' + (free ? at(0.6, ';  with nothing pulling: c = ' + pair(free) + (freeOut ? ', outside C' : '')) : ''),
       draw: function (g, p) {
         base(g); g.flag(x0, 1); star(g, T, 1);
         if (free) {
           var q = seg(p, 0.1, 0.7); g.path([x0, free], 'rgba(230,233,238,0.6)', 2, q, [4, 4]); g.hero(lerp2(x0, free, q), 'tw', 1, q >= 1 ? 'c, the lowest point of all' : '');
-          if (freeOut) g.label(free, tower ? 'off the lawful line' : 'outside ' + lawName, C.red, { dx: 14, dy: 16, p: seg(p, 0.75, 0.95), size: 12 });
+          if (freeOut) g.label(free, tower ? 'off the parity-polytope line' : 'outside ' + lawName, C.red, { dx: 14, dy: 16, p: seg(p, 0.75, 0.95), size: 12 });
         } else g.hero(x, 'tw', 1, 'the Wanderer');
       } });
 
@@ -459,7 +458,7 @@
     if (free) { var dir0 = sub(free, x0), perp = [-dir0[1], dir0[0]]; samples = [add(free, scale(perp, 0.35)), lerp2(x0, free, 0.45), free].map(function (q) { return { q: q, z: noLaw ? q : land.project(q) }; }); }
     out.push({ id: 'warden-role', chapter: 'The Twins', title: 'Meet the Warden: z', layout: 'map', view: introView, dur: 5.6,
       text: noLaw ? 'The Warden’s job: given any point, step to the nearest lawful spot. With no law every spot is lawful, so the Warden simply stands where the Wanderer stands.' :
-        'The Warden’s job: given any point, step to the nearest lawful spot, ' + (tower ? 'the nearest point of the lawful line' : 'the nearest spot ' + lawWord) + '. A lawful point stays where it is; a point outside is pulled straight to the law, at a right angle. ' + (free ? 'Asked about the Wanderer’s spot c, the Warden answers Π(c) = ' + pair(freeZ) + ': lawful, but J = ' + num(f(freeZ), 3) + ' there, above the spot to dig, where J = ' + num(TJ, 3) + '. ' : '') + 'The Warden never feels the slope, so on its own it cannot find the lowest lawful spot either.',
+        'The Warden’s job: given any point, step to the nearest lawful spot, ' + (tower ? 'the nearest point of the parity-polytope line' : 'the nearest spot ' + lawWord) + '. A lawful point stays where it is; a point outside is pulled straight to the law, at a right angle. ' + (free ? 'Asked about the Wanderer’s spot c, the Warden answers Π(c) = ' + pair(freeZ) + ': lawful, but J = ' + num(f(freeZ), 3) + ' there, above the spot to dig, where J = ' + num(TJ, 3) + '. ' : '') + 'The Warden never feels the slope, so on its own it cannot find the lowest lawful spot either.',
       math: 'the Warden: z = Π_C(any point), the nearest lawful spot' + (free && freeOut ? at(0.6, ';  Π_C(c) = ' + pair(freeZ) + ',  J = ' + num(f(freeZ), 3) + ' > ' + num(TJ, 3)) : ''),
       draw: function (g, p) {
         base(g); star(g, T, 1);
@@ -531,7 +530,7 @@
     out.push({ id: 'ledger-role', chapter: 'The Twins', title: 'The Warden’s book: u', layout: 'map+side', view: bookView, dur: 5.8,
       text: 'So the Warden keeps a book. The story calls it a book or ledger; in standard scaled ADMM it is the scaled dual variable u. At the end of every circuit it writes down the gap, by how much and in which direction the Wanderer fell short of it: u ← u + (x − z). ' +
         (k === 0 ? 'At the start the book is empty, u₀ = (0, 0).' :
-          (firstGap ? (firstWallContact > 1 ? 'For the first ' + (firstWallContact - 1) + ' days of this walk the twins stood together and the book stayed empty. ' : '') + 'On day ' + firstWallContact + ' the Wanderer first ended ' + (tower ? 'off the lawful line' : 'outside ' + lawName) + ', the gap was ' + pair(firstGap) + ', and the book got its first entry. ' : 'So far the twins have always stood together and the book is empty. ') +
+          (firstGap ? (firstWallContact > 1 ? 'For the first ' + (firstWallContact - 1) + ' days of this walk the twins stood together and the book stayed empty. ' : '') + 'On day ' + firstWallContact + ' the Wanderer first ended ' + (tower ? 'off the parity-polytope line' : 'outside ' + lawName) + ', the gap was ' + pair(firstGap) + ', and the book got its first entry. ' : 'So far the twins have always stood together and the book is empty. ') +
           'Today it reads u<sub>' + k + '</sub> = ' + pair(u) + '. Tomorrow the Warden will use it.'),
       math: 'u<sub>k</sub> = u<sub>k−1</sub> + (x<sub>k</sub> − z<sub>k</sub>)' + (k > 0 ? at(0.5, ';  u<sub>' + k + '</sub> = ' + (function () { var nz = entries.filter(function (e) { return len(e.gap) > 1e-9; }).map(function (e) { return pair(e.gap); }); return nz.length ? (nz.length > 3 ? '… + ' : '') + nz.slice(-3).join(' + ') : '(0, 0)'; })() + ' = ' + pair(u)) : at(0.5, ';  u₀ = (0, 0)')),
       draw: function (g, p) {
@@ -581,14 +580,14 @@
       };
     } else if (rec.exact && tower) {
       var y = land.y, s2 = P.s2, mb = P.muB, phi = function (t, i) { return (y[i] - t) * (y[i] - t) / (2 * s2) + mb * Math.pow(1 - t * t, 2) + rho / 2 * (t - v[i]) * (t - v[i]); };
-      stepText = 'The Wanderer is told: find the lowest point of lanterns and flags plus a rope to v<sub>' + k + '</sub> = ' + pair(v) + '. On a tower land each card can be chosen on its own: a card is the lowest point on [−1, 1] of its lantern part, its flag part and its share of the rope, φ(t) = (y − t)²/(2σ²) + μ_b(1 − t²)² + ρ/2·(t − v)². The lowest points: x<sub>' + (k + 1) + '</sub> = ' + pair(xn) + '.';
-      stepMath = at(0.4, 'card 1: lowest φ at ' + num(xn[0])) + at(0.7, ',  card 2: lowest φ at ' + num(xn[1]));
+      stepText = 'The Wanderer is told: find the lowest point of the evidence fit and binary-end pull plus a rope to v<sub>' + k + '</sub> = ' + pair(v) + '. On this two-bit land each coordinate can be chosen on its own: it takes the lowest point on [−1, 1] of its evidence term, binary-end pull and share of the rope, φ(t) = (y − t)²/(2σ²) + μ_b(1 − t²)² + ρ/2·(t − v)². The lowest point is x<sub>' + (k + 1) + '</sub> = ' + pair(xn) + '.';
+      stepMath = at(0.4, 'coordinate 1: lowest φ at ' + num(xn[0])) + at(0.7, ',  coordinate 2: lowest φ at ' + num(xn[1]));
       side = function (g, p) {
         var R = g.sideR, h2 = (R[3] - 8) / 2;
         [0, 1].forEach(function (i) {
           var Rr = [R[0], R[1] + i * (h2 + 8), R[2], h2], vals = []; for (var q = 0; q <= 40; q++) vals.push(phi(-1 + q / 20, i));
-          var lo = Math.min.apply(null, vals), hi = Math.max.apply(null, vals), pl = g.plot(Rr, [-1, 1], [lo - 0.08 * (hi - lo), hi + 0.08 * (hi - lo)], { title: 'card ' + (i + 1) + ': φ(t)' });
-          pl.frame('card t', ''); pl.curve(function (t) { return phi(t, i); }, i ? C.blue : C.orange, 2, seg(p, 0.1 + 0.25 * i, 0.35 + 0.25 * i));
+          var lo = Math.min.apply(null, vals), hi = Math.max.apply(null, vals), pl = g.plot(Rr, [-1, 1], [lo - 0.08 * (hi - lo), hi + 0.08 * (hi - lo)], { title: 'coordinate ' + (i + 1) + ': φ(t)' });
+          pl.frame('signed bit t', ''); pl.curve(function (t) { return phi(t, i); }, i ? C.blue : C.orange, 2, seg(p, 0.1 + 0.25 * i, 0.35 + 0.25 * i));
           pl.point(xn[i], phi(xn[i], i), C.gold, 'lowest: ' + num(xn[i]), seg(p, 0.35 + 0.25 * i, 0.5 + 0.25 * i), xn[i] > 0.3 ? 'left' : 'right');
         });
       };
@@ -612,7 +611,7 @@
     out.push({ id: 'warden', chapter: 'The Twins', title: 'The Warden’s step', layout: 'map', view: view, dur: 4.4,
       text: noLaw ? 'Now the Warden moves while x<sub>' + (k + 1) + '</sub> and the start-of-day book u<sub>' + k + '</sub> are fixed. With no law on this land it simply stands at x + u = ' + pair(zn) + '.' :
         'Now the Warden moves, with the new x<sub>' + (k + 1) + '</sub> and the start-of-day book u<sub>' + k + '</sub> held fixed. It starts from the Wanderer’s spot plus the book, x<sub>' + (k + 1) + '</sub> + u<sub>' + k + '</sub> = ' + pair(xn) + ' + ' + pair(u) + ' = ' + pair(xu) + ', and steps straight to the nearest lawful spot: z<sub>' + (k + 1) + '</sub> = ' + pair(zn) + '. ' +
-        (tower ? 'On the tower that is the nearest point of the lawful line.' : 'Inside a wall that means pulling each number back within the wall, if it is outside.') + ' Why add the book? The same rope cost, |x − z + u|² = |z − (x + u)|², is smallest at the lawful z nearest x + u.',
+        (tower ? 'For the parity check that is the nearest point of the parity-polytope line.' : 'Inside a wall that means pulling each number back within the wall, if it is outside.') + ' Why add the book? The same rope cost, |x − z + u|² = |z − (x + u)|², is smallest at the lawful z nearest x + u.',
       math: '|x − z + u|² = |z − (x + u)|²' + at(0.42, '<br>z<sub>' + (k + 1) + '</sub> = Π<sub>C</sub>(x<sub>' + (k + 1) + '</sub> + u<sub>' + k + '</sub>)') + at(0.75, ' = Π<sub>C</sub>' + pair(xu) + ' = ' + pair(zn)),
       draw: function (g, p) {
         base(g); g.hero(xn, 'tw', 1, 'x' + subscript(k + 1));

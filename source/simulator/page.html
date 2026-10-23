@@ -447,7 +447,7 @@ body.racing #map { cursor: pointer; }
     <nav class="tabs" role="tablist" aria-label="Lands">
       <button class="tab" role="tab" id="tab-canyon" data-land="canyon">The canyon</button>
       <button class="tab" role="tab" id="tab-wall" data-land="wall">The kingdom wall</button>
-      <button class="tab" role="tab" id="tab-fort" data-land="fort">The old fort</button>
+      <button class="tab" role="tab" id="tab-fort" data-land="fort">Two-bit parity</button>
       <button class="tab" role="tab" id="tab-ridge" data-land="ridge">Behind a ridge</button>
       <button class="tab" role="tab" id="tab-misty" data-land="misty">The misty hills</button>
     </nav>
@@ -501,7 +501,7 @@ body.racing #map { cursor: pointer; }
             <div class="tc-inner">
               <div class="tc-eyebrow">King’s Land Descent</div>
               <h3>The Apprentice’s Trial</h3>
-              <p>The King has summoned you. Fog lies on his land, and three heroes must find its lowest places: the Pilgrim, the Cartographer and the Twins. Walk with them, learn one complete ADMM circuit, connect the Old Fort to CAJODE, and diagnose the misty hills.</p>
+              <p>The King has summoned you. Fog lies on his land, and three heroes must find its lowest places: the Pilgrim, the Cartographer and the Twins. Walk with them, learn one complete ADMM circuit, connect a self-checking light board to CAJODE, and diagnose the misty hills.</p>
               <div class="tc-actions">
                 <button type="button" class="btn primary" id="trial-begin">Begin the trial</button>
                 <button type="button" class="btn" id="trial-race">Race the heroes</button>
@@ -545,7 +545,7 @@ body.racing #map { cursor: pointer; }
                   <tr><td>four taps of the staff, h away</td><td>J(x ± h e₁) and J(x ± h e₂)</td></tr>
                   <tr><td>the slope they give</td><td>∇J ≈ ((J<sub>E</sub> − J<sub>W</sub>)/2h, (J<sub>N</sub> − J<sub>S</sub>)/2h), pointing uphill</td></tr>
                   <tr><td>one day (<kbd>N</kbd>)</td><td>one iteration</td></tr>
-                  <tr><td>the wall, the tower’s law</td><td>a constraint x ∈ C</td></tr>
+                  <tr><td>the wall, a parity check</td><td>a constraint x ∈ C</td></tr>
                   <tr><td>ripples, haze, black holes</td><td>extra local hollows, noisy repeated measurements, narrow pits that give no clue until sampled</td></tr>
                 </table>
                 <h4>The Pilgrim: gradient descent</h4>
@@ -554,9 +554,9 @@ body.racing #map { cursor: pointer; }
                 <ol><li>Feel: four taps, the slope ∇J.</li><li>Journal: its last m strides, and how the slope changed over each, tell it how the land curves; it bends its course to d = −H∇J.</li><li>Test strides: 1, ½, ¼, … until the height falls by enough (the Armijo test).</li><li>Turn and stride.</li></ol>
                 <h4>The Twins: ADMM</h4>
                 <p>ADMM temporarily makes two copies of one decision because the cost and the law are easier to handle separately. The Wanderer updates x; the Warden updates z; the scaled dual variable u records signed disagreement.</p>
-                <ol><li>Aim: v = z − u, the Warden’s spot corrected by the ledger.</li><li>Wanderer: lower f(x) + ρ/2·|x − v|². On the wall f = J; at the fort f omits the law term because the Warden enforces that law.</li><li>Warden: take the lawful spot nearest x + u. This projection is the constraint form shown here; general ADMM may give the second copy another cost.</li><li>Ledger: u ← u + x − z.</li><li>Stop only when both are small: the primal residual |x − z| (agreement) and the dual residual ρ|z<sub>new</sub> − z<sub>old</sub>| (the lawful copy has nearly stopped moving).</li></ol>
-                <h4>From the Old Fort to CAJODE</h4>
-                <p>The fort is a toy with two bits, one parity check, and a known channel. CAJODE has one shared variable for each coded bit, replica variables constrained to each check’s parity polytope, and a scaled dual variable for every bit occurrence in a check. A full circuit computes one weight for every received sample, updates all shared variables, recomputes the weights, updates all channel coefficients, projects every check’s replicas, and then updates every scaled dual variable. Passing every parity check and the CRC can accept a decoded word; it does not prove continuous convergence or stationarity.</p>
+                <ol><li>Aim: v = z − u, the Warden’s spot corrected by the ledger.</li><li>Wanderer: lower f(x) + ρ/2·|x − v|². On the wall f = J; in the two-bit parity plot f omits the parity term because the Warden enforces that check.</li><li>Warden: take the lawful spot nearest x + u. This projection is the constraint form shown here; general ADMM may give the second copy another cost.</li><li>Ledger: u ← u + x − z.</li><li>Stop only when both are small: the primal residual |x − z| (agreement) and the dual residual ρ|z<sub>new</sub> − z<sub>old</sub>| (the lawful copy has nearly stopped moving).</li></ol>
+                <h4>From the light board to CAJODE</h4>
+                <p>A 3 × 3 self-checking light board makes overlapping parity checks visible: every lamp belongs to one row check and one column check. The observed glow is converted by a channel model into a channel LLR; it is not itself the LLR. CAJODE has one shared variable for each coded bit, replica variables constrained to each check’s parity polytope, and a scaled dual variable for every bit occurrence in a check. A full circuit computes one robust weight for every received sample, updates all shared variables, recomputes the weights, updates all channel coefficients, projects every check’s replicas, and then updates every scaled dual variable. Passing every parity check and the CRC can accept a decoded word; it does not prove continuous convergence or stationarity.</p>
                 <h4>How to play</h4>
                 <p><b>The Apprentice’s Trial</b> teaches all of this in nine short lessons. <b>The King’s Race</b> takes turns: each turn you spend 4 action points (walk, feel, scout), then each hero lives one day; the first to the treasure, or the lowest after 25 turns, wins. Or explore freely: walk, feel the slope (<kbd>F</kbd>), talk (<kbd>E</kbd>), and click a hero under View to follow its days. The chip under the ground plot (<kbd>J</kbd>) gives the day’s key numbers, and ▶ Step by step (<kbd>B</kbd>) works every one of them out in small animated steps, in a scene of its own.</p>
               </section>
@@ -662,7 +662,7 @@ body.racing #map { cursor: pointer; }
   <footer class="foot">
     <p>The rules are the tale's. The Pilgrim takes a fixed stride and is set back inside the box. The Cartographer is deck p9's L-BFGS: a two-loop recursion over the last m pages, strides halved from 1 until the height falls enough. On a boxed land it walks on x = tanh t. The Twins show scaled-form ADMM with penalty ρ, the Warden’s nearest-lawful-point step, and both residual stopping tests.</p>
     <p>In the view through the fog the land is drawn one screen column at a time, near to far, the way 1990s games drew terrain (Retro shows it at Doom’s 320 × 200), with heights on a square-root scale (downhill stays downhill). The misty hills add six random waves and haze to every tap of the ground; the Weather settings add them to any land. With ripples or haze, this game approximately solves the Wanderer’s update with small downhill steps.</p>
-    <p>With their first settings, the canyon and the wall give the tale's own numbers. In the canyon, the Pilgrim comes within 0.01 of the spring after 21 strides and the Cartographer after 4. At the wall, the Pilgrim comes within 0.001 of the treasure after 10 strides, the Twins after 9 days and the Cartographer after 6. The fort and the ridge use CORAL's three terms (deck p5) on two sentries under one tower.</p>
+    <p>With their first settings, the canyon and the wall give the tale's own numbers. In the canyon, the Pilgrim comes within 0.01 of the spring after 21 strides and the Cartographer after 4. At the wall, the Pilgrim comes within 0.001 of the treasure after 10 strides, the Twins after 9 days and the Cartographer after 6. The two-bit parity and ridge lands use CORAL's three terms (deck p5): fixed evidence, a pull to binary endpoints, and a parity-violation penalty.</p>
   </footer>
 </div>
 <script src="engine.js"></script>

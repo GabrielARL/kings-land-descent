@@ -24,6 +24,54 @@ function check(what, ok, detail) {
 function count(s, re) { var m = s.match(re); return m ? m.length : 0; }
 function same(a, b) { return a.length === b.length && a.every(function (x, i) { return x === b[i]; }); }
 
+// Build the actual tutorial player around a proxy canvas.  Numerical checks
+// below protect the lesson's claims; this sandbox also catches drawing errors
+// in the new pages at the two aspect ratios used by the public player.
+function courseSandbox(width, height) {
+  var elements = {}, noop = function () {};
+  function context2d() {
+    var state = { globalAlpha: 1, fillStyle: '', strokeStyle: '', lineWidth: 1, font: '', textAlign: '', textBaseline: '', lineCap: '', lineJoin: '' };
+    return new Proxy(state, { get: function (o, key) {
+      if (key === 'measureText') return function (q) { return { width: 7 * String(q).length }; };
+      if (key === 'createImageData') return function (w, h) { return { data: new Uint8ClampedArray(w * h * 4), width: w, height: h }; };
+      if (key === 'createRadialGradient' || key === 'createLinearGradient') return function () { return { addColorStop: noop }; };
+      if (key in o) return o[key];
+      return typeof key === 'string' ? noop : undefined;
+    } });
+  }
+  function element(id) {
+    if (elements[id]) return elements[id];
+    var e = {
+      id: id, hidden: false, textContent: '', innerHTML: '', disabled: false, width: 0, height: 0, style: {},
+      offsetTop: 0, offsetHeight: 0, scrollTop: 0, clientHeight: height,
+      classList: { toggle: noop, add: noop, remove: noop },
+      setAttribute: function (name, value) { this[name] = String(value); },
+      getAttribute: function (name) { return this[name] == null ? null : this[name]; },
+      addEventListener: noop, querySelectorAll: function () { return []; },
+      querySelector: function () { return element('q-' + Object.keys(elements).length); },
+      closest: function () { return null; }, scrollIntoView: noop, focus: noop,
+      getBoundingClientRect: function () { return { width: width, height: height, top: 0, left: 0, right: width, bottom: height }; },
+      getContext: function () { return context2d(); }
+    };
+    return (elements[id] = e);
+  }
+  var box = {
+    console: console, Math: Math, Float64Array: Float64Array, Uint8ClampedArray: Uint8ClampedArray, Proxy: Proxy,
+    performance: { now: function () { return 0; } }, requestAnimationFrame: function () { return 1; }, cancelAnimationFrame: noop,
+    getComputedStyle: function () { return { fontFamily: 'sans-serif', getPropertyValue: function () { return 'monospace'; } }; },
+    document: {
+      body: {}, documentElement: {}, getElementById: element, querySelectorAll: function () { return []; },
+      addEventListener: noop, createElement: function () { return element('created-' + Object.keys(elements).length); }
+    },
+    location: { hash: '' }, devicePixelRatio: 1, addEventListener: noop
+  };
+  box.window = box; vm.createContext(box);
+  ['engine.js', 'board.js', 'board_parts.js', 'course.js'].forEach(function (name) {
+    vm.runInContext(fs.readFileSync(path.join(dir, name), 'utf8'), box, { filename: name });
+  });
+  return box;
+}
+
 // Return a source slice from `start` through the matching closing delimiter.
 // The source is ES5-style, but this scanner still skips strings and comments so
 // a bracket in learner-facing prose cannot end the slice early.
@@ -251,16 +299,92 @@ try {
   check('expanded ADMM numerical teaching contract', false, e && e.stack || e);
 }
 
-// ---------------------------------------------------------------- Old Fort bridge and misty-hills synthesis
-check('Old Fort-to-CAJODE is its own guided lesson',
-  game.indexOf('The Old Fort and CAJODE') >= 0 && /goLand\s*\(\s*['"]fort['"]\s*\)/.test(game) &&
-  /bridge to CAJODE, not a simulation of the full receiver/i.test(game));
+// ---------------------------------------------------------------- self-checking light board, CAJODE bridge and misty-hills synthesis
+var lightPages = [
+  ['light-patterns', 'Four patterns, two pass'],
+  ['light-picture', 'Build a self-checking picture'],
+  ['light-shared', 'One lamp belongs to two checks'],
+  ['light-single-error', 'One glitch is easy'],
+  ['light-uncertain', 'Several glows are uncertain'],
+  ['light-replicas', 'One check keeps one replica'],
+  ['light-corrections', 'One lamp receives two corrections'],
+  ['light-rounds', 'Run all checks together'],
+  ['light-ldpc', 'From the light board to an LDPC graph']
+];
+check('the nine approved light-board pages appear in exact order', lightPages.every(function (page, i) {
+  var here = course.indexOf("id: '" + page[0] + "'"), title = course.indexOf("title: '" + page[1] + "'", here);
+  var previous = i ? course.indexOf("id: '" + lightPages[i - 1][0] + "'") : -1;
+  return here > previous && title > here;
+}), lightPages.map(function (p) { return p[0]; }).join(', '));
+check('the board construction states its exact parity structure',
+  /3 row checks \+ 3 column checks/.test(course) && /Six checks are visible, although only five are independent/.test(course) &&
+  /one physical decision participates in one row check and one column check/.test(course));
+check('single-error localization is explicitly limited to its assumption',
+  /only because we assumed exactly one hard decision was wrong/.test(course) && /one-error assumption/.test(course));
+check('received glow and channel LLR are kept distinct',
+  /measures a brightness yᵢ; a channel model turns that observation into a channel LLR/.test(course) &&
+  /log\[p\(yᵢ\|0\)\/p\(yᵢ\|1\)\]/.test(course) && /negative favours 1/.test(course));
+check('replicas are vectors, projections may be fractional and duals live on edges',
+  /replica vector z<sub>R2<\/sub>/.test(course) && /projection may be fractional/.test(course) &&
+  /Each check-bit edge has its own replica coordinate/.test(course) && /all 18 edge duals/.test(course));
+check('product-code example is bounded before the LDPC generalization',
+  /small regular product code/.test(course) && /LDPC code uses a much larger sparse graph/.test(course) &&
+  /same ADMM bookkeeping remains/.test(course));
+check('light-board-to-CAJODE is its own guided lesson',
+  game.indexOf('The light board and CAJODE') >= 0 && /goLand\s*\(\s*['"]fort['"]\s*\)/.test(game) &&
+  /bridge to the light board, not a simulation of the full receiver/i.test(game));
 check('CAJODE bridge maps shared bits, replicas, checks, duals and channel update',
   /shared variable/.test(game) && /replica variables/.test(game) && /parity polytope/.test(game) &&
   /scaled dual variable/.test(game) && /updates all channel coefficients/.test(game));
 check('receiver acceptance is not presented as continuous convergence',
   /pass every parity check and the CRC even while continuous residuals remain nonzero/.test(game) &&
-  /do not prove continuous convergence or stationarity/.test(game));
+  /do not prove continuous convergence or stationarity/.test(game) &&
+  /zero syndrome is therefore not the same event as ADMM convergence/.test(course));
+
+try {
+  var lm0 = course.indexOf('var LIGHT_CHECKS'), lm1 = course.indexOf('\n\n  function lamp', lm0), lightSandbox = { Math: Math };
+  vm.runInNewContext('function clamp(v,a,b){return v<a?a:v>b?b:v;}\n' + course.slice(lm0, lm1) +
+    '\nthis.model={checks:LIGHT_CHECKS,valid:LIGHT_VALID,glow:LIGHT_GLOW,llr:LIGHT_LLR,syndrome:lightSyndrome,hard:lightHard,project:projectEven,trace:LIGHT_TRACE};', lightSandbox);
+  var LM = lightSandbox.model;
+  check('the 3-by-3 fixture has six passing checks and eighteen check-bit edges',
+    LM.checks.length === 6 && LM.checks.reduce(function (s, q) { return s + q.length; }, 0) === 18 &&
+    LM.syndrome(LM.valid).every(function (q) { return q === 0; }));
+  var oneGlitch = LM.valid.slice(); oneGlitch[4] = 0;
+  check('the centre glitch fails exactly R2 and C2', same(LM.syndrome(oneGlitch), [0, 1, 0, 0, 1, 0]), LM.syndrome(oneGlitch).join(','));
+  var observedHard = LM.hard(LM.glow);
+  check('the uncertain hard board fails C2 and C3', same(observedHard, [1, 0, 1, 1, 0, 1, 0, 1, 1]) &&
+    same(LM.syndrome(observedHard), [0, 0, 0, 0, 1, 1]), LM.syndrome(observedHard).join(','));
+  var words = [];
+  for (var mask = 0; mask < 512; mask++) {
+    var word = []; for (var bit = 0; bit < 9; bit++) word.push((mask >> bit) & 1);
+    if (LM.syndrome(word).every(function (q) { return q === 0; })) words.push({ word: word, value: LM.llr.reduce(function (s, ell, i) { return s + ell * word[i]; }, 0) });
+  }
+  words.sort(function (a, b) { return a.value - b.value; });
+  check('the LLR fixture has one unique best valid board', words.length === 16 && same(words[0].word, LM.valid) && words[1].value - words[0].value > 0.9,
+    words[0].word.join('') + ' gap=' + (words[1].value - words[0].value).toFixed(3));
+  var projected = LM.project([0.9, 0.8, 0.7]), reprojected = LM.project(projected);
+  check('the degree-three parity-polytope projector is idempotent', projected.every(function (q, i) { return Math.abs(q - reprojected[i]) < 1e-12; }));
+  var firstClear = LM.trace.findIndex(function (q) { return q.syndrome.every(function (v) { return v === 0; }); });
+  check('syndrome clears before the computed ADMM trace settles', firstClear === 3 && LM.trace[3].primal > 0.02 && LM.trace[3].dual > 0.6 &&
+    LM.trace[8].primal < 1e-12 && LM.trace[8].dual < 1e-12,
+    'first clear=' + firstClear + ' r3=' + LM.trace[3].primal.toFixed(6) + ' s3=' + LM.trace[3].dual.toFixed(6));
+} catch (e) {
+  check('light-board numerical teaching contract', false, e && e.stack || e);
+}
+
+try {
+  var desktopCourse = courseSandbox(960, 660), desktopIds = desktopCourse.course.steps.map(function (q) { return q.id; }), desktopDraws = 0;
+  lightPages.forEach(function (page) { [0, 0.25, 0.5, 0.75, 1].forEach(function (p) { desktopCourse.Board.debug({ step: page[0], p: p }); desktopDraws++; }); });
+  check('the complete 56-page course builds in the drawing sandbox', desktopCourse.course.steps.length === 56 && lightPages.every(function (q) { return desktopIds.indexOf(q[0]) >= 0; }));
+  check('all nine light-board pages draw at five desktop moments without an error', desktopDraws === 45 && (desktopCourse.kingsLandErrors || []).length === 0,
+    (desktopCourse.kingsLandErrors || []).slice(0, 3).join(' | '));
+  var mobileCourse = courseSandbox(390, 488), mobileDraws = 0;
+  lightPages.forEach(function (page) { mobileCourse.Board.debug({ step: page[0], p: 1 }); mobileDraws++; });
+  check('all nine light-board pages draw at the phone-stage size without an error', mobileDraws === 9 && (mobileCourse.kingsLandErrors || []).length === 0,
+    (mobileCourse.kingsLandErrors || []).slice(0, 3).join(' | '));
+} catch (e) {
+  check('light-board drawing sandbox', false, e && e.stack || e);
+}
 
 var stepsAt = game.indexOf('var STEPS = ['), steps = balancedSlice(game, stepsAt, '[', ']');
 check('guided trial no longer requires finding the misty treasure',

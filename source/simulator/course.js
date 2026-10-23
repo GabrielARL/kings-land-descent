@@ -7,7 +7,7 @@
   'use strict';
   var E = window.Engine, B = window.Board; if (!E || !B) return;
   var H = B.H, C = H.C, seg = H.seg, num = H.num, pair = H.pair, at = H.at, add = H.add, sub = H.sub, dot = H.dot, len = H.len;
-  var scale = H.scale, lerp2 = H.lerp2, around = H.around, ease = H.ease, clamp = H.clamp, TAU = 2 * Math.PI;
+  var scale = H.scale, mix = H.mix, lerp2 = H.lerp2, around = H.around, ease = H.ease, clamp = H.clamp, TAU = 2 * Math.PI;
   var NAMES = { pg: 'the Pilgrim', lb: 'the Cartographer', tw: 'the Wanderer' }, COL = { pg: C.orange, lb: C.blue, tw: '#e6e9ee' };
 
   // ------------------------------------------------------------ lands and walks, as the game computes them
@@ -76,9 +76,119 @@
     return { walk: w, days: days, col: COL[hero], mark: mark, name: name || NAMES[hero].replace('the ', ''), val: function (k) { var q = w[Math.min(k, w.length - 1)][key || 'x']; return Math.log(Math.max(J(q) - Js, 1e-9)) / Math.LN10; } };
   }
 
+  // ------------------------------------------------------------ the self-checking light board
+  // A 2-by-2 picture is extended by one parity lamp per row and column.  The result is a small product code:
+  // every one of the nine lamps belongs to one row check and one column check.  The fixed-evidence trace below is
+  // computed here, rather than drawn from hand-picked positions, so the syndrome/residual comparison stays honest.
+  var LIGHT_CHECKS = [[0, 1, 2], [3, 4, 5], [6, 7, 8], [0, 3, 6], [1, 4, 7], [2, 5, 8]];
+  var LIGHT_VALID = [1, 0, 1, 1, 1, 0, 0, 1, 1];
+  var LIGHT_GLOW = [0.8000, 0.2500, 0.7750, 0.7750, 0.4500, 0.5300, 0.2500, 0.5625, 0.7500];
+  // Bit-zero channel LLR: negative evidence favours a lit lamp (bit 1).
+  var LIGHT_LLR = LIGHT_GLOW.map(function (y) { return 4 * (0.5 - y); });
+  function lightHard(v) { return v.map(function (x) { return x >= 0.5 ? 1 : 0; }); }
+  function lightSyndrome(bits) {
+    return LIGHT_CHECKS.map(function (ch) { return ch.reduce(function (s, i) { return s + bits[i]; }, 0) % 2; });
+  }
+  function projectEven(v) {
+    var out = v.map(function (x) { return clamp(x, 0, 1); });
+    var signs = out.map(function (x) { return x > 0.5 ? 1 : -1; });
+    var positive = signs.filter(function (s) { return s > 0; }).length, closest = 0, closestDistance = Infinity;
+    out.forEach(function (x, i) { var d = Math.abs(x - 0.5); if (d < closestDistance) { closestDistance = d; closest = i; } });
+    if (positive % 2 === 0) { signs[closest] = -signs[closest]; positive += signs[closest] > 0 ? 1 : -1; }
+    var bound = positive - 1, violation = -bound;
+    signs.forEach(function (s, i) { violation += s * out[i]; });
+    if (violation <= 0) return out;
+    var lo = 0, hi = Math.max.apply(null, v.map(Math.abs)) + 1;
+    for (var k = 0; k < 52; k++) {
+      var lambda = (lo + hi) / 2, residual = -bound;
+      signs.forEach(function (s, i) { residual += s * clamp(v[i] - lambda * s, 0, 1); });
+      if (residual > 0) lo = lambda; else hi = lambda;
+    }
+    var lm = (lo + hi) / 2;
+    return v.map(function (x, i) { return clamp(x - lm * signs[i], 0, 1); });
+  }
+  function lightADMM(rounds) {
+    var rho = 3, beta = 0.6, edges = LIGHT_LLR.map(function () { return []; });
+    LIGHT_CHECKS.forEach(function (ch, a) { ch.forEach(function (bit, j) { edges[bit].push([a, j]); }); });
+    var b = LIGHT_LLR.map(function (ell) { return ell < 0 ? 1 : 0; });
+    var z = LIGHT_CHECKS.map(function (ch) { return projectEven(ch.map(function (i) { return b[i]; })); });
+    var u = LIGHT_CHECKS.map(function (ch) { return ch.map(function () { return 0; }); });
+    var trace = [{ b: b.slice(), z: z.map(function (q) { return q.slice(); }), u: u.map(function (q) { return q.slice(); }), syndrome: lightSyndrome(lightHard(b)), primal: null, dual: null }];
+    for (var round = 1; round <= rounds; round++) {
+      b = b.map(function (old, bit) {
+        var consensus = edges[bit].reduce(function (s, e) { return s + z[e[0]][e[1]] - u[e[0]][e[1]]; }, 0);
+        return clamp((rho * consensus - LIGHT_LLR[bit] - beta) / (rho * edges[bit].length - 2 * beta), 0, 1);
+      });
+      var oldZ = z.map(function (q) { return q.slice(); }), primal2 = 0, dualSum = b.map(function () { return 0; });
+      LIGHT_CHECKS.forEach(function (ch, a) {
+        var next = projectEven(ch.map(function (bit, j) { return b[bit] + u[a][j]; }));
+        ch.forEach(function (bit, j) {
+          dualSum[bit] += next[j] - oldZ[a][j];
+          z[a][j] = next[j];
+          var r = b[bit] - z[a][j]; u[a][j] += r; primal2 += r * r;
+        });
+      });
+      var primal = Math.sqrt(primal2 / 18), dual = rho * Math.sqrt(dualSum.reduce(function (s, x) { return s + x * x; }, 0) / 9);
+      trace.push({ b: b.slice(), z: z.map(function (q) { return q.slice(); }), u: u.map(function (q) { return q.slice(); }), syndrome: lightSyndrome(lightHard(b)), primal: primal, dual: dual });
+    }
+    return trace;
+  }
+  var LIGHT_TRACE = lightADMM(8);
+
+  function lamp(g, x, y, r, value, p, label, hard) {
+    if (!(p > 0)) return; var c = g.ctx, q = clamp(p, 0, 1), v = clamp(value, 0, 1);
+    c.globalAlpha = q; c.fillStyle = 'rgba(242,245,248,0.06)'; c.strokeStyle = C.faint; c.lineWidth = 1.5;
+    c.beginPath(); c.arc(x, y, r, 0, TAU); c.fill(); c.stroke();
+    if (v > 0.01) {
+      var gl = c.createRadialGradient(x, y, 0, x, y, r * 1.7); gl.addColorStop(0, 'rgba(255,226,150,' + (0.32 + 0.62 * v) + ')'); gl.addColorStop(0.58, 'rgba(255,210,122,' + (0.18 + 0.62 * v) + ')'); gl.addColorStop(1, 'rgba(255,210,122,0)');
+      c.fillStyle = gl; c.beginPath(); c.arc(x, y, r * 1.7, 0, TAU); c.fill();
+      c.fillStyle = 'rgba(255,210,122,' + (0.12 + 0.78 * v) + ')'; c.beginPath(); c.arc(x, y, r * 0.72, 0, TAU); c.fill();
+    }
+    c.globalAlpha = 1;
+    if (label != null) g.labelPx(x, y, String(label), v > 0.45 ? '#241805' : C.ink, { align: 'center', plain: true, mono: true, size: Math.max(10, r * 0.8), p: q });
+    if (hard != null) g.labelPx(x + r * 0.76, y + r * 0.76, String(hard), hard ? C.gold : C.dim, { align: 'center', plain: false, mono: true, size: 9.5, p: q });
+  }
+  function lightBoard(g, R, values, o) {
+    o = o || {}; var c = g.ctx, title = o.title || '', p = o.p == null ? 1 : o.p;
+    if (o.panel !== false) g.panel(R, title);
+    var top = R[1] + (title ? 35 : 8), usableH = R[3] - (title ? 45 : 16), cell = Math.min(72, (R[2] - 88) / 3, (usableH - 58) / 3);
+    cell = Math.max(34, cell); var bw = 3 * cell, bh = 3 * cell, x0 = R[0] + (R[2] - bw - 55) / 2, y0 = top + (usableH - bh - 40) / 2;
+    var syn = o.syndrome || lightSyndrome(lightHard(values)), hbits = o.hard || null;
+    if (o.payload) {
+      c.globalAlpha = seg(p, 0.05, 0.3); c.strokeStyle = C.gold; c.lineWidth = 2; c.setLineDash([5, 4]); c.strokeRect(x0 + 3, y0 + 3, 2 * cell - 6, 2 * cell - 6); c.setLineDash([]); c.globalAlpha = 1;
+      g.labelPx(x0 + cell, y0 - 8, '2 × 2 picture', C.gold, { align: 'center', plain: true, size: 10.5, p: seg(p, 0.1, 0.35) });
+    }
+    if (o.highlightRow != null) { c.globalAlpha = 0.16 * seg(p, 0.1, 0.35); c.fillStyle = C.blue; c.fillRect(x0 - 5, y0 + o.highlightRow * cell + 3, bw + 10, cell - 6); c.globalAlpha = 1; }
+    if (o.highlightCol != null) { c.globalAlpha = 0.16 * seg(p, 0.2, 0.45); c.fillStyle = C.violet; c.fillRect(x0 + o.highlightCol * cell + 3, y0 - 5, cell - 6, bh + 10); c.globalAlpha = 1; }
+    for (var i = 0; i < 9; i++) {
+      var row = Math.floor(i / 3), col = i % 3, reveal = o.cellP ? o.cellP(i, p) : p;
+      if (o.payload && (row === 2 || col === 2)) reveal *= seg(p, row === 2 && col === 2 ? 0.58 : 0.35, row === 2 && col === 2 ? 0.86 : 0.65);
+      lamp(g, x0 + (col + 0.5) * cell, y0 + (row + 0.5) * cell, cell * 0.27, values[i], reveal, o.showValues ? num(values[i], 2) : null, hbits ? hbits[i] : null);
+    }
+    for (var r = 0; r < 3; r++) {
+      var bad = !!syn[r], rp = seg(p, 0.48 + r * 0.06, 0.72 + r * 0.06);
+      g.labelPx(x0 + bw + 16, y0 + (r + 0.5) * cell, 'R' + (r + 1) + ' ' + (bad ? '×' : '✓'), bad ? C.red : C.green, { plain: true, mono: true, size: 11.5, p: rp });
+    }
+    for (var cc = 0; cc < 3; cc++) {
+      var cbad = !!syn[3 + cc], cp = seg(p, 0.58 + cc * 0.06, 0.82 + cc * 0.06);
+      g.labelPx(x0 + (cc + 0.5) * cell, y0 + bh + 17, 'C' + (cc + 1) + (cbad ? '×' : '✓'), cbad ? C.red : C.green, { align: 'center', plain: true, mono: true, size: 11.5, p: cp });
+    }
+    return { x: x0, y: y0, cell: cell, w: bw, h: bh };
+  }
+  function patternCards(g, R, p) {
+    g.panel(R, 'One even-parity check'); var c = g.ctx, narrow = R[2] < 560, cols = narrow ? 2 : 4, rows = narrow ? 2 : 1;
+    var gap = 10, top = R[1] + 38, cw = (R[2] - 24 - gap * (cols - 1)) / cols, ch = (R[3] - 52 - gap * (rows - 1)) / rows;
+    [[0, 0], [0, 1], [1, 0], [1, 1]].forEach(function (bits, i) {
+      var q = seg(p, 0.08 + i * 0.13, 0.34 + i * 0.13), col = i % cols, row = Math.floor(i / cols), x = R[0] + 12 + col * (cw + gap), y = top + row * (ch + gap), pass = bits[0] + bits[1] !== 1;
+      c.globalAlpha = q; c.fillStyle = 'rgba(255,255,255,0.035)'; c.strokeStyle = pass ? C.green : C.red; c.lineWidth = 2; c.fillRect(x, y, cw, ch); c.strokeRect(x, y, cw, ch); c.globalAlpha = 1;
+      var cy = y + ch * 0.46, rr = Math.min(22, cw * 0.13, ch * 0.18); lamp(g, x + cw * 0.36, cy, rr, bits[0], q); lamp(g, x + cw * 0.64, cy, rr, bits[1], q);
+      g.labelPx(x + cw / 2, y + ch * 0.76, bits.join('') + '  ' + (pass ? 'PASS · even' : 'FAIL · odd'), pass ? C.green : C.red, { align: 'center', plain: true, mono: true, size: narrow ? 10.5 : 11.5, p: q });
+    });
+  }
+
   // ------------------------------------------------------------ the course
-  var Wc = world('canyon'), Wlong = world('canyon', { alpha: 0.22 }), Ww = world('wall'), Wf = world('fort'), Wm = world('misty');
-  var out = [], CH = { land: 'The King’s land', feel: 'Feeling the slope', pg: 'The Pilgrim: gradient descent', lb: 'The Cartographer: L-BFGS', tw: 'The Twins: ADMM and the King’s law', fort: 'The old fort', cajode: 'From the fort to CAJODE', misty: 'The misty hills', end: 'What we learned' };
+  var Wc = world('canyon'), Wlong = world('canyon', { alpha: 0.22 }), Ww = world('wall'), Wm = world('misty');
+  var out = [], CH = { land: 'The King’s land', feel: 'Feeling the slope', pg: 'The Pilgrim: gradient descent', lb: 'The Cartographer: L-BFGS', tw: 'The Twins: ADMM and the King’s law', light: 'The self-checking light board', cajode: 'From the light board to CAJODE', misty: 'The misty hills', end: 'What we learned' };
   var T = Wc.T, x0 = Wc.x0, A = Wc.land.A, c = Wc.land.c, pc = Wc.p;
 
   // 1. the King's land
@@ -218,46 +328,129 @@
         g.W < g.H ? 'cost gap by day (log scale)' : undefined);
     } });
 
-  // 6. the old fort
-  var fT = Wf.T, fw = Wf.walks, fDays = {}; ['pg', 'lb', 'tw'].forEach(function (h) { fDays[h] = E.settled(fw[h], h === 'tw' ? 'z' : 'x', 1e-3 * 2.4); });
-  function word(q) { return '(' + (q[0] >= 0 ? '+' : '−') + ', ' + (q[1] >= 0 ? '+' : '−') + ')'; }
-  out.push({ id: 'fort', chapter: CH.fort, title: 'Two sentries and a law', layout: 'map', view: [-1.3, 1.3, -1.3, 1.3], dur: 5,
-    text: 'Not every land is a valley. The old fort is the smallest coding example in this tale: two coded bits, one parity check and a known channel. A spot is a pair of cards held by two sentries, each between −1 and +1. The lanterns hint at what each sentry saw, the flags pull every card toward +1 or −1, and the tower’s law says the two flags must agree. Each card is a bit not yet decided, the lanterns are what was received, and the law is the one parity check.',
-    math: 'J(x) = lanterns + flags + law;  the true order ' + word(fT),
+  // 6. the self-checking light board.  The first five pages create the need for overlapping checks; the next four
+  // reveal the consensus-ADMM bookkeeping only after the reader has seen why one hard correction is not enough.
+  out.push({ id: 'light-patterns', chapter: CH.light, title: 'Four patterns, two pass', layout: 'side', dur: 5,
+    text: 'Begin with two lamps, each either off (0) or on (1). There are four patterns. An even-parity check passes only 00 and 11, because they contain an even number of lit lamps. It rejects 01 and 10. This is the smallest check, shown directly rather than as a rule in a fantasy story.',
+    math: 'b₁ ⊕ b₂ = 0:  {00, 11} pass;  {01, 10} fail',
+    draw: function (g, p) { patternCards(g, g.sideR, p); } });
+
+  out.push({ id: 'light-picture', chapter: CH.light, title: 'Build a self-checking picture', layout: 'side', dur: 5.2,
+    text: 'Put four picture lamps in the upper-left square. Add one parity lamp to each picture row, then one parity lamp to each column. The completed 3 × 3 board has an even number of lit lamps in every row and every column. Six checks are visible, although only five are independent.',
+    math: 'picture  ↦  3 row checks + 3 column checks;  101 / 110 / 011 passes all six',
+    draw: function (g, p) { lightBoard(g, g.sideR, LIGHT_VALID, { title: 'Four picture lamps plus five parity lamps', p: p, payload: true }); } });
+
+  out.push({ id: 'light-shared', chapter: CH.light, title: 'One lamp belongs to two checks', layout: 'side', dur: 5,
+    text: 'The centre lamp is one coded bit, not two lamps. Yet row R2 checks it and column C2 checks it. Every lamp on the board is shared in exactly this way: one physical decision participates in one row check and one column check. Overlap is what lets one part of the board test another.',
+    math: 'bit b₅ belongs to N(b₅) = {R2, C2}',
     draw: function (g, p) {
-      base(g, Wf, { alpha: seg(p, 0, 0.4) });
-      g.path([[-1, -1], [1, -1], [1, 1], [-1, 1], [-1, -1]], 'rgba(255,210,122,0.6)', 1.5, seg(p, 0.2, 0.5), [6, 4]);
-      [[1, 1], [1, -1], [-1, 1], [-1, -1]].forEach(function (q, i) { var ok = q[0] * q[1] === Wf.land.lawSign; g.dot(q, 5, ok ? C.blue : C.orange, seg(p, 0.4 + 0.08 * i, 0.5 + 0.08 * i)); g.label(q, word(q) + (ok ? ' lawful' : ' broken'), ok ? C.blue : C.orange, { dx: q[0] > 0 ? 9 : -9, dy: q[1] > 0 ? -13 : 14, align: q[0] > 0 ? 'left' : 'right', p: seg(p, 0.45 + 0.08 * i, 0.6 + 0.08 * i), size: 12 }); });
-      star(g, fT, seg(p, 0.8, 1), 'the true order');
-    } });
-  var Df = Math.min(60, Math.max(fDays.pg, fDays.lb, fDays.tw) + 1);
-  out.push({ id: 'fortwalks', chapter: CH.fort, title: 'Who reaches the true order?', layout: 'map', view: [-1.3, 1.3, -1.3, 1.3], dur: 6,
-    text: 'All three heroes start from what the lanterns suggest and all three reach the true order ' + word(fT) + '. They settle on day ' + fDays.lb + ' (the Cartographer), ' + fDays.tw + ' (the Twins) and ' + fDays.pg + ' (the Pilgrim). Here the law is part of the height for the Pilgrim and the Cartographer, while the Twins hand it to the Warden, who walks only on the lawful line.',
-    math: 'settled on day:  Cartographer ' + fDays.lb + ',  Twins ' + fDays.tw + ',  Pilgrim ' + fDays.pg,
-    draw: function (g, p) {
-      base(g, Wf); star(g, fT, 1); var up = seg(p, 0, 0.95) * Df;
-      var a = walkTo(g, fw.pg, up, C.orange, 2), b = walkTo(g, fw.lb, up, C.blue, 2.5), z = walkTo(g, fw.tw, up, '#9ec5f3', 2, 'z');
-      g.hero(a, 'pg', 1); g.hero(b, 'lb', 1); g.dot(z, 6, '#6aa2e3', 1); g.labelPx(g.mapR[0] + 12, g.mapR[1] + 30, 'day ' + Math.floor(up), C.gold, { size: 14 });
+      var R = g.sideR, q = lightBoard(g, R, LIGHT_VALID, { title: 'One lamp, row R2 and column C2', p: p, highlightRow: 1, highlightCol: 1 }), c = g.ctx;
+      c.globalAlpha = seg(p, 0.48, 0.75); c.strokeStyle = C.gold; c.lineWidth = 3; c.strokeRect(q.x + q.cell + 5, q.y + q.cell + 5, q.cell - 10, q.cell - 10); c.globalAlpha = 1;
+      g.labelPx(q.x + q.cell * 1.5, q.y + q.cell * 1.5, 'b₅', '#241805', { align: 'center', plain: true, mono: true, size: 12, p: seg(p, 0.55, 0.8) });
     } });
 
-  // The fort is an analogy for one parity check. These pages state exactly what full CAJODE adds, and keep
-  // acceptance of a decoded word separate from convergence of its continuous optimisation variables.
-  out.push({ id: 'cajode-copies', chapter: CH.cajode, title: 'One tower becomes many checks', layout: 'side', dur: 4.8,
-    text: 'A real LDPC code has many overlapping parity checks. CAJODE keeps one shared variable bᵢ ∈ [0, 1] for each coded bit. Every check keeps its own replica variables zₐ, constrained to that check’s parity polytope. Every occurrence of a bit in a check has its own scaled dual variable uₐ,ᵢ: its ledger entry for signed disagreement. The two-bit fort is only an analogy for one of those checks.',
-    math: 'shared variable bᵢ ↔ check replica zₐ,ᵢ;  ledger entry uₐ,ᵢ',
+  out.push({ id: 'light-single-error', chapter: CH.light, title: 'One glitch is easy', layout: 'side', dur: 5.4,
+    text: 'Suppose the centre lamp alone is read incorrectly. R2 becomes odd and C2 becomes odd. Their intersection identifies the suspect lamp—but only because we assumed exactly one hard decision was wrong. With two or more errors, the same syndrome can have several explanations.',
+    math: 'one-error assumption: failed row ∩ failed column = suspect bit',
     draw: function (g, p) {
-      var R = g.sideR, c = g.ctx, x = R[0] + R[2] * 0.28, xr = R[0] + R[2] * 0.72, ys = [R[1] + R[3] * 0.27, R[1] + R[3] * 0.50, R[1] + R[3] * 0.73];
-      g.panel(R, 'Shared variables and check replicas');
-      g.labelPx(x, R[1] + 50, 'shared coded bit bᵢ', C.gold, { align: 'center', plain: true, p: seg(p, 0.05, 0.25) });
-      ys.forEach(function (y, i) {
-        var q = seg(p, 0.2 + 0.14 * i, 0.42 + 0.14 * i); if (!(q > 0)) return;
-        c.globalAlpha = q; c.strokeStyle = C.violet; c.lineWidth = 2; c.beginPath(); c.moveTo(x + 12, R[1] + R[3] * 0.48); c.lineTo(xr - 38, y); c.stroke(); c.globalAlpha = 1;
-        g.labelPx(xr, y, 'check ' + (i + 1) + ': zₐ,ᵢ   uₐ,ᵢ', i === 1 ? C.blue : C.ink, { align: 'center', plain: true, p: q });
-      });
-      g.labelPx(xr, R[1] + R[3] - 28, 'each zₐ stays in its parity polytope', C.dim, { align: 'center', plain: true, p: seg(p, 0.72, 0.9), size: 12.5 });
+      var bad = LIGHT_VALID.slice(), flip = seg(p, 0.35, 0.65); bad[4] = mix(1, 0, flip);
+      var hard = lightHard(bad), q = lightBoard(g, g.sideR, bad, { title: 'One flipped hard decision', p: p, hard: hard, syndrome: lightSyndrome(hard), highlightRow: flip > 0.5 ? 1 : null, highlightCol: flip > 0.5 ? 1 : null }), c = g.ctx;
+      c.globalAlpha = seg(p, 0.58, 0.82); c.strokeStyle = C.red; c.lineWidth = 3; c.strokeRect(q.x + q.cell + 5, q.y + q.cell + 5, q.cell - 10, q.cell - 10); c.globalAlpha = 1;
     } });
+
+  out.push({ id: 'light-uncertain', chapter: CH.light, title: 'Several glows are uncertain', layout: 'side', dur: 6,
+    text: 'A receiver does not first see perfect zeros and ones. It measures a brightness yᵢ; a channel model turns that observation into a channel LLR ℓᶜʰᵢ. Here three glows lie near the decision threshold. The hard board fails C2 and C3, and flipping those two positions in any one row repairs the syndrome. Parity says which boards are allowed; the LLRs decide which allowed board fits the observations best.',
+    math: 'toy channel: ℓᶜʰᵢ = log[p(yᵢ|0)/p(yᵢ|1)] = 4(0.5 − yᵢ);  negative favours 1',
+    draw: function (g, p) {
+      var R = g.sideR, narrow = R[2] < 560, BR = narrow ? [R[0] + 4, R[1] + 28, R[2] - 8, R[3] * 0.62] : [R[0] + 4, R[1] + 28, R[2] * 0.57, R[3] - 34];
+      var LR = narrow ? [R[0] + 12, R[1] + R[3] * 0.66, R[2] - 24, R[3] * 0.31] : [R[0] + R[2] * 0.60, R[1] + 42, R[2] * 0.38, R[3] - 58];
+      g.panel(R, 'Observation → channel LLR → valid board');
+      lightBoard(g, BR, LIGHT_GLOW, { panel: false, p: p, showValues: true, hard: lightHard(LIGHT_GLOW), syndrome: lightSyndrome(lightHard(LIGHT_GLOW)) });
+      var lines = ['repair R1: 110 / 101 / 011', 'repair R2: 101 / 110 / 011  ← best fit', 'repair R3: 101 / 101 / 000'];
+      lines.forEach(function (t, i) { g.labelPx(LR[0] + 4, LR[1] + 24 + i * Math.min(42, LR[3] / 4), t, i === 1 ? C.gold : C.ink, { plain: true, mono: true, size: narrow ? 10 : 11.5, p: seg(p, 0.52 + i * 0.10, 0.72 + i * 0.10) }); });
+      g.labelPx(LR[0] + 4, LR[1] + LR[3] - 12, 'all three pass parity; evidence separates them', C.dim, { plain: true, size: narrow ? 9.5 : 11, p: seg(p, 0.82, 1) });
+    } });
+
+  out.push({ id: 'light-replicas', chapter: CH.cajode, title: 'One check keeps one replica', layout: 'side', dur: 5.4,
+    text: 'To handle all checks separately, row R2 keeps a replica vector z<sub>R2</sub> of its three incident shared bits. Its update projects b<sub>N(R2)</sub> + u<sub>R2</sub> onto the even-parity polytope. That polytope is the convex hull of the row’s four even binary patterns, so a projection may be fractional; it need not choose a hard row immediately.',
+    math: 'z<sub>a</sub> ← Π<sub>P<sub>a</sub></sub>(b<sub>N(a)</sub> + u<sub>a</sub>),  one vector z<sub>a</sub> per check a',
+    draw: function (g, p) {
+      var R = g.sideR, c = g.ctx, narrow = R[2] < 560, BR = narrow ? [R[0] + 4, R[1] + 28, R[2] - 8, R[3] * 0.57] : [R[0] + 4, R[1] + 28, R[2] * 0.49, R[3] - 34];
+      var DR = narrow ? [R[0] + 12, R[1] + R[3] * 0.62, R[2] - 24, R[3] * 0.34] : [R[0] + R[2] * 0.52, R[1] + 42, R[2] * 0.46, R[3] - 58];
+      g.panel(R, 'Shared row values and one local replica'); lightBoard(g, BR, LIGHT_TRACE[2].b, { panel: false, p: p, showValues: true, highlightRow: 1 });
+      var x = DR[0] + DR[2] / 2, y1 = DR[1] + DR[3] * 0.22, y2 = DR[1] + DR[3] * 0.52, y3 = DR[1] + DR[3] * 0.82;
+      g.labelPx(x, y1, 'shared row  b₄, b₅, b₆', C.gold, { align: 'center', plain: true, mono: true, p: seg(p, 0.1, 0.32), size: narrow ? 10.5 : 12 });
+      g.arrowPx([x, y1 + 14], [x, y2 - 18], C.violet, 2);
+      c.globalAlpha = seg(p, 0.32, 0.58); c.strokeStyle = C.violet; c.lineWidth = 2; c.strokeRect(DR[0] + DR[2] * 0.12, y2 - 17, DR[2] * 0.76, 34); c.globalAlpha = 1;
+      g.labelPx(x, y2, 'R2: project onto P_even', C.violet, { align: 'center', plain: true, p: seg(p, 0.34, 0.6), size: narrow ? 10 : 11.5 });
+      g.arrowPx([x, y2 + 18], [x, y3 - 16], C.blue, 2);
+      g.labelPx(x, y3, 'replica vector z_R2 (possibly fractional)', C.blue, { align: 'center', plain: true, p: seg(p, 0.62, 0.88), size: narrow ? 9.5 : 11 });
+    } });
+
+  out.push({ id: 'light-corrections', chapter: CH.cajode, title: 'One lamp receives two corrections', layout: 'side', dur: 5.5,
+    text: 'The shared centre value b₅ receives one agreement target from R2 and another from C2. Each check-bit edge has its own replica coordinate zₐ,ᵢ and scaled dual variable uₐ,ᵢ, because the row and column can disagree with b₅ in different ways. These are two soft agreement terms, not two hard commands; the shared-bit update balances both with the channel LLR.',
+    math: 'b₅ update balances ℓᶜʰ₅,  z<sub>R2,5</sub> − u<sub>R2,5</sub>,  z<sub>C2,5</sub> − u<sub>C2,5</sub>',
+    draw: function (g, p) {
+      var R = g.sideR, c = g.ctx, narrow = R[2] < 520, cx = R[0] + R[2] / 2, cy = R[1] + R[3] * 0.54;
+      var A = narrow ? [cx, R[1] + R[3] * 0.23] : [R[0] + R[2] * 0.22, cy], Bp = narrow ? [cx, R[1] + R[3] * 0.84] : [R[0] + R[2] * 0.78, cy];
+      g.panel(R, 'Two incident checks, two edge states');
+      c.globalAlpha = seg(p, 0.05, 0.3); c.fillStyle = 'rgba(255,210,122,0.12)'; c.strokeStyle = C.gold; c.lineWidth = 2.5; c.beginPath(); c.arc(cx, cy, 34, 0, TAU); c.fill(); c.stroke(); c.globalAlpha = 1;
+      g.labelPx(cx, cy - 5, 'b₅', C.gold, { align: 'center', plain: true, mono: true, size: 16, p: seg(p, 0.05, 0.3) });
+      g.labelPx(cx, cy + 18, 'one shared value', C.dim, { align: 'center', plain: true, size: 10, p: seg(p, 0.12, 0.35) });
+      [[A, 'R2', 'z(R2,5) − u(R2,5)', C.blue], [Bp, 'C2', 'z(C2,5) − u(C2,5)', C.violet]].forEach(function (d, i) {
+        var q = seg(p, 0.25 + i * 0.18, 0.52 + i * 0.18), w = narrow ? Math.min(150, R[2] * 0.52) : Math.min(170, R[2] * 0.27);
+        c.globalAlpha = q; c.strokeStyle = d[3]; c.lineWidth = 2; c.strokeRect(d[0][0] - w / 2, d[0][1] - 23, w, 46); c.globalAlpha = 1;
+        g.labelPx(d[0][0], d[0][1] - 8, d[1] + ' parity check', d[3], { align: 'center', plain: true, size: 11, p: q });
+        g.labelPx(d[0][0], d[0][1] + 10, d[2], C.ink, { align: 'center', plain: true, mono: true, size: narrow ? 9.5 : 10.5, p: q });
+        g.arrowPx(d[0], [cx + (d[0][0] < cx ? -38 : d[0][0] > cx ? 38 : 0), cy + (d[0][1] < cy ? -38 : d[0][1] > cy ? 38 : 0)], d[3], 2);
+      });
+      g.labelPx(cx, R[1] + R[3] - 18, 'channel evidence + both agreement targets → next b₅', C.gold, { align: 'center', plain: true, size: narrow ? 10 : 12, p: seg(p, 0.76, 0.96) });
+    } });
+
+  out.push({ id: 'light-rounds', chapter: CH.cajode, title: 'Run all checks together', layout: 'side', dur: 8,
+    text: 'Each round updates all nine shared values, projects all six check replicas from that same shared state, then updates all 18 edge duals. In this computed fixed-evidence run, the hard board passes every row and column at round 3, while the primal and dual residuals are still nonzero. The continuous state settles only at round 8. A zero syndrome is therefore not the same event as ADMM convergence.',
+    math: 'round 3: syndrome = 0 but r = ' + num(LIGHT_TRACE[3].primal, 4) + ', s = ' + num(LIGHT_TRACE[3].dual, 4) + ';  round 8: r = s = 0',
+    draw: function (g, p) {
+      var R = g.sideR, narrow = R[2] < 580, up = seg(p, 0.04, 0.96) * 8, k = Math.min(8, Math.floor(up)), k2 = Math.min(8, k + 1), f = up - k;
+      var vals = LIGHT_TRACE[k].b.map(function (x, i) { return mix(x, LIGHT_TRACE[k2].b[i], f); }), hard = lightHard(vals), syn = lightSyndrome(hard);
+      var BR = narrow ? [R[0] + 4, R[1] + 28, R[2] - 8, R[3] * 0.49] : [R[0] + 4, R[1] + 28, R[2] * 0.52, R[3] - 34];
+      var PR = narrow ? [R[0] + 8, R[1] + R[3] * 0.54, R[2] - 16, R[3] * 0.42] : [R[0] + R[2] * 0.55, R[1] + 34, R[2] * 0.43, R[3] - 42];
+      g.panel(R, 'Fixed-evidence ADMM teaching trace'); lightBoard(g, BR, vals, { panel: false, p: 1, showValues: true, hard: hard, syndrome: syn });
+      g.labelPx(BR[0] + BR[2] / 2, BR[1] + 8, 'round ' + Math.min(8, Math.round(up)) + ' · failed checks ' + syn.reduce(function (s, x) { return s + x; }, 0), syn.some(function (x) { return x; }) ? C.red : C.green, { align: 'center', plain: true, mono: true, size: 11, p: 1 });
+      var plotTitle = narrow ? 'Residuals · syndrome zero at round 3' : 'Residuals keep moving after the syndrome clears';
+      var pl = g.plot(PR, [1, 8], [0, 0.8], { title: plotTitle }); pl.frame('round', narrow ? '' : 'RMS residual');
+      function traceLine(key, col) {
+        var last = Math.min(8, Math.floor(up));
+        for (var j = 2; j <= last; j++) pl.seg(j - 1, LIGHT_TRACE[j - 1][key], j, LIGHT_TRACE[j][key], col, 2, 1);
+        for (j = 1; j <= last; j++) pl.point(j, LIGHT_TRACE[j][key], col, '', 1);
+      }
+      traceLine('primal', C.violet); traceLine('dual', C.blue);
+      if (up >= 3) pl.point(3, LIGHT_TRACE[3].dual, C.gold, narrow ? '' : 'syndrome = 0 here', seg(up - 3, 0, 0.8), 'left');
+      g.labelPx(PR[0] + PR[2] - 18, PR[1] + 50, narrow ? 'r agreement' : 'violet r: agreement gap', C.violet, { align: 'right', plain: true, size: narrow ? 9.5 : 10, p: 1 });
+      g.labelPx(PR[0] + PR[2] - 18, PR[1] + 66, narrow ? 's movement' : 'blue s: replica movement', C.blue, { align: 'right', plain: true, size: narrow ? 9.5 : 10, p: 1 });
+    } });
+
+  out.push({ id: 'light-ldpc', chapter: CH.cajode, title: 'From the light board to an LDPC graph', layout: 'side', dur: 6,
+    text: 'Redraw each lamp as a shared variable node and each row or column test as a check node; draw an edge whenever that check uses that bit. The light board is a small regular product code. An LDPC code uses a much larger sparse graph, usually with different connections and check sizes. The same ADMM bookkeeping remains: shared bits b, per-check replica vectors z, and one scaled dual u on every check-bit edge.',
+    math: 'light board incidence graph → sparse LDPC graph;  same b / z / u roles, different code',
+    draw: function (g, p) {
+      var R = g.sideR, c = g.ctx, narrow = R[2] < 580, BR = narrow ? [R[0] + 4, R[1] + 28, R[2] - 8, R[3] * 0.48] : [R[0] + 4, R[1] + 28, R[2] * 0.47, R[3] - 34];
+      var GR = narrow ? [R[0] + 8, R[1] + R[3] * 0.53, R[2] - 16, R[3] * 0.44] : [R[0] + R[2] * 0.50, R[1] + 34, R[2] * 0.48, R[3] - 42];
+      g.panel(R, 'The wiring is the code'); lightBoard(g, BR, LIGHT_VALID, { panel: false, p: seg(p, 0, 0.45) });
+      var bits = [], checks = [], bx0 = GR[0] + GR[2] * 0.19, by0 = GR[1] + GR[3] * 0.29, dx = GR[2] * 0.21, dy = GR[3] * 0.25;
+      for (var i = 0; i < 9; i++) bits.push([bx0 + (i % 3) * dx, by0 + Math.floor(i / 3) * dy]);
+      for (i = 0; i < 3; i++) checks.push([bx0 + 3 * dx + GR[2] * 0.10, by0 + i * dy]);
+      for (i = 0; i < 3; i++) checks.push([bx0 + i * dx, by0 - GR[3] * 0.17]);
+      LIGHT_CHECKS.forEach(function (members, a) { members.forEach(function (bit, edge) { var q = seg(p, 0.25 + (a * 3 + edge) * 0.018, 0.52 + (a * 3 + edge) * 0.018); c.globalAlpha = q; c.strokeStyle = C.faint; c.lineWidth = 1.3; c.beginPath(); c.moveTo(bits[bit][0], bits[bit][1]); c.lineTo(checks[a][0], checks[a][1]); c.stroke(); c.globalAlpha = 1; }); });
+      bits.forEach(function (a, i) { var q = seg(p, 0.18 + i * 0.025, 0.42 + i * 0.025); c.globalAlpha = q; c.fillStyle = 'rgba(255,210,122,0.16)'; c.strokeStyle = C.gold; c.lineWidth = 1.5; c.beginPath(); c.arc(a[0], a[1], narrow ? 10 : 12, 0, TAU); c.fill(); c.stroke(); c.globalAlpha = 1; g.labelPx(a[0], a[1], 'b' + (i + 1), C.gold, { align: 'center', plain: true, mono: true, size: narrow ? 7.5 : 8.5, p: q }); });
+      checks.forEach(function (a, i) { var isRow = i < 3, n = (i % 3) + 1, q = seg(p, 0.36 + i * 0.05, 0.60 + i * 0.05); c.globalAlpha = q; c.strokeStyle = isRow ? C.blue : C.violet; c.lineWidth = 1.8; c.strokeRect(a[0] - 15, a[1] - 12, 30, 24); c.globalAlpha = 1; g.labelPx(a[0], a[1], (isRow ? 'R' : 'C') + n, isRow ? C.blue : C.violet, { align: 'center', plain: true, mono: true, size: 9, p: q }); });
+      g.labelPx(GR[0] + GR[2] / 2, GR[1] + GR[3] - 9, 'circles: shared bits   squares: local checks', C.dim, { align: 'center', plain: true, size: narrow ? 9 : 10.5, p: seg(p, 0.75, 0.95) });
+    } });
+
+  // The light board fixes its channel evidence.  These final pages state exactly what full CAJODE adds, and keep
+  // acceptance of a decoded word separate from convergence of its continuous optimisation variables.
   out.push({ id: 'cajode-circuit', chapter: CH.cajode, title: 'One full CAJODE circuit', layout: 'side', dur: 5.6,
-    text: 'At the old fort, the lantern readings are fixed because the channel is known. Full CAJODE also updates the channel. One circuit computes one weight for each received sample, updates all shared bit values, recomputes those weights, updates the channel coefficients, projects each check’s replica variables onto its parity polytope, and then updates every scaled dual variable.',
+    text: 'The light-board trace held its channel LLRs fixed. Full CAJODE also estimates the channel that produced the bit evidence. One circuit computes one robust weight for each received sample, updates all shared bit variables, recomputes those weights, updates the channel coefficients, projects each check’s replica vector onto its parity polytope, and then updates every scaled dual variable.',
     math: 'weights → shared bits → weights → channel → parity-polytope projections → scaled dual variables',
     draw: function (g, p) {
       var R = g.sideR, rows = ['1  one weight per received sample', '2  all shared variables bᵢ', '3  recompute those weights', '4  all channel coefficients', '5  every check projection', '6  every scaled dual variable'];

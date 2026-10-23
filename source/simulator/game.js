@@ -181,14 +181,14 @@ var Game = (function () {
         R.groundPath([s[0], s[1]], blue, 3, 0.004, 0.9);
         [[1, 1], [1, -1], [-1, 1], [-1, -1]].forEach(function (q) {
           var ok = q[0] * q[1] === land.lawSign, top = R.post(q[0], q[1], 0.07, ok ? blue : orange, 3, 1);
-          if (top) tag(q[0], q[1], 0.08, (q[0] > 0 ? '+' : '−') + (q[1] > 0 ? '+' : '−') + (ok ? ' lawful' : ' broken'), ok ? 'blue' : 'orange', 12);
+          if (top) tag(q[0], q[1], 0.08, (q[0] > 0 ? '+' : '−') + (q[1] > 0 ? '+' : '−') + (ok ? ' passes' : ' fails'), ok ? 'blue' : 'orange', 12);
         });
         var y = land.y, ly = [clamp(y[0], -1.15, 1.15), clamp(y[1], -1.15, 1.15)];
-        sprites.push({ at: ly, fig: Fog.FIGURES.lantern, pal: pal('lantern'), hgt: 0.04, name: 'lanterns', colour: 'orange' });
+        sprites.push({ at: ly, fig: Fog.FIGURES.lantern, pal: pal('lantern'), hgt: 0.04, name: 'fixed evidence', colour: 'orange' });
       }
       var T = land.treasure;
       if (reveal) R.post(T[0], T[1], 0.25, orange, 2, 0.8);
-      sprites.push({ at: T, fig: Fog.FIGURES.star, pal: pal('star'), hgt: 0.02, lift: 0.006, name: m.L.kind === 'tower' ? 'true order' : 'treasure', colour: 'orange', always: reveal });
+      sprites.push({ at: T, fig: Fog.FIGURES.star, pal: pal('star'), hgt: 0.02, lift: 0.006, name: m.key === 'fort' ? 'best passing pattern' : m.L.kind === 'tower' ? 'selected pattern' : 'treasure', colour: 'orange', always: reveal });
       sprites.push({ at: m.x0, fig: Fog.FIGURES.flag, pal: pal('flag'), hgt: 0.026, name: 'start', colour: 'ink' });
       sprites.push({ at: kingAt(), fig: Fog.FIGURES.king, pal: pal('king'), hgt: 0.042, name: 'the King', colour: 'orange', who: 'king' });
     }
@@ -300,7 +300,7 @@ var Game = (function () {
       R.groundPath(pts, colour, 1, 0.003, 0.45);
     }
     var sprites = [];
-    var KIND = { 'the Pilgrim': 'pg', 'the Cartographer': 'lb', 'the Wanderer': 'tw', 'the Warden': 'wd', 'the King': 'king', 'lanterns': 'lantern', 'start': 'flag' };
+    var KIND = { 'the Pilgrim': 'pg', 'the Cartographer': 'lb', 'the Wanderer': 'tw', 'the Warden': 'wd', 'the King': 'king', 'fixed evidence': 'lantern', 'start': 'flag' };
     function drawSprites() {
       figs = [];
       sprites.forEach(function (s) {
@@ -527,7 +527,7 @@ var Game = (function () {
       trialTick();
       raceTick();
       if (!ride && !found && dist([player.x, player.y], m.land.treasure) < 0.03 * span()) {
-        found = true; say(m.L.kind === 'tower' ? 'You stand on the King’s true order, ' + flags(m.land.treasure) + '.' : (m.land.holes && m.land.holes.depth(m.land.treasure) > 0.5 ? 'You found the treasure, at the bottom of the deepest black hole.' : m.land.box ? 'You found the treasure: the lowest spot inside ' + (m.key === 'wall' ? 'the wall.' : 'the realm.') : 'You found the treasure: the lowest spot of the land.'));
+        found = true; say(m.L.kind === 'tower' ? 'You stand on the evidence-selected passing pattern, ' + flags(m.land.treasure) + '.' : (m.land.holes && m.land.holes.depth(m.land.treasure) > 0.5 ? 'You found the treasure, at the bottom of the deepest black hole.' : m.land.box ? 'You found the treasure: the lowest spot inside ' + (m.key === 'wall' ? 'the wall.' : 'the realm.') : 'You found the treasure: the lowest spot of the land.'));
       }
     }
     function markDay(o, m) {
@@ -914,7 +914,7 @@ var Game = (function () {
       }
       // the King
       return {
-        text: 'Welcome, apprentice. This is ' + api.landName(m.key) + '. My heroes seek ' + (land.kind === 'tower' ? 'my true order, ' + flags(land.treasure) : land.box ? 'the treasure, the lowest spot inside ' + (m.key === 'wall' ? 'my wall' : 'the realm') : 'the treasure, the lowest spot of the land') + '. Walk where you like.',
+        text: 'Welcome, apprentice. This is ' + api.landName(m.key) + '. My heroes seek ' + (land.kind === 'tower' ? 'the evidence-selected passing pattern, ' + flags(land.treasure) : land.box ? 'the treasure, the lowest spot inside ' + (m.key === 'wall' ? 'my wall' : 'the realm') : 'the treasure, the lowest spot of the land') + '. Walk where you like.',
         choices: [
           { label: 'Show me another land…', go: function () {
             return { text: 'Which land?', choices: ['canyon', 'wall', 'fort', 'ridge', 'misty'].map(function (k) { return { label: api.landName(k), go: function () { api.setLand(k); api.restart(); return node('king', 'Here is ' + api.landName(k) + '. My heroes stand at the start flag, on day 0.'); } }; }).concat([{ label: 'Back.', go: function () { return scripts('king'); } }]) };
@@ -1003,7 +1003,7 @@ var Game = (function () {
     var trial = { on: false, i: 0, state: 'off', base: null, at: 0, banner: null, notes: {}, done: false, targetShown: -1, quizFeedback: '' };
     var stats = { turned: 0, walked: 0, feels: 0, started: 0, boards: 0, boardCompletions: 0 };
     var regions = {}, rimMarks = [], hlEls = [];
-    var LESSONS = ['Find your feet', 'Feel the slope', 'The King’s counsel', 'The Pilgrim', 'The Cartographer', 'Change the rules', 'The Twins and the wall', 'The Old Fort and CAJODE', 'The misty hills'];
+    var LESSONS = ['Find your feet', 'Feel the slope', 'The King’s counsel', 'The Pilgrim', 'The Cartographer', 'Change the rules', 'The Twins and the wall', 'The light board and CAJODE', 'The misty hills'];
     var LESSON_WHY = [
       'Your height J is the cost: every hero wants it as low as it goes.',
       'Four taps give the slope ∇J; walking against it is gradient descent.',
@@ -1012,7 +1012,7 @@ var Game = (function () {
       'L-BFGS: a memory of past strides bends the course, and each stride is tested before it is taken.',
       'Too long a stride (α too big) makes gradient descent overshoot and fly off.',
       'ADMM: two copies divide the cost and the law, then the rope and ledger restore agreement.',
-      'The fort shows one parity check; CAJODE scales the pattern to shared bits, many checks and an updated channel.',
+      'The light board shows overlapping parity checks; CAJODE adds an updated channel and a larger sparse code graph.',
       'Bumps, noise and narrow pits: what each method does when the land is hard.'
     ];
     function roman(n) { return ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX'][n - 1] || String(n); }
@@ -1094,15 +1094,16 @@ var Game = (function () {
         done: function () { return chose('wd', 'What is in the ledger?'); },
         praise: 'The scaled dual variable records signed disagreement. The Twins stop only when they agree and the Warden’s copy has nearly stopped moving.' },
       { lesson: 7, setup: function () { goLand('fort'); api.restart(); ride = null; placePlayer(); },
-        king: 'The wall taught the ADMM pattern. Now look at the Old Fort, the smallest coding example in this tale: two coded bits, one parity check and a known channel. It is a bridge to CAJODE, not a simulation of the full receiver.',
-        info: true, goal: 'At the fort, the two cards are undecided bits and the blue lawful line is one parity polytope. The lantern readings stay fixed because this toy assumes the channel is known.', target: { dom: '#fog-stage', spot: 'centre', text: 'Two bits and one check' } },
+        king: 'The wall taught the ADMM split. This plot isolates the smallest even-parity check: two relaxed bit variables, fixed channel evidence, and a blue parity polytope joining the two passing patterns 00 and 11. It is a bridge to the light board, not a simulation of the full receiver.',
+        info: true, goal: 'The two coordinates are relaxed bit values. The endpoints 00 and 11 pass even parity; 01 and 10 fail. The evidence stays fixed because this toy assumes the channel is known.', target: { dom: '#fog-stage', spot: 'centre', text: 'Two bits and one check' } },
+      { lesson: 7, info: true, goal: 'The self-checking light board scales this to nine bits. Each lamp belongs to one row check and one column check. A single failed row and column locate one error only under a one-error assumption; with several uncertain glows, the channel LLRs choose among multiple parity-valid boards.' },
       { lesson: 7, info: true, goal: 'A real LDPC code has many overlapping checks. CAJODE keeps one shared variable bᵢ ∈ [0, 1] for each coded bit. Every check keeps replica variables zₐ inside its parity polytope. Each bit occurrence in a check has a scaled dual variable uₐ,ᵢ—a ledger entry for signed disagreement.' },
-      { lesson: 7, info: true, goal: 'One full CAJODE circuit computes one weight for each received sample, updates all shared variables bᵢ, recomputes those weights, updates all channel coefficients, projects each check’s replicas onto its parity polytope, and then updates every scaled dual variable. The channel update is what the fort, where the channel is known, does not show.' },
+      { lesson: 7, info: true, goal: 'One full CAJODE circuit computes one robust weight for each received sample, updates all shared variables bᵢ, recomputes those weights, updates all channel coefficients, projects each check’s replicas onto its parity polytope, and then updates every scaled dual variable. The channel update is what the fixed-evidence light board does not show.' },
       { lesson: 7, goal: 'Which statement correctly separates accepting a decoded word from continuous convergence?',
         quiz: { options: [
           'A word may pass every parity check and the CRC even while continuous residuals remain nonzero.',
           'A small primal residual by itself proves that CAJODE has converged to a stationary point.',
-          'The Old Fort includes CAJODE’s channel-coefficient update, so the two are equivalent.'
+          'The light board includes CAJODE’s channel-coefficient update, so the two are equivalent.'
         ], correct: 0, retry: 'Try again. Parity checks plus CRC test a binary word; they do not prove continuous convergence or stationarity.' } },
       { lesson: 8, setup: function () { goLand('misty'); api.restart(); ride = null; placePlayer(); },
         king: 'Now my hardest land: ripples make extra hollows, haze makes every tap a little wrong, and black holes are narrow pits that reveal themselves only when someone samples them.',
@@ -1166,7 +1167,7 @@ var Game = (function () {
       trial.on = false; trial.done = true; trial.state = 'off'; clearHL(); renderQuest(); save();
       var secs = Math.round((tnow() - stats.started) / 1000);
       trial.banner = { text: 'Trial complete', at: tnow() };
-      showNode({ npc: 'king', narration: true, text: 'Your trial is complete, apprentice. You felt the slope as the Pilgrim does, read the Cartographer’s journal, followed one full ADMM circuit, and carried the Old Fort’s lesson with one parity check into CAJODE. You also separated three hazards: ripples make extra hollows, haze changes measurements, and an unvisited narrow pit gives no local clue. In ' + Math.floor(secs / 60) + ' min ' + (secs % 60) + ' s you tapped the ground ' + stats.feels + ' times and walked ' + num(stats.walked, 1) + '. The hidden treasure is still yours to seek in free exploration.',
+      showNode({ npc: 'king', narration: true, text: 'Your trial is complete, apprentice. You felt the slope as the Pilgrim does, read the Cartographer’s journal, followed one full ADMM circuit, and carried the light board’s overlapping parity checks into CAJODE. You also separated three hazards: ripples make extra hollows, haze changes measurements, and an unvisited narrow pit gives no local clue. In ' + Math.floor(secs / 60) + ' min ' + (secs % 60) + ' s you tapped the ground ' + stats.feels + ' times and walked ' + num(stats.walked, 1) + '. The hidden treasure is still yours to seek in free exploration.',
                  choices: [{ label: 'Explore freely.', go: function () { return null; } }] });
     }
     // A lesson may lend the Cartographer a shorter journal; leaving the lesson, or the trial, gives the old one back.

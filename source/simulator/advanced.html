@@ -33,16 +33,16 @@ body {
   background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 16px; line-height: 1.55;
   padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 14px;
 }
-.course { max-width: 1320px; margin: 0 auto; display: grid; gap: 14px; }
+.course { max-width: 1320px; margin: 0 auto; display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; }
 .course-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .eyebrow { font-size: 12.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
 .course-head h1 { margin: 0; font-family: var(--display); font-weight: 700; font-size: clamp(26px, 3.4vw, 38px); line-height: 1.1; text-wrap: balance; }
 .course-summary { margin: 5px 0 0; max-width: 70ch; color: var(--muted); font-size: 14px; line-height: 1.4; text-wrap: balance; }
 .count { font-family: var(--mono); font-size: 13.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
-.course-body { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(300px, 1fr); gap: 16px; align-items: start; }
+.course-body { width: 100%; min-width: 0; display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(300px, 1fr); gap: 16px; align-items: start; }
 .stage { position: relative; aspect-ratio: 16 / 11; max-width: 100%; background: var(--stage); border-radius: 12px; overflow: hidden; }
 .stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
-.story { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px 18px 14px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.story { box-sizing: border-box; width: 100%; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px 18px 14px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
 .chapter { font-size: 12.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); font-weight: 700; }
 .story h2 { margin: 0; font-family: var(--display); font-weight: 700; font-size: 26px; line-height: 1.15; text-wrap: balance; }
 .text { max-width: 65ch; }

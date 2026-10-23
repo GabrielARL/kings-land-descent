@@ -32,17 +32,17 @@
         'The Wanderer may step outside while the Warden stays in, and the ledger ends up holding the wall\u2019s push.'
     },
     fort: {
-      title: 'the old fort', kind: 'tower', view: E.KINDS.fort.view, cam: { az: 35, el: 34 }, treasureName: 'the true order',
+      title: 'the two-bit parity check', kind: 'tower', view: E.KINDS.fort.view, cam: { az: 35, el: 34 }, treasureName: 'best passing pattern',
       preset: E.PRESETS.fort,
-      note: '<strong>The old fort.</strong> Two sentries under one tower, whose law says their flags must agree. The lanterns read (+, \u2212), a broken order. ' +
-        'The walkers carry the law as a hill on the land (\u03bc<sub>p</sub>). The Twins carry it as the Warden, who stands only on lawful mixtures. ' +
-        'All three reach the true order (+, +); compare how many days each takes.'
+      note: '<strong>The two-bit parity check.</strong> The two coordinates are relaxed signed bit values: \u22121 means 0, +1 means 1. Their fixed evidence initially favours (+, \u2212), which fails even parity. ' +
+        'The walkers carry parity violation as a penalty hill (\u03bc<sub>p</sub>). The Twins give the check to the Warden, whose copy stays in the convex hull of the passing patterns (\u2212, \u2212) and (+, +). ' +
+        'All three reach the best passing pattern (+, +); compare how many days each takes.'
     },
     ridge: {
-      title: 'the ridge', kind: 'tower', view: E.KINDS.ridge.view, cam: { az: 35, el: 34 }, treasureName: 'the true order',
+      title: 'the ridge', kind: 'tower', view: E.KINDS.ridge.view, cam: { az: 35, el: 34 }, treasureName: 'best passing pattern',
       preset: E.PRESETS.ridge,
-      note: '<strong>Behind a ridge.</strong> The same tower, but a lower law hill and a high ridge between a flag up and a flag down. ' +
-        'The deepest hollow is the true order (+, +), yet both walkers stop in a shallower hollow where the law is broken. ' +
+      note: '<strong>Behind a ridge.</strong> The same two-bit landscape, but with a lower parity penalty and a high binary-end ridge between opposite signs. ' +
+        'The deepest hollow is the best passing pattern (+, +), yet both walkers stop in a shallower hollow whose endpoint fails parity. ' +
         'Each day the Wanderer jumps to the best spot the rope allows, so the ledger can pull it over the ridge. Set y\u2082 to \u22120.30 and the Cartographer\u2019s first stride carries over too.'
     },
     misty: {
@@ -65,11 +65,11 @@
     ];
   };
   var TOWER_SPECS = [
-    { key: 'y1', sym: 'y<sub>1</sub>', name: 'Lantern reading for sentry 1', min: -1.5, max: 1.5, step: 0.01, d: 2 },
-    { key: 'y2', sym: 'y<sub>2</sub>', name: 'Lantern reading for sentry 2', min: -1.5, max: 1.5, step: 0.01, d: 2 },
-    { key: 's2', sym: '\u03c3<sup>2</sup>', name: 'Haze over the lanterns', min: 0.05, max: 2, log: true, d: 3 },
-    { key: 'muP', sym: '\u03bc<sub>p</sub>', name: 'Height of the law hill (walkers only)', min: 0, max: 20, step: 0.05, d: 2 },
-    { key: 'muB', sym: '\u03bc<sub>b</sub>', name: 'Height of the flags\u2019 ridge', min: 0, max: 4, step: 0.05, d: 2 }
+    { key: 'y1', sym: 'y<sub>1</sub>', name: 'Fixed evidence for signed bit 1', min: -1.5, max: 1.5, step: 0.01, d: 2 },
+    { key: 'y2', sym: 'y<sub>2</sub>', name: 'Fixed evidence for signed bit 2', min: -1.5, max: 1.5, step: 0.01, d: 2 },
+    { key: 's2', sym: '\u03c3<sup>2</sup>', name: 'Evidence variance', min: 0.05, max: 2, log: true, d: 3 },
+    { key: 'muP', sym: '\u03bc<sub>p</sub>', name: 'Parity-penalty height (walkers only)', min: 0, max: 20, step: 0.05, d: 2 },
+    { key: 'muB', sym: '\u03bc<sub>b</sub>', name: 'Binary-end pull', min: 0, max: 4, step: 0.05, d: 2 }
   ];
   var WEATHER_SPECS = [
     { key: 'ripA', sym: 'A', name: 'Ripple height, as a share of the land\u2019s height', min: 0, max: 0.3, step: 0.005, d: 3 },
@@ -347,12 +347,12 @@
       var s = land.lawSegment;
       [[1, 1], [1, -1], [-1, 1], [-1, -1]].forEach(function (q) {
         var ok = q[0] * q[1] === land.lawSign, word = (q[0] > 0 ? '+' : '−') + (q[1] > 0 ? '+' : '−');
-        label(ctx, word + (ok ? ' lawful' : ' broken'), g.X(q[0]) + (q[0] > 0 ? -10 : 10), g.Y(q[1]) + (q[1] > 0 ? -14 : 14), q[0] > 0 ? 'right' : 'left', ok ? C.blue : C.orange);
+        label(ctx, word + (ok ? ' passes' : ' fails'), g.X(q[0]) + (q[0] > 0 ? -10 : 10), g.Y(q[1]) + (q[1] > 0 ? -14 : 14), q[0] > 0 ? 'right' : 'left', ok ? C.blue : C.orange);
       });
       var mid = [(s[0][0] + s[1][0]) / 2 + 0.06, (s[0][1] + s[1][1]) / 2 - 0.12];
-      label(ctx, 'the law', g.X(mid[0]) + 6, g.Y(mid[1]), 'left', C.blue);
+      label(ctx, 'parity polytope', g.X(mid[0]) + 6, g.Y(mid[1]), 'left', C.blue);
       var ls = lanternSpot(g);
-      label(ctx, 'lanterns', ls[0], ls[1] - 12, 'center', C.orange, 'bottom');
+      label(ctx, 'fixed evidence', ls[0], ls[1] - 12, 'center', C.orange, 'bottom');
     }
     ctx.restore();
   }
@@ -617,9 +617,9 @@
     }
     var lawful = end[0] * end[1] * land.lawSign > 0, truth = Math.sign(end[0]) === Math.sign(land.treasure[0]) && Math.sign(end[1]) === Math.sign(land.treasure[1]);
     var word = signWord(end);
-    if (truth) return '<span class="good">' + when + ' at ' + word + ', the true order.</span>';
-    if (!lawful) return '<span class="bad">' + when + ' at ' + word + ': the law is broken.</span>';
-    return '<span class="bad">' + when + ' at ' + word + ': lawful, but not the King\u2019s order.</span>';
+    if (truth) return '<span class="good">' + when + ' at ' + word + ', the selected passing pattern.</span>';
+    if (!lawful) return '<span class="bad">' + when + ' at ' + word + ': the parity check fails.</span>';
+    return '<span class="bad">' + when + ' at ' + word + ': parity-valid, but not the endpoint favoured by the evidence.</span>';
   }
   function row(dt, dd) { return '<div style="display:contents"><dt>' + dt + '</dt><dd>' + dd + '</dd></div>'; }
   function updateStatus() {
@@ -629,7 +629,7 @@
     // Pilgrim
     var pg = W.pg, kp = Math.min(k, pg.length - 1), dp = pg[kp], gp = land.grad(dp.x);
     var pgRows = row('Day', String(Math.min(k, model.K))) + row('Stands at', pt(dp.x)) + row('Height J', small(dp.J)) + row('Slope |\u2207J|', small(Math.hypot(gp[0], gp[1])));
-    if (tower) pgRows += row('Flags', signWord(dp.x));
+    if (tower) pgRows += row('Signed bits', signWord(dp.x));
     $('pg-stats').innerHTML = pgRows;
     var pgToday;
     if (model.info.pg.lost && k >= pg.length - 1) pgToday = 'The strides grew without end; the Pilgrim has left the map.';
@@ -646,7 +646,7 @@
     var lb = W.lb, kl = Math.min(k, lb.length - 1), dl = lb[kl], gl = land.grad(dl.x);
     var lbRows = row('Day', String(Math.min(k, model.K))) + row('Stands at', pt(dl.x)) + row('Height J', small(dl.J)) + row('Slope |\u2207J|', small(Math.hypot(gl[0], gl[1])));
     lbRows += row('Journal', (kl >= 1 ? dl.pages : 0) + ' of ' + Math.round(model.p.m) + ' pages');
-    if (tower) lbRows += row('Flags', signWord(dl.x));
+    if (tower) lbRows += row('Signed bits', signWord(dl.x));
     $('lb-stats').innerHTML = lbRows;
     var lbToday;
     if (k === 0) lbToday = 'Opens an empty journal at the start flag.';
@@ -661,7 +661,7 @@
     // Twins
     var tw = W.tw, kt = Math.min(k, tw.length - 1), dt = tw[kt];
     var twRows = row('Day', String(Math.min(k, model.K))) + row('Wanderer x', pt(dt.x)) + row('Warden z', pt(dt.z)) + row('Ledger u', pt(dt.u)) + row('Gap |x \u2212 z|', small(dist(dt.x, dt.z)));
-    if (tower) twRows += row('Flags', signWord(dt.x));
+    if (tower) twRows += row('Signed bits', signWord(dt.x));
     $('tw-stats').innerHTML = twRows;
     var twToday;
     if (k === 0) twToday = 'The Warden stands on the nearest lawful spot; the ledger is empty.';
@@ -725,24 +725,24 @@
     } else {
       var y = land.y, s = p.law, h = 1 / (2 * p.s2);
       head('Cost: the height of the land');
-      eq('J(\\mathbf{x}) = \\underbrace{\\sum_{i=1}^{2}\\frac{(x_i-y_i)^2}{2\\sigma^2}}_{\\text{lanterns}} + \\underbrace{\\mu_b\\sum_{i=1}^{2}\\big(1-x_i^2\\big)^2}_{\\text{flags fully up or down}} + \\underbrace{\\mu_p\\big(1-s\\,x_1x_2\\big)^2}_{\\text{the law, as a hill}},\\quad -1\\le x_i\\le 1');
-      para('Here \\(x_i\\) is sentry \\(i\\)\u2019s card (+1 flag up, \u22121 flag down) and \\(s = ' + (s > 0 ? '+1' : '-1') + '\\): the tower\u2019s law is that the flags ' + (s > 0 ? 'agree' : 'differ') + '. With your settings:');
+      eq('J(\\mathbf{x}) = \\underbrace{\\sum_{i=1}^{2}\\frac{(x_i-y_i)^2}{2\\sigma^2}}_{\\text{fixed evidence}} + \\underbrace{\\mu_b\\sum_{i=1}^{2}\\big(1-x_i^2\\big)^2}_{\\text{pull to binary ends}} + \\underbrace{\\mu_p\\big(1-s\\,x_1x_2\\big)^2}_{\\text{parity penalty}},\\quad -1\\le x_i\\le 1');
+      para('Here \\(x_i\\) is relaxed signed bit \\(i\\): +1 represents bit 1 and \u22121 represents bit 0. The sign \\(s = ' + (s > 0 ? '+1' : '-1') + '\\) selects ' + (s > 0 ? 'even parity, so the endpoints agree' : 'odd parity, so the endpoints differ') + '. With your settings:');
       eq('J(\\mathbf{x}) = ' + n3(h) + '\\big[' + shift('x_1', y[0]) + '^2 + ' + shift('x_2', y[1]) + '^2\\big] + ' + n3(p.muB, 2) + '\\big[(1-x_1^2)^2 + (1-x_2^2)^2\\big] + ' + n3(p.muP, 2) + '\\,(1 ' + (s > 0 ? '-' : '+') + ' x_1x_2)^2', 'live');
       head('Gradient: the slope underfoot');
       eq('\\frac{\\partial J}{\\partial x_1} = \\frac{x_1-y_1}{\\sigma^2} - 4\\mu_b\\,x_1\\big(1-x_1^2\\big) - 2\\mu_p\\,s\\,x_2\\big(1-s\\,x_1x_2\\big)');
       eq('\\frac{\\partial J}{\\partial x_2} = \\frac{x_2-y_2}{\\sigma^2} - 4\\mu_b\\,x_2\\big(1-x_2^2\\big) - 2\\mu_p\\,s\\,x_1\\big(1-s\\,x_1x_2\\big)');
       eq('\\frac{\\partial J}{\\partial x_1} = ' + n3(1 / p.s2) + shift('x_1', y[0]) + ' - ' + n3(4 * p.muB) + '\\,x_1(1-x_1^2) ' + (s > 0 ? '-' : '+') + ' ' + n3(2 * p.muP) + '\\,x_2(1 ' + (s > 0 ? '-' : '+') + ' x_1x_2)', 'live');
-      para('The slope along \\(x_2\\) is the same with sentries 1 and 2 swapped.');
+      para('The partial derivative with respect to \\(x_2\\) is the same expression with coordinates 1 and 2 swapped.');
       head('The law');
       eq(s > 0 ? 'C = \\operatorname{conv}\\{(1,1),(-1,-1)\\} = \\{(t,t): -1\\le t\\le 1\\},\\qquad \\Pi_C(\\mathbf w) = (t,t),\\ t = \\operatorname{clip}\\!\\big(\\tfrac{w_1+w_2}{2},-1,1\\big)'
                : 'C = \\operatorname{conv}\\{(1,-1),(-1,1)\\} = \\{(t,-t): -1\\le t\\le 1\\},\\qquad \\Pi_C(\\mathbf w) = (t,-t),\\ t = \\operatorname{clip}\\!\\big(\\tfrac{w_1-w_2}{2},-1,1\\big)');
-      para('\\(C\\) is the tower\u2019s two lawful patterns and every mixture of them: its parity polytope, drawn as the blue line. The true order is the lawful corner nearest the lanterns, ' + signWord(land.treasure) + '.');
+      para('\\(C\\) is the convex hull of the two passing binary patterns: the parity polytope drawn as the blue line. The selected endpoint is the passing pattern favoured by the fixed evidence, ' + signWord(land.treasure) + '.');
     }
     if (land.ripples) {
       var rw = land.weather;
       head('Ripples');
       eq('J(\\mathbf x)\\ \\mathrel{+}=\\ R(\\mathbf x) = \\frac{A}{\\sqrt6}\\sum_{k=1}^{6}\\sin(\\omega_k\\cdot\\mathbf x + \\varphi_k),\\qquad \\nabla R(\\mathbf x) = \\frac{A}{\\sqrt6}\\sum_{k=1}^{6}\\cos(\\omega_k\\cdot\\mathbf x + \\varphi_k)\\,\\omega_k');
-      para('Six waves with random headings, lengths within 25% of \\(L = ' + n3(rw.L) + '\\) and random phases, of height \\(A = ' + n3(rw.A) + '\\) (seed ' + rw.seed + '). They add to the cost and the gradient above' + (L.kind === 'tower' ? ', and to the Twins\u2019 land.' : '.') + (L.kind === 'quad' ? ' The treasure moves with them: it is now the lowest spot of the rippled land.' : ' The true order does not move: it is still the lawful corner nearest the lanterns.'));
+      para('Six waves with random headings, lengths within 25% of \\(L = ' + n3(rw.L) + '\\) and random phases, of height \\(A = ' + n3(rw.A) + '\\) (seed ' + rw.seed + '). They add to the cost and the gradient above' + (L.kind === 'tower' ? ', and to the Twins\u2019 land.' : '.') + (L.kind === 'quad' ? ' The treasure moves with them: it is now the lowest spot of the rippled land.' : ' The selected valid endpoint does not move: it remains the passing pattern favoured by the fixed evidence.'));
     }
     if (land.holes) {
       var hl = land.holes;
@@ -776,7 +776,7 @@
       '<div class="eq">\\[\\begin{aligned}\\mathbf x_{k+1} &= \\arg\\min_{\\mathbf x}\\ f(\\mathbf x) + \\tfrac{\\rho}{2}\\lVert\\mathbf x - \\mathbf z_k + \\mathbf u_k\\rVert^2 &&\\text{Wanderer}\\\\ \\mathbf z_{k+1} &= \\Pi_C(\\mathbf x_{k+1} + \\mathbf u_k) &&\\text{Warden}\\\\ \\mathbf u_{k+1} &= \\mathbf u_k + \\mathbf x_{k+1} - \\mathbf z_{k+1} &&\\text{ledger}\\end{aligned}\\]</div>' +
       '<p>On this land the Wanderer\u2019s step is</p><div class="eq">\\[' + wander + '\\]</div>' +
       (!land.exactStep ? '<p>With ripples or haze no formula gives this spot, so the Wanderer walks to it from where it stands, as an ADMM solver would: steps down the sum while they lower it (with tapped heights in haze).</p>' : '') +
-      (L.kind === 'tower' && land.exactStep ? '<p>Its slope is the cubic \\(4\\mu_b x^3 + (1/\\sigma^2 - 4\\mu_b + \\rho)\\,x - (y_i/\\sigma^2 + \\rho v_i)\\). The Wanderer checks its real roots and both ends and takes the lowest. The step is a global one, not a stride down the local slope, which is how the Wanderer can cross the flags\u2019 ridge.</p>' : '') +
+      (L.kind === 'tower' && land.exactStep ? '<p>Its slope is the cubic \\(4\\mu_b x^3 + (1/\\sigma^2 - 4\\mu_b + \\rho)\\,x - (y_i/\\sigma^2 + \\rho v_i)\\). The Wanderer checks its real roots and both ends and takes the lowest. The step is a global one, not a stride down the local slope, which is how the Wanderer can cross the binary-end ridge.</p>' : '') +
       '</div>');
     out.push('</div>');
     return out.join('');
@@ -855,7 +855,7 @@
       { c: C.orange, show: state.show.pg, v: seriesOf(W.pg, function (d) { return tr(d.J); }) }
     ], { log: log, ref: log ? null : Jl });
     $('height-caption').innerHTML = (log ? 'J minus the lowest height ' + fmt(Jl, 4) + ', on a log scale. ' : 'Dashed line: the lowest point of the walkers\u2019 land, J = ' + fmt(Jl, 4) + '. ') +
-      'The Twins are measured where the Warden stands (dashed curve)' + (land.kind === 'tower' ? ', on the walkers\u2019 land, though the Twins themselves never feel its law hill.' : '.');
+      'The Twins are measured where the Warden stands (dashed curve)' + (land.kind === 'tower' ? ', on the walkers\u2019 land, though the Twins themselves never feel its parity-penalty hill.' : '.');
     if (model.L.kind === 'quad' && !model.land.box) {
       drawChart('chart-law', [], { log: false });
       $('law-caption').textContent = 'The canyon has no law, so everyone is always lawful.';
@@ -867,7 +867,7 @@
       ], { log: false });
       $('law-caption').textContent = model.L.kind === 'quad'
         ? 'How far outside ' + (model.L.wall ? 'the wall' : 'the realm\u2019s edge') + ' each hero stands. The walkers never leave; the Wanderer may, and is pulled back by the ledger. The Warden is always inside.'
-        : 'How far each hero stands from the law\u2019s line (Wanderer for the Twins). The walkers only feel the law as a hill; the Warden is always on the line.';
+        : 'How far each hero stands from the parity-polytope line (Wanderer for the Twins). The walkers feel parity violation as a hill; the Warden is always on the line.';
     }
   }
 
@@ -905,14 +905,14 @@
     wl.querySelector('#new-weather').addEventListener('click', function () { p.seed = 1 + Math.floor(Math.random() * 999); if (!p.ripA) p.ripA = 0.05; buildControls(); changed(); });
     if (L.kind === 'tower') {
       var seg = document.createElement('div'); seg.className = 'startline';
-      seg.innerHTML = '<span>The tower\u2019s law (s)</span><span class="seg" role="group" aria-label="The tower\u2019s law">' +
-        '<button type="button" id="law-agree" aria-pressed="' + (p.law > 0) + '">flags agree</button><button type="button" id="law-differ" aria-pressed="' + (p.law < 0) + '">flags differ</button></span>';
+      seg.innerHTML = '<span>The parity check (s)</span><span class="seg" role="group" aria-label="The parity check">' +
+        '<button type="button" id="law-agree" aria-pressed="' + (p.law > 0) + '">even: endpoints agree</button><button type="button" id="law-differ" aria-pressed="' + (p.law < 0) + '">odd: endpoints differ</button></span>';
       lf.appendChild(seg);
       seg.querySelector('#law-agree').addEventListener('click', function () { p.law = 1; buildControls(); changed(); });
       seg.querySelector('#law-differ').addEventListener('click', function () { p.law = -1; buildControls(); changed(); });
     }
     var st = document.createElement('div'); st.className = 'startline';
-    st.innerHTML = '<span>Start flag <output id="start-read"></output></span><button class="btn" type="button" id="start-reset">' + (L.kind === 'tower' ? 'Start from the lanterns' : 'Start where the tale starts') + '</button>';
+    st.innerHTML = '<span>Start flag <output id="start-read"></output></span><button class="btn" type="button" id="start-reset">' + (L.kind === 'tower' ? 'Start from the fixed evidence' : 'Start where the tale starts') + '</button>';
     lf.appendChild(st);
     st.querySelector('#start-reset').addEventListener('click', function () {
       if (L.kind === 'tower') { p.sx = null; p.sy = null; } else { p.sx = L.preset.sx; p.sy = L.preset.sy; }
