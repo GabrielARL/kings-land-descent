@@ -524,27 +524,93 @@
     }
 
     // ---- the Warden's book
+    // The page zooms in on the two twins so their gap is visible, writes each twin's two numbers on dashed lines to the
+    // axes (x = (x₁, x₂) for the Wanderer, z = (z₁, z₂) for the Warden), and draws the gap x − z and the book u.
     var entries = []; for (var ej = 1; ej <= k; ej++) entries.push({ day: ej, gap: sub(w[ej].x, w[ej].z) });
-    var bookView = around([z, x, add(z, u)].concat(entries.map(function (e) { return w[e.day].x; })), 0.6, 0.3 * cx.span);
     var firstGap = firstWallContact != null && firstWallContact <= k ? sub(w[firstWallContact].x, w[firstWallContact].z) : null;
-    out.push({ id: 'ledger-role', chapter: 'The Twins', title: 'The Warden’s book: u', layout: 'map+side', view: bookView, dur: 5.8,
-      text: 'So the Warden keeps a book. The story calls it a book or ledger; in standard scaled ADMM it is the scaled dual variable u. At the end of every circuit it writes down the gap, by how much and in which direction the Wanderer fell short of it: u ← u + (x − z). ' +
-        (k === 0 ? 'At the start the book is empty, u₀ = (0, 0).' :
-          (firstGap ? (firstWallContact > 1 ? 'For the first ' + (firstWallContact - 1) + ' days of this walk the twins stood together and the book stayed empty. ' : '') + 'On day ' + firstWallContact + ' the Wanderer first ended ' + (tower ? 'off the parity-polytope line' : 'outside ' + lawName) + ', the gap was ' + pair(firstGap) + ', and the book got its first entry. ' : 'So far the twins have always stood together and the book is empty. ') +
-          'Today it reads u<sub>' + k + '</sub> = ' + pair(u) + '. Tomorrow the Warden will use it.'),
-      math: 'u<sub>k</sub> = u<sub>k−1</sub> + (x<sub>k</sub> − z<sub>k</sub>)' + (k > 0 ? at(0.5, ';  u<sub>' + k + '</sub> = ' + (function () { var nz = entries.filter(function (e) { return len(e.gap) > 1e-9; }).map(function (e) { return pair(e.gap); }); return nz.length ? (nz.length > 3 ? '… + ' : '') + nz.slice(-3).join(' + ') : '(0, 0)'; })() + ' = ' + pair(u)) : at(0.5, ';  u₀ = (0, 0)')),
+    var bookSpan = Math.min(cx.span, Math.max(5 * len(gapNow), 5 * len(u), 0.08 * cx.span));
+    var bookView = around([z, x, add(z, u)], 0.6, bookSpan), kk = subscript(k);
+    var together = len(gapNow) < 1e-9, sameA = Math.abs(x[0] - z[0]) < 5e-4, sameB = Math.abs(x[1] - z[1]) < 5e-4;
+    var outsideWord = tower ? 'off the parity-polytope line' : 'outside ' + lawName, onWord = tower ? 'on the parity-polytope line' : wall ? 'on the wall' : 'at the edge of ' + lawName;
+    // the book's rows: runs of days with no gap are merged, and only the last rows are kept
+    var bookRows = [];
+    entries.forEach(function (e) {
+      var zero = len(e.gap) < 1e-9, last = bookRows[bookRows.length - 1];
+      if (zero && last && last.zero) last.to = e.day; else bookRows.push({ from: e.day, to: e.day, zero: zero, gap: e.gap });
+    });
+    var bookText = bookRows.map(function (r) { return { text: (r.from === r.to ? 'day ' + r.from : 'days ' + r.from + '–' + r.to) + ':  ' + (r.zero ? 'together, (0, 0)' : pair(r.gap)), col: r.zero ? C.dim : C.violet }; });
+    if (!bookText.length) bookText = [{ text: 'no entries yet', col: C.dim }];
+    if (bookText.length > 4) bookText = [{ text: '…', col: C.dim }].concat(bookText.slice(-3));
+    bookText.push({ text: 'total u' + kk + ' = ' + pair(u), col: C.orange });
+    // the twins' two numbers, on dashed lines from each twin to the bottom and left edges of the map
+    function coordLines(g, q, col, p) { var vv = g.vis; g.line(q, [q[0], vv[2]], col, 1.3, p, [4, 4]); g.line(q, [vv[0], q[1]], col, 1.3, p, [4, 4]); }
+    function coordLabels(g, pA, pB) {
+      var vv = g.vis, right = x[0] >= z[0], up = x[1] >= z[1];
+      if (sameA) g.label([x[0], vv[2]], 'x₁ = z₁ = ' + num(x[0]), C.ink, { dy: -28, align: 'center', p: pB, size: 11.5 });
+      else {
+        g.label([x[0], vv[2]], 'x₁ = ' + num(x[0]), '#e6e9ee', { dx: right ? 6 : -6, dy: -28, align: right ? 'left' : 'right', p: pA, size: 11.5 });
+        g.label([z[0], vv[2]], 'z₁ = ' + num(z[0]), C.blue, { dx: right ? -6 : 6, dy: -28, align: right ? 'right' : 'left', p: pB, size: 11.5 });
+      }
+      if (sameB) g.label([vv[0], x[1]], 'x₂ = z₂ = ' + num(x[1]), C.ink, { dx: 44, dy: 14, p: pB, size: 11.5 });
+      else {
+        g.label([vv[0], x[1]], 'x₂ = ' + num(x[1]), '#e6e9ee', { dx: 44, dy: up ? -12 : 12, p: pA, size: 11.5 });
+        g.label([vv[0], z[1]], 'z₂ = ' + num(z[1]), C.blue, { dx: 44, dy: up ? 12 : -12, p: pB, size: 11.5 });
+      }
+    }
+    // the book drawn as an arrow from the Warden, set a little below the gap so the two can be told apart
+    function bookArrow(g, p) {
+      if (!(p > 0) || len(u) < 1e-9) return;
+      var A = g.P(z), Bp = g.P(add(z, u)), dx = Bp[0] - A[0], dy = Bp[1] - A[1], L = Math.hypot(dx, dy) || 1, nx = -dy / L, ny = dx / L;
+      if (ny < 0) { nx = -nx; ny = -ny; }   // always below on the screen
+      var off = 26, a = [A[0] + nx * off, A[1] + ny * off], b = [Bp[0] + nx * off, Bp[1] + ny * off];
+      g.ctx.save(); g.clip(g.mapR); g.ctx.globalAlpha = clamp(p, 0, 1);
+      g.ctx.strokeStyle = 'rgba(255,176,113,0.5)'; g.ctx.lineWidth = 1; g.ctx.setLineDash([2, 3]);
+      g.ctx.beginPath(); g.ctx.moveTo(A[0], A[1]); g.ctx.lineTo(a[0], a[1]); g.ctx.stroke(); g.ctx.setLineDash([]);
+      g.arrowPx(a, [a[0] + (b[0] - a[0]) * clamp(p, 0, 1), a[1] + (b[1] - a[1]) * clamp(p, 0, 1)], C.orange, 3);
+      g.ctx.restore(); g.ctx.globalAlpha = 1;
+      g.labelPx((a[0] + b[0]) / 2, (a[1] + b[1]) / 2 + 20, 'the book: u' + kk + ' = ' + pair(u), C.orange, { align: 'center', size: 12, p: seg(p, 0.6, 1) });
+    }
+    out.push({ id: 'ledger-role', chapter: 'The Twins', title: 'The Warden’s book: u', layout: 'map+side', view: bookView, dur: 6.4,
+      text: 'So the Warden keeps a book. The story calls it a book or ledger; in standard scaled ADMM it is the scaled dual variable u. ' +
+        'Each twin stands at a spot with two numbers, one for each direction of the map: the Wanderer at x = (x₁, x₂) and the Warden at z = (z₁, z₂). ' +
+        'At the end of every circuit the Warden writes their gap, x − z, into the book: how far, and in which direction, the Wanderer stands from it. So u ← u + (x − z). ' +
+        (k === 0 ? 'At the start the twins stand together, x₀ = z₀, and the book is empty: u₀ = (0, 0).' :
+          !firstGap ? 'So far the twins have always stood together, x = z, so every gap was (0, 0) and the book is empty. Today both stand at ' + pair(x) + '.' :
+          (firstWallContact > 1 ? 'For the first ' + (firstWallContact - 1) + (firstWallContact === 2 ? ' day' : ' days') + ' the twins stood together, x = z, and the book stayed empty. ' : '') +
+          (firstWallContact === k ?
+            'On day ' + k + ' the Wanderer ended at x' + kk + ' = ' + pair(x) + ', ' + outsideWord + ', while the Warden stood ' + onWord + ' at z' + kk + ' = ' + pair(z) + '. The gap x' + kk + ' − z' + kk + ' = ' + pair(gapNow) + ' became the first entry, so the book reads u' + kk + ' = ' + pair(u) + '. ' :
+            'On day ' + firstWallContact + ' the Wanderer first ended ' + outsideWord + ', and the book got its first entry, ' + pair(firstGap) + '. Today the Wanderer is at x' + kk + ' = ' + pair(x) + ' and the Warden at z' + kk + ' = ' + pair(z) + ', and the book reads u' + kk + ' = ' + pair(u) + '. ') +
+          'Tomorrow the Warden will use it.'),
+      math: 'x = (x₁, x₂): the Wanderer;  z = (z₁, z₂): the Warden' + at(0.3, '<br>x' + kk + ' = ' + pair(x) + ',  z' + kk + ' = ' + pair(z) + ',  x' + kk + ' − z' + kk + ' = ' + pair(gapNow)) +
+        at(0.72, '<br>u<sub>k</sub> = u<sub>k−1</sub> + (x<sub>k</sub> − z<sub>k</sub>);  u' + kk + ' = ' + (k > 0 ? (function () { var nz = entries.filter(function (e) { return len(e.gap) > 1e-9; }).map(function (e) { return pair(e.gap); }); return nz.length ? (nz.length > 3 ? '… + ' : '') + nz.slice(-3).join(' + ') + ' = ' : ''; })() : '') + pair(u)),
       draw: function (g, p) {
+        var pX = seg(p, 0.05, 0.3), pZ = seg(p, 0.25, 0.5), pG = seg(p, 0.5, 0.7), pU = seg(p, 0.72, 0.95);
         base(g);
-        entries.forEach(function (e, i) {
-          var q = seg(p, 0.05 + 0.5 * i / Math.max(1, entries.length), 0.2 + 0.5 * i / Math.max(1, entries.length));
-          if (len(e.gap) > 1e-9) g.arrow(w[e.day].z, w[e.day].x, C.violet, 2.5, q); else g.dot(w[e.day].x, 4, C.dim, q);
-        });
-        g.dot(z, 7, C.blue, 1); g.label(z, 'z' + subscript(k), C.blue, { dx: -10, dy: -16, align: 'right', size: 12 }); g.hero(x, 'tw', 1); g.label(x, 'x' + subscript(k), '#e6e9ee', { dx: 10, dy: -16, size: 12 });
-        if (len(u) > 1e-9) { g.arrow(z, add(z, u), C.orange, 3, seg(p, 0.6, 0.85)); g.label(z, 'the book: u' + subscript(k) + ' = ' + pair(u), C.orange, { dx: -12, dy: 26, align: 'right', p: seg(p, 0.8, 1), size: 12 }); }
-        var R = g.sideR; g.panel(R, 'The Warden’s book');
-        var rows = entries.length ? entries.map(function (e) { return { text: 'day ' + e.day + ':  ' + (len(e.gap) > 1e-9 ? pair(e.gap) : 'together, (0, 0)'), col: len(e.gap) > 1e-9 ? C.violet : C.dim }; }) : [{ text: 'no entries yet', col: C.dim }];
-        rows.push({ text: 'total u' + subscript(k) + ' = ' + pair(u), col: C.orange });
-        rows.forEach(function (r, i) { var q = seg(p, 0.1 + 0.6 * i / rows.length, 0.25 + 0.6 * i / rows.length); g.labelPx(R[0] + 16, R[1] + 56 + 30 * i, r.text, r.col, { plain: true, mono: true, p: q }); });
+        if (wall) {   // name the wall the Warden stands on
+          var vv = g.vis, onSide = Math.abs(z[0] - box[0]) < 1e-9 || Math.abs(z[0] - box[1]) < 1e-9;
+          if (onSide) g.label([z[0], vv[3]], 'the wall, x₁ = ' + num(z[0], 0), C.blue, { dx: 8, dy: 16, size: 11.5 });
+          else if (Math.abs(z[1] - box[0]) < 1e-9 || Math.abs(z[1] - box[1]) < 1e-9) g.label([vv[1], z[1]], 'the wall, x₂ = ' + num(z[1], 0), C.blue, { dx: -8, dy: -12, align: 'right', size: 11.5 });
+        }
+        coordLines(g, x, 'rgba(230,233,238,0.7)', pX); if (!together) coordLines(g, z, 'rgba(169,205,246,0.8)', pZ);
+        coordLabels(g, pX, together ? pX : pZ);
+        if (!together) { g.arrow(z, x, C.violet, 2.5, pG); g.label(lerp2(z, x, 0.5), 'the gap x' + kk + ' − z' + kk + ' = ' + pair(gapNow), C.violet, { dy: -42, align: 'center', p: pG, size: 12 }); }
+        bookArrow(g, pU);
+        g.dot(z, 7, C.blue, together ? pX : pZ); g.hero(x, 'tw', pX);
+        if (together) g.label(x, 'both twins: x' + kk + ' = z' + kk + ' = ' + pair(x), C.ink, { dx: 14, dy: -18, p: pX, size: 12 });
+        else {
+          var right = x[0] >= z[0];
+          g.label(x, 'the Wanderer, x' + kk, '#e6e9ee', { dx: right ? 14 : -14, dy: -18, align: right ? 'left' : 'right', p: pX, size: 12 });
+          g.label(z, 'the Warden, z' + kk, C.blue, { dx: right ? -14 : 14, dy: -18, align: right ? 'right' : 'left', p: pZ, size: 12 });
+        }
+        // the side panel: the twins' numbers, then the book
+        var R = g.sideR, tall = R[3] > 300, rh = tall ? 26 : 20, c1 = R[0] + 14, c2 = R[0] + R[2] * 0.5, c3 = R[0] + R[2] * 0.76;
+        g.panel(R, 'Where the twins stand, day ' + k);
+        var table = [['', 'first', 'second', C.dim, 1], ['x' + kk + ', the Wanderer', 'x₁ = ' + num(x[0]), 'x₂ = ' + num(x[1]), '#e6e9ee', pX], ['z' + kk + ', the Warden', 'z₁ = ' + num(z[0]), 'z₂ = ' + num(z[1]), C.blue, pZ], ['x' + kk + ' − z' + kk + ', the gap', num(gapNow[0]), num(gapNow[1]), C.violet, pG]];
+        table.forEach(function (r, i) { var y = R[1] + 40 + rh * i; g.labelPx(c1, y, r[0], r[3], { plain: true, size: 12, p: r[4] }); g.labelPx(c2, y, r[1], r[3], { plain: true, mono: true, size: 12, p: r[4] }); g.labelPx(c3, y, r[2], r[3], { plain: true, mono: true, size: 12, p: r[4] }); });
+        var y2 = R[1] + 40 + rh * 4 + (tall ? 18 : 8), cv = g.ctx;
+        cv.globalAlpha = clamp(pU, 0, 1); cv.strokeStyle = C.faint; cv.lineWidth = 1; cv.beginPath(); cv.moveTo(R[0] + 10, y2 - rh / 2); cv.lineTo(R[0] + R[2] - 10, y2 - rh / 2); cv.stroke(); cv.globalAlpha = 1;
+        g.labelPx(c1, y2, 'The Warden’s book', C.gold, { plain: true, size: 12.5, p: pU });
+        bookText.forEach(function (r, i) { g.labelPx(c1, y2 + rh * (i + 1), r.text, r.col, { plain: true, mono: true, size: 12, p: seg(pU, 0.15 * i, 0.15 * i + 0.4) }); });
       } });
 
     // ---- one circuit: the aim, the Wanderer's step, the Warden's step, the book
@@ -565,22 +631,31 @@
         g.labelPx(R[0] + 16, R[1] + 163, '4. the aim      v' + subscript(k) + ' = ' + pair(v), C.gold, { plain: true, mono: true, p: seg(p, 0.68, 0.9) });
       } });
 
-    var rope = function (q) { var dq = sub(q, v); return f(q) + rho / 2 * dot(dq, dq); }, rr = Math.min(rec.reach, cx.span);
-    var mv = around([x, v, xn], 0.6, 0.25 * cx.span), stepText, stepMath, side = null;
-    if (rec.exact && !tower) {
-      var A = land.A, c = land.c, M = [[A[0][0] + rho, A[0][1]], [A[1][0], A[1][1] + rho]], rhs = [A[0][0] * c[0] + A[0][1] * c[1] + rho * v[0], A[1][0] * c[0] + A[1][1] * c[1] + rho * v[1]];
-      stepText = 'The Wanderer is told: find the lowest point of the land plus a rope to v<sub>' + k + '</sub> = ' + pair(v) + '. On this valley a formula gives it at once: setting the slope of the sum to zero gives (A + ρI)·x = Ac + ρv, two equations for the two numbers of x. Solved: x<sub>' + (k + 1) + '</sub> = ' + pair(xn) + '. The shading is the land plus the rope, as the Wanderer feels it today; no spot farther than ' + num(rr) + ' from v can beat v itself (the dashed ring).';
-      stepMath = '(A + ρI) = [[' + num(M[0][0]) + ', ' + num(M[0][1]) + '], [' + num(M[1][0]) + ', ' + num(M[1][1]) + ']]' + at(0.4, '<br>Ac + ρv = ' + pair(rhs)) + at(0.8, '<br>x = (A + ρI)⁻¹(Ac + ρv) = ' + pair(xn));
-      side = function (g, p) {
-        var R = g.sideR; g.panel(R, 'Two equations, two unknowns');
-        var y0 = R[1] + 44, wM = g.matrix(R[0] + 14, y0, [[num(M[0][0]), num(M[0][1])], [num(M[1][0]), num(M[1][1])]], function () { return seg(p, 0.1, 0.3); }, { size: 13 });
-        g.labelPx(R[0] + 22 + wM, y0 + 24, '· x =', C.ink, { plain: true, p: seg(p, 0.2, 0.35) });
-        g.matrix(R[0] + 70 + wM, y0, [[num(rhs[0])], [num(rhs[1])]], function () { return seg(p, 0.35, 0.55); }, { size: 13, col: C.violet });
-        g.labelPx(R[0] + 14, y0 + 84, 'x = ' + pair(xn), C.gold, { plain: true, mono: true, size: 14, p: seg(p, 0.7, 0.85) });
-      };
+    // ---- the Wanderer's step, in two pages: first as gradient descent on the land plus the rope (what the reader
+    // already knows from the Pilgrim), then the place where that walk stops, where the land's pull and the rope's pull
+    // cancel; on a valley that condition is two equations, which is how the Wanderer actually takes its step.
+    var rope = function (q) { var dq = sub(q, v); return f(q) + rho / 2 * dot(dq, dq); };
+    var gradF = land.fgrad || land.grad, ropeSlope = function (q) { return add(gradF(q), scale(sub(q, v), rho)); };
+    var sk = subscript(k), sk1 = subscript(k + 1), quadExact = !!(rec.exact && !tower && land.A && land.c), stepText, stepMath, side = null, gd = null;
+    if (quadExact) {
+      // gradient descent on F = f + rope with the stride 2/(λmin + λmax) = 2/trace(A + ρI): it zigzags, as the Pilgrim does
+      var Aq = land.A, alphaGD = 2 / (Aq[0][0] + Aq[1][1] + 2 * rho), gq = x.slice(), gdPath = [gq.slice()], gdH = [rope(gq)];
+      for (var gs = 0; gs < 40; gs++) { var ng = sub(gq, scale(ropeSlope(gq), alphaGD)); if (len(sub(ng, gq)) < 2e-5 * cx.span) break; gq = ng; gdPath.push(gq.slice()); gdH.push(rope(gq)); }
+      if (gdPath.length === 1) { gdPath.push(xn.slice()); gdH.push(rope(xn)); } else { gdPath[gdPath.length - 1] = xn.slice(); gdH[gdH.length - 1] = rope(xn); }
+      gd = { path: gdPath, h: gdH, alpha: alphaGD, n: gdPath.length - 1 };
+      stepText = 'Today the Wanderer must find the lowest point of a new land, F(x): the valley’s height f(x) plus the rope’s cost ρ/2·|x − v|², with the rope tied to the aim v' + sk + ' = ' + pair(v) + '. ' +
+        'The rope adds a bowl around the aim, so the new land leans toward it. ' +
+        'One way to find that lowest point is the Pilgrim’s: feel the slope of F and step downhill, again and again. ' +
+        'The slope of F has two parts, the valley’s slope ∇f(x) and the rope’s slope ρ(x − v). ' +
+        'So downhill on F is the sum of two pulls: the land’s pull −∇f(x), downhill on the valley, and the rope’s pull ρ(v − x), toward the aim. ' +
+        (len(sub(xn, x)) < 1e-6 * cx.span ? 'Today the Wanderer already stands at the lowest point of F, x' + sk1 + ' = x' + sk + ' = ' + pair(xn) + ': the slope is zero, so the walk takes no step.' :
+          'From x' + sk + ' = ' + pair(x) + ', with a fixed stride, the steps zigzag and shrink as the ground flattens. ' +
+          'After ' + gd.n + (gd.n === 1 ? ' step' : ' steps') + ' the Wanderer stands at x' + sk1 + ' = ' + pair(xn) + ', the lowest point of F.');
+      stepMath = 'F(x) = f(x) + ρ/2·|x − v' + sk + '|²,  ρ = ' + num(rho, 2) + at(0.1, '<br>slope: ∇F(x) = ∇f(x) + ρ(x − v' + sk + ')') + at(0.22, '<br>downhill: −∇F(x) = −∇f(x) + ρ(v' + sk + ' − x)') +
+        at(0.4, '<br>step: x ← x − α·∇F(x),  α = ' + num(gd.alpha, 3)) + at(0.92, '<br>after ' + gd.n + (gd.n === 1 ? ' step' : ' steps') + ': x' + sk1 + ' = ' + pair(xn));
     } else if (rec.exact && tower) {
       var y = land.y, s2 = P.s2, mb = P.muB, phi = function (t, i) { return (y[i] - t) * (y[i] - t) / (2 * s2) + mb * Math.pow(1 - t * t, 2) + rho / 2 * (t - v[i]) * (t - v[i]); };
-      stepText = 'The Wanderer is told: find the lowest point of the evidence fit and binary-end pull plus a rope to v<sub>' + k + '</sub> = ' + pair(v) + '. On this two-bit land each coordinate can be chosen on its own: it takes the lowest point on [−1, 1] of its evidence term, binary-end pull and share of the rope, φ(t) = (y − t)²/(2σ²) + μ_b(1 − t²)² + ρ/2·(t − v)². The lowest point is x<sub>' + (k + 1) + '</sub> = ' + pair(xn) + '.';
+      stepText = 'Today the Wanderer must find the lowest point of a new land: the evidence fit and binary-end pull plus a rope to v' + sk + ' = ' + pair(v) + '. On this two-bit land each coordinate can be chosen on its own: it takes the lowest point on [−1, 1] of its evidence term, binary-end pull and share of the rope, φ(t) = (y − t)²/(2σ²) + μ_b(1 − t²)² + ρ/2·(t − v)². The lowest points: x' + sk1 + ' = ' + pair(xn) + '.';
       stepMath = at(0.4, 'coordinate 1: lowest φ at ' + num(xn[0])) + at(0.7, ',  coordinate 2: lowest φ at ' + num(xn[1]));
       side = function (g, p) {
         var R = g.sideR, h2 = (R[3] - 8) / 2;
@@ -592,20 +667,128 @@
         });
       };
     } else {
-      stepText = 'The Wanderer is told: find the lowest point of the land plus a rope to v<sub>' + k + '</sub> = ' + pair(v) + '. With ' + (cx.haze ? 'haze' : 'ripples or pits') + ' on the land there is no formula, so it walks down that combined land in ' + Math.max(rec.path.length - 1, 0) + ' small steps, feeling the way with its staff, until it is as low as it can tell: x<sub>' + (k + 1) + '</sub> = ' + pair(xn) + '.';
-      stepMath = at(0.8, 'x = ' + pair(xn));
+      stepText = 'Today the Wanderer must find the lowest point of a new land: the land plus a rope to v' + sk + ' = ' + pair(v) + '. With ' + (cx.haze ? 'haze' : 'ripples or pits') + ' on the land there is no formula, so it does what the Pilgrim does: it walks down that combined land in ' + Math.max(rec.path.length - 1, 0) + ' small steps, feeling the way with its staff, until it is as low as it can tell: x' + sk1 + ' = ' + pair(xn) + '.';
+      stepMath = 'F(x) = f(x) + ρ/2·|x − v' + sk + '|²' + at(0.8, ';  x' + sk1 + ' = ' + pair(xn));
     }
-    out.push({ id: 'wander', chapter: 'The Twins', title: 'The Wanderer’s step', layout: side ? 'map+side' : 'map', view: mv, dur: 4.8,
+    var wanderView = gd ? around(gd.path.concat([v]), 0.7, 0.1 * cx.span) : around([x, v, xn], 0.6, 0.25 * cx.span);
+    out.push({ id: 'wander', chapter: 'The Twins', title: 'The Wanderer’s step: downhill on land plus rope', layout: gd || side ? 'map+side' : 'map', view: wanderView, dur: gd ? 9 : 4.8,
       text: stepText, math: stepMath,
       draw: function (g, p) {
-        g.land(rope, { id: 'rope' + v[0] + ',' + v[1], rings: 10 }); g.axes(); law(g, 1); g.dot(v, 6, C.violet, 1); g.label(v, 'the aim v', C.violet, { dx: -12, dy: 18, align: 'right' });
-        if (rr > 0) g.halo(v, rr * g.s, C.ink, seg(p, 0.05, 0.25), 1.2, [5, 4]);
-        var path = rec.path && rec.path.length > 1 ? rec.path : [x, xn], q = seg(p, 0.3, 0.9);
-        g.path(path, C.ink, 2, q, [4, 3]);
-        var L = 0, segL = []; for (var i = 1; i < path.length; i++) { segL.push(len(sub(path[i], path[i - 1]))); L += segL[i - 1]; }
-        var goal = L * q, pos = path[0]; for (i = 1; i < path.length; i++) { if (goal <= segL[i - 1]) { pos = lerp2(path[i - 1], path[i], segL[i - 1] ? goal / segL[i - 1] : 1); break; } goal -= segL[i - 1]; pos = path[i]; }
-        spring(g, pos, v, 1); g.hero(pos, 'tw', 1); if (q >= 1) g.label(xn, 'x' + subscript(k + 1) + ' = ' + pair(xn), C.gold, { dx: 14, dy: 18 });
-        if (side) side(g, p);
+        g.land(rope, { id: 'rope' + v[0] + ',' + v[1], rings: gd ? 12 : 10 }); g.axes(); law(g, 1);
+        g.dot(v, 6, C.violet, 1); g.label(v, 'the aim v' + sk, C.violet, { dx: -12, dy: 18, align: 'right', size: 12, inside: true });
+        if (!gd) {
+          var path = rec.path && rec.path.length > 1 ? rec.path : [x, xn], q = seg(p, 0.3, 0.9);
+          g.path(path, C.ink, 2, q, [4, 3]);
+          var L = 0, segL = []; for (var i = 1; i < path.length; i++) { segL.push(len(sub(path[i], path[i - 1]))); L += segL[i - 1]; }
+          var goal = L * q, pos = path[0]; for (i = 1; i < path.length; i++) { if (goal <= segL[i - 1]) { pos = lerp2(path[i - 1], path[i], segL[i - 1] ? goal / segL[i - 1] : 1); break; } goal -= segL[i - 1]; pos = path[i]; }
+          spring(g, pos, v, 1); g.hero(pos, 'tw', 1); if (q >= 1) g.label(xn, 'x' + sk1 + ' = ' + pair(xn), C.gold, { dx: 14, dy: 18 });
+          if (side) side(g, p);
+          return;
+        }
+        // the walk: where it starts, the two pulls that make the slope there, then every step
+        var gp = gd.path, n = gd.n, w0 = 0.38, sA = seg(p, w0, 0.92) * n, kA = Math.floor(sA), fA = sA - kA, at2 = kA >= n ? gp[n] : lerp2(gp[kA], gp[kA + 1], ease(fA)), c2 = g.ctx;
+        g.halo(x, 10, C.ink, 1, 1.5); g.label(x, 'x' + sk + ': where it starts', C.ink, { dy: 26, align: 'center', size: 12, p: seg(p, 0, 0.1) * (1 - seg(p, 0.85, 0.95)), inside: true });
+        for (var m = 1; m <= Math.min(kA, n); m++) g.dot(gp[m], 3.5, 'rgba(242,245,248,0.9)', 1);
+        if (p > w0) g.path(gp.slice(0, Math.min(kA, n) + 1).concat(kA < n ? [at2] : []), 'rgba(242,245,248,0.8)', 2, 1);
+        spring(g, at2, v, 0.45);
+        // at the start the slope of F is the sum of two pulls: the land's pull −∇f(x) and the rope's pull ρ(v − x)
+        var pullL = scale(gradF(x), -1), pullR = scale(sub(v, x), rho), pullF = add(pullL, pullR), bigP = Math.max(len(pullL), len(pullR)), fadeP = 1 - seg(p, 0.33, 0.39), flatF = len(pullF) < 0.03 * bigP;
+        if (bigP > 1e-12 && fadeP > 0) {
+          var Lp = 64 / g.s / bigP, tL = add(x, scale(pullL, Lp)), tR = add(x, scale(pullR, Lp)), tF = add(x, scale(pullF, Lp)), qF = seg(p, 0.2, 0.28), parts = 1 - seg(p, 0.21, 0.24);
+          var tipIn = function (tip, dir, text, col, q) { var l = len(dir) || 1, ux = dir[0] / l, uy = -dir[1] / l; g.label(tip, text, col, { dx: ux * 14, dy: uy * 14 + (Math.abs(ux) < 0.4 ? (uy < 0 ? -4 : 4) : 0), align: ux > 0.35 ? 'left' : ux < -0.35 ? 'right' : 'center', size: 12, p: q, inside: true }); };
+          c2.globalAlpha = fadeP; g.arrow(x, tL, C.orange, 2.6, seg(p, 0.04, 0.12)); g.arrow(x, tR, C.violet, 2.6, seg(p, 0.12, 0.2));
+          if (qF > 0) { g.line(tL, tF, 'rgba(242,245,248,0.5)', 1.2, qF, [3, 3]); g.line(tR, tF, 'rgba(242,245,248,0.5)', 1.2, qF, [3, 3]); if (!flatF) g.arrow(x, tF, C.gold, 3, qF); }
+          c2.globalAlpha = 1;
+          if (len(pullL) > 0.03 * bigP) tipIn(tL, pullL, 'the land’s pull', C.orange, Math.min(seg(p, 0.08, 0.12), parts));
+          if (len(pullR) > 0.03 * bigP) tipIn(tR, pullR, 'the rope’s pull', C.violet, Math.min(seg(p, 0.16, 0.2), parts));
+          if (flatF) g.label(x, 'the pulls cancel: no step', C.gold, { dy: -30, align: 'center', size: 12, p: Math.min(seg(p, 0.24, 0.28), fadeP), inside: true });
+          else tipIn(tF, pullF, 'their sum: downhill on F', C.gold, Math.min(seg(p, 0.24, 0.28), fadeP));
+        }
+        g.hero(at2, 'tw', 1);
+        g.label(xn, 'x' + sk1 + ': the lowest point of F', C.gold, { dy: -26, align: 'center', size: 12, p: seg(p, 0.9, 1), inside: true });
+        g.labelPx(g.mapR[0] + 12, g.mapR[1] + 30, p < w0 ? 'feel the slope' : kA >= n ? n + (n === 1 ? ' step' : ' steps') + ': it stops' : 'step ' + (kA + 1), C.gold, { size: 13 });
+        // the height of F after every step
+        // a flat series (the twins have settled) still needs a visible range, or the plot's ticks would never advance
+        var hs = gd.h, lo = Math.min.apply(null, hs), hi = Math.max.apply(null, hs), pad = hi - lo > 1e-6 * (1 + Math.abs(hi)) ? (hi - lo) * 0.14 : 0.01 * (1 + Math.abs(hi));
+        if (p < w0 - 0.02) {
+          // before the walk: the two pulls at the start, their sum, and the first step taken along it
+          var SR = g.sideR, first = n ? gp[1] : x, out2 = 1 - seg(p, w0 - 0.07, w0 - 0.02);
+          var rows = [
+            { t: 'the land’s pull, downhill on the valley', col: C.orange, at: 0.06 },
+            { t: '−∇f(x' + sk + ') = ' + pair(pullL), col: C.orange, mono: true, at: 0.06 },
+            { t: 'the rope’s pull, toward the aim v' + sk, col: C.violet, at: 0.14 },
+            { t: 'ρ(v' + sk + ' − x' + sk + ') = ' + pair(pullR), col: C.violet, mono: true, at: 0.14 },
+            { t: 'their sum: downhill on F', col: C.gold, at: 0.22 },
+            { t: '−∇F(x' + sk + ') = ' + pair(pullF), col: C.gold, mono: true, at: 0.22 }].concat(flatF || !n ? [
+            { t: 'their sum is zero, so the walk takes no step', col: C.ink, at: 0.28 }] : [
+            { t: 'the first step goes along their sum, stride α:', col: C.ink, at: 0.28 },
+            { t: 'x' + sk + ' + ' + num(gd.alpha, 3) + '·' + pair(pullF) + ' = ' + pair(first), col: C.ink, mono: true, at: 0.28 }]);
+          var rh2 = Math.min(28, (SR[3] - 50) / rows.length); g.panel(SR, 'At x' + sk + ', the slope of F is two pulls');
+          rows.forEach(function (r, i) { g.labelPx(SR[0] + 14, SR[1] + 46 + rh2 * i + (r.mono ? -3 : 0), r.t, r.col, { plain: true, mono: !!r.mono, size: r.mono ? 12 : 12.5, p: Math.min(seg(p, r.at, r.at + 0.05), out2) }); });
+        } else {
+          var pl = g.plot(g.sideR, [0, n], [lo - pad, hi + pad], { title: 'height of land + rope after each step' }); pl.frame('step', 'F(x)');
+          pl.curve(function (t) { var i2 = Math.floor(t), fq = t - i2; return hs[Math.min(i2, n)] * (1 - fq) + hs[Math.min(i2 + 1, n)] * fq; }, C.gold, 2.2, p < w0 ? 0 : clamp(sA / n, 0, 1));
+          for (var j = 0; j <= (p < w0 ? 0 : Math.min(kA, n)); j++) pl.point(j, hs[j], C.gold, '', 1);
+          if (kA >= n) pl.point(n, hs[n], C.gold, 'lowest: F(x' + sk1 + ') = ' + num(hs[n], 4), seg(p, 0.92, 1), 'left');
+        }
+      } });
+
+    // where the walk stops: the land's pull and the rope's pull cancel
+    var landPull = scale(gradF(xn), -1), ropePull = scale(sub(v, xn), rho), sumPull = add(landPull, ropePull), pullSize = len(landPull) + len(ropePull) + 1e-12;
+    var cancel = len(sumPull) <= 1e-6 * (1 + pullSize), nearly = len(sumPull) <= 0.05 * pullSize, balText, balMath, balSide;
+    if (quadExact) {
+      var Aw = land.A, cw = land.c, Mw = [[Aw[0][0] + rho, Aw[0][1]], [Aw[1][0], Aw[1][1] + rho]], rhsW = [Aw[0][0] * cw[0] + Aw[0][1] * cw[1] + rho * v[0], Aw[1][0] * cw[0] + Aw[1][1] * cw[1] + rho * v[1]];
+      var eq = function (r) { return num(Mw[r][0]) + '·x₁ ' + (Mw[r][1] < 0 ? '− ' : '+ ') + num(Math.abs(Mw[r][1])) + '·x₂ = ' + num(rhsW[r]); };
+      balText = 'Where does the walk stop? Where the new land is flat, so the two pulls on the Wanderer cancel. ' +
+        'The land pulls it downhill, out toward the valley floor c; the rope pulls it back toward the aim v' + sk + '. ' +
+        'At x' + sk1 + ' the land pulls with ' + pair(landPull) + ' and the rope with ' + pair(ropePull) + ': equal and opposite. ' +
+        'On this valley there is a shortcut. “The pulls cancel” is one equation for each direction of the map: A(x − c) + ρ(x − v) = 0. So the Wanderer can solve two equations for its two numbers, x₁ and x₂, instead of walking. ' +
+        'That is what it does each day on this land: one solve, and the same spot the walk reaches.';
+      balMath = 'flat:  ∇f(x) + ρ(x − v) = 0,  with ∇f(x) = A(x − c)' + at(0.55, '<br>' + eq(0) + ',  ' + eq(1)) + at(0.85, '<br>solved: x' + sk1 + ' = ' + pair(xn));
+      balSide = function (g, p) {
+        var R = g.sideR, tall = R[3] > 300, rh = tall ? 30 : 21, x0 = R[0] + 14; g.panel(R, 'The pulls cancel: two equations');
+        var rows = [
+          { t: 'the land’s pull   −A(x' + sk1 + ' − c) = ' + pair(landPull), col: C.orange, mono: true, at: 0.15 },
+          { t: 'the rope’s pull    ρ(v' + sk + ' − x' + sk1 + ') = ' + pair(ropePull), col: C.violet, mono: true, at: 0.4 },
+          { t: 'their sum = ' + pair(sumPull), col: C.gold, mono: true, at: 0.55 },
+          { t: 'so A(x − c) + ρ(x − v) = 0: one equation', col: C.dim, at: 0.62 },
+          { t: 'for each direction of the map', col: C.dim, at: 0.62 },
+          { t: eq(0), col: C.ink, mono: true, at: 0.7 },
+          { t: eq(1), col: C.ink, mono: true, at: 0.75 },
+          { t: 'solved: x₁ = ' + num(xn[0]) + ',  x₂ = ' + num(xn[1]), col: C.gold, mono: true, at: 0.85 }];
+        rows.forEach(function (r, i) { g.labelPx(x0, R[1] + 46 + rh * i, r.t, r.col, { plain: true, mono: !!r.mono, size: 12, p: seg(p, r.at, r.at + 0.12) }); });
+      };
+    } else {
+      balText = 'Where does the walk stop? Where the new land is flat, so the two pulls on the Wanderer ' + (cancel ? 'cancel' : nearly ? 'nearly cancel' : 'would cancel, if nothing held it') + '. ' +
+        'The land pulls it downhill; the rope pulls it back toward the aim v' + sk + '. ' +
+        'At x' + sk1 + ' the land pulls with ' + pair(landPull) + ' and the rope with ' + pair(ropePull) + '. ' +
+        (cancel || nearly ? 'They are equal and opposite' + (cancel ? '' : ', as near as the walk can tell') + ': this is the lowest point of land plus rope.' :
+          'They do not cancel: ' + (tower ? 'the edge of a card’s range, −1 or +1, holds the rest.' : 'the edge of the land holds the rest.'));
+      balMath = 'flat:  ∇f(x) + ρ(x − v) = 0' + at(0.6, ';  sum of the pulls ' + pair(sumPull));
+      balSide = function (g, p) {
+        var R = g.sideR, x0 = R[0] + 14; g.panel(R, 'The two pulls at x' + sk1);
+        [{ t: 'the land’s pull  ' + pair(landPull), col: C.orange, at: 0.2 }, { t: 'the rope’s pull  ' + pair(ropePull), col: C.violet, at: 0.45 }, { t: 'their sum        ' + pair(sumPull), col: C.gold, at: 0.65 }]
+          .forEach(function (r, i) { g.labelPx(x0, R[1] + 52 + 32 * i, r.t, r.col, { plain: true, mono: true, size: 12, p: seg(p, r.at, r.at + 0.15) }); });
+      };
+    }
+    var balView = quadExact ? around([v, xn, land.c], 1, 0.3 * cx.span) : around([v, xn], 1.2, 0.3 * cx.span);
+    out.push({ id: 'wander-balance', chapter: 'The Twins', title: 'Where the walk stops: two pulls cancel', layout: 'map+side', view: balView, dur: 6,
+      text: balText, math: balMath,
+      draw: function (g, p) {
+        base(g);
+        if (quadExact) { g.dot(land.c, 5, C.ink, seg(p, 0, 0.15)); g.label(land.c, 'c, the valley floor', C.ink, { dx: 10, dy: -16, p: seg(p, 0, 0.2), size: 12, inside: true }); }
+        g.dot(v, 6, C.violet, 1); g.label(v, 'the aim v' + sk, C.violet, { dx: -10, dy: -16, align: 'right', size: 12, inside: true });
+        spring(g, xn, v, 0.55); g.hero(xn, 'tw', 1);
+        // the arrows stop short of the aim; the rope's label and x's label sit on the side away from the aim and the land's pull
+        var Pv = g.P(v), Px = g.P(xn), gapPx = Math.hypot(Pv[0] - Px[0], Pv[1] - Px[1]), big = Math.max(len(landPull), len(ropePull)) || 1;
+        var Lw = (gapPx > 24 ? Math.min(52, 0.75 * gapPx) : 52) / g.s, aL = scale(landPull, Lw / big), aR = scale(ropePull, Lw / big);
+        var ulx = landPull[0] / big, uly = -landPull[1] / big, ul = Math.hypot(ulx, uly) || 1, sideA = ropePull[0] <= 0 ? 'left' : 'right', dxA = sideA === 'left' ? -6 : 6, dyA = uly < 0 ? 1 : -1;
+        g.arrow(xn, add(xn, aL), C.orange, 3, seg(p, 0.15, 0.4));
+        g.label(add(xn, aL), 'the land’s pull, downhill', C.orange, { dx: 14 * ulx / ul, dy: 14 * uly / ul + (Math.abs(ulx / ul) < 0.4 ? (uly < 0 ? -4 : 4) : 0), align: ulx / ul > 0.35 ? 'left' : ulx / ul < -0.35 ? 'right' : 'center', p: seg(p, 0.3, 0.45), size: 12, inside: true });
+        g.arrow(xn, add(xn, aR), C.violet, 3, seg(p, 0.4, 0.65));
+        g.label(xn, 'the rope’s pull, toward v' + sk, C.violet, { dx: dxA, dy: 30 * dyA, align: sideA, p: seg(p, 0.55, 0.7), size: 12, inside: true });
+        g.label(xn, 'x' + sk1 + ' = ' + pair(xn), '#e6e9ee', { dx: dxA, dy: 54 * dyA, align: sideA, p: seg(p, 0.7, 0.85), size: 12, inside: true });
+        balSide(g, p);
       } });
 
     out.push({ id: 'warden', chapter: 'The Twins', title: 'The Warden’s step', layout: 'map', view: view, dur: 4.4,

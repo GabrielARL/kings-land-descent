@@ -48,6 +48,7 @@ var PAGES = {
   game: ['simulator/engine.js', 'simulator/board.js', 'simulator/board_parts.js', 'simulator/realm.js'],
   tutorial: ['simulator/engine.js', 'simulator/board.js', 'simulator/board_parts.js', 'simulator/course.js', 'simulator/realm.js'],
   keep: ['simulator/engine.js', 'simulator/board.js', 'simulator/keep.js', 'simulator/advanced_parts.js', 'simulator/advanced_course.js', 'simulator/realm.js'],
+  soldiers: ['simulator/board.js', 'soldiers/soldiers.js', 'soldiers/soldiers_parts.js', 'soldiers/soldiers_course.js', 'simulator/realm.js'],
   coach: ['simulator/board.js', 'training_plan/plan.js', 'training_plan/plan_parts.js', 'training_plan/plan_course.js', 'simulator/realm.js'],
   dive: ['simulator/board.js', 'localization_decoding/inspect.js', 'localization_decoding/dive_parts.js', 'localization_decoding/dive_course.js', 'simulator/realm.js'],
   net: ['simulator/board.js', 'torn_net/net.js', 'torn_net/net_parts.js', 'torn_net/net_course.js', 'simulator/realm.js']
@@ -66,11 +67,11 @@ var R = boxes.tutorial.Realm, ROADS = R.ROADS, PLACES = R.PLACES, ORDER = R.ORDE
 function road(id) { return R.road(id); }
 
 // ---------------------------------------------------------------- the curated roads and their prerequisites
-var PRIMARY = ['tale-staff', 'tale-misty-game', 'game-canyon', 'game-wall', 'game-fort', 'game-misty', 'twins-coach', 'light-keep', 'tale-done', 'tale-dive', 'tale-net', 'keep-light-shared', 'keep-twins', 'keep-coach', 'keep-dive', 'keep-net', 'coach-twins', 'coach-dive', 'dive-light', 'dive-net-aliases', 'dive-keep', 'dive-net-next', 'net-misty-game', 'net-keep-copies', 'net-keep-circuit'];
-var SECONDARY = ['misty-net', 'keep-light', 'keep-net-robust', 'keep-net-blocks', 'keep-net-done', 'keep-fort-game', 'coach-wall-game', 'dive-twins', 'net-misty', 'net-twins'];
+var PRIMARY = ['tale-staff', 'tale-misty-game', 'game-canyon', 'game-wall', 'game-fort', 'game-misty', 'twins-coach', 'light-keep', 'tale-done', 'tale-dive', 'tale-net', 'keep-light-shared', 'keep-twins', 'keep-coach', 'keep-dive', 'keep-net', 'coach-twins', 'coach-dive', 'dive-light', 'dive-net-aliases', 'dive-keep', 'dive-net-next', 'net-misty-game', 'net-keep-copies', 'net-keep-circuit', 'light-soldiers', 'soldiers-light', 'soldiers-twins', 'keep-soldiers', 'soldiers-keep', 'soldiers-coach'];
+var SECONDARY = ['coach-soldiers', 'misty-net', 'keep-light', 'keep-net-robust', 'keep-net-blocks', 'keep-net-done', 'keep-fort-game', 'coach-wall-game', 'dive-twins', 'net-misty', 'net-twins'];
 var MAP_ONLY = ['tale-twins-game', 'game-ridge', 'coach-keep', 'dive-coach', 'net-keep-robust', 'net-keep-blocks', 'net-keep-done', 'net-dive-aliases'];
 var REMOVED = ['game-wall-coach', 'game-fort-keep', 'game-misty-net', 'light-dive', 'coach-dive-next'];
-check('the curation has exactly 43 roads: 25 primary, 10 secondary and 8 map-only', ROADS.length === 43 && R.PRIMARY_ROADS.length === 25 && R.SECONDARY_ROADS.length === 10 && R.MAP_ROADS.length === 8, ROADS.length + ' = ' + R.PRIMARY_ROADS.length + ' + ' + R.SECONDARY_ROADS.length + ' + ' + R.MAP_ROADS.length);
+check('the curation has exactly 50 roads: 31 primary, 11 secondary and 8 map-only', ROADS.length === 50 && R.PRIMARY_ROADS.length === 31 && R.SECONDARY_ROADS.length === 11 && R.MAP_ROADS.length === 8, ROADS.length + ' = ' + R.PRIMARY_ROADS.length + ' + ' + R.SECONDARY_ROADS.length + ' + ' + R.MAP_ROADS.length);
 check('the three road tiers contain the approved ids', sameMembers(R.PRIMARY_ROADS, PRIMARY) && sameMembers(R.SECONDARY_ROADS, SECONDARY) && sameMembers(R.MAP_ROADS, MAP_ONLY));
 check('the removed duplicate roads stay removed', REMOVED.every(function (id) { return !road(id); }), REMOVED.filter(function (id) { return road(id); }).join(', '));
 check('every road id is unique and belongs to exactly one tier', ROADS.map(function (r) { return r.id; }).filter(function (id, j, a) { return a.indexOf(id) !== j; }).length === 0 && ROADS.every(function (r) { return [PRIMARY, SECONDARY, MAP_ONLY].filter(function (a) { return a.indexOf(r.id) >= 0; }).length === 1 && r.tier === (PRIMARY.indexOf(r.id) >= 0 ? 'primary' : SECONDARY.indexOf(r.id) >= 0 ? 'secondary' : 'map'); }));
@@ -105,7 +106,7 @@ check('the milestone comparison is now a two-card map-and-key road', road('tale-
 var primarySpots = {};
 PRIMARY.forEach(function (id) { var r = road(id), ats = r.from === 'game' ? [r.onLand] : r.at; ats.forEach(function (at) { var k = r.from + '@' + at; primarySpots[k] = (primarySpots[k] || []).concat(id); }); });
 var crowded = Object.keys(primarySpots).filter(function (k) { return primarySpots[k].length > 1; }).sort();
-check('only the two course-end choosers show several primary cards together', sameMembers(crowded, ['keep@takeaway', 'tutorial@end']), crowded.map(function (k) { return k + ': ' + primarySpots[k].join(','); }).join(' | '));
+check('only the three course-end choosers show several primary cards together', sameMembers(crowded, ['keep@takeaway', 'soldiers@carry', 'tutorial@end']), crowded.map(function (k) { return k + ': ' + primarySpots[k].join(','); }).join(' | '));
 
 function offers(ids0, step) { return ids0.map(function (id) { return R.offer(road(id), step); }).sort(function (a, b) { return a.order - b.order; }); }
 var taleChoice = offers(['twins-coach', 'light-keep', 'tale-dive', 'tale-net'], 'end');
@@ -113,6 +114,8 @@ check('the tutorial ends with Coach, CAJODE, Dive and Net direct choices in that
 check('the Coach is the tutorial’s single recommended first application', taleChoice.filter(function (r) { return r.recommended; }).length === 1 && taleChoice[0].recommended);
 var keepChoice = offers(['keep-net', 'keep-coach', 'keep-dive'], 'takeaway');
 check('CAJODE ends with Net recommended, then Coach and Dive, all direct', keepChoice.map(function (r) { return r.id; }).join('|') === 'keep-net|keep-coach|keep-dive' && keepChoice[0].recommended && keepChoice.every(function (r) { return r.role === 'chooser' && r.direct; }));
+var soldierChoice = offers(['soldiers-keep', 'soldiers-light', 'soldiers-coach'], 'carry');
+check('the soldiers end with CAJODE recommended, then the light board and the Coach, all direct', soldierChoice.map(function (r) { return r.id; }).join('|') === 'soldiers-keep|soldiers-light|soldiers-coach' && soldierChoice[0].recommended && soldierChoice.filter(function (r) { return r.recommended; }).length === 1 && soldierChoice.every(function (r) { return r.role === 'chooser' && r.direct; }));
 check('later course hand-offs open the next prerequisite directly', R.offer(road('coach-dive'), 'differences').direct && R.offer(road('coach-dive'), 'differences').land === 'job' && R.offer(road('dive-net-next'), 'end').direct);
 
 function reach(from) { var seen = {}, todo = [from]; seen[from] = 1; while (todo.length) { var a = todo.pop(); ROADS.forEach(function (r) { if (r.from === a && !seen[r.to]) { seen[r.to] = 1; todo.push(r.to); } }); } return Object.keys(seen).length; }
@@ -139,7 +142,7 @@ ROADS.forEach(function (r) { var p = R.predictionFor(r), unique = p && p.choices
 check('every road asks one answerable prediction with distinct choices before its key', badPred.length === 0, badPred.join(', '));
 var missingFromMap = [];
 ORDER.forEach(function (k) { var html = boxes[k].Realm.mapStep(k, k === 'game' ? null : function (id) { return ids[k].indexOf(id); }).text; ROADS.filter(function (r) { return r.from === k; }).forEach(function (r) { if (html.indexOf('via=' + r.id) < 0) missingFromMap.push(r.id); }); });
-check('the map exposes all 43 roads, including every map-only comparison', missingFromMap.length === 0, missingFromMap.join(', '));
+check('the map exposes all 50 roads, including every map-only comparison', missingFromMap.length === 0, missingFromMap.join(', '));
 
 Object.keys(PAGES).forEach(function (k) {
   var sb = boxes[k]; if (!sb) return; var B = sb.Board, Rk = sb.Realm, into = ROADS.filter(function (r) { return r.to === k; }), drawn = 0, landed = [], wrong = [];
@@ -220,7 +223,7 @@ Object.keys(PAGES).forEach(function (k) {
 
 // ---------------------------------------------------------------- every built page carries the roads exactly once
 var realmSrc = fs.readFileSync(path.join(__dirname, 'realm.js'), 'utf8'), boardSrc = fs.readFileSync(path.join(__dirname, 'board.js'), 'utf8');
-var built = { 'index.html': 'game', 'tutorial.html': 'tutorial', 'jade_keep_tutorial.html': 'keep', 'the_coach_and_the_physio.html': 'coach', 'localization_is_decoding.html': 'dive', 'finding_the_tear.html': 'net' };
+var built = { 'index.html': 'game', 'tutorial.html': 'tutorial', 'bp_and_cajode.html': 'soldiers', 'jade_keep_tutorial.html': 'keep', 'the_coach_and_the_physio.html': 'coach', 'localization_is_decoding.html': 'dive', 'finding_the_tear.html': 'net' };
 Object.keys(built).forEach(function (f) {
   var html = fs.existsSync(path.join(ROOT, f)) ? fs.readFileSync(path.join(ROOT, f), 'utf8') : '';
   check(f + ' carries the current player and roads once, and names itself “' + built[f] + '”', html.split(realmSrc).length === 2 && html.split(boardSrc).length === 2 && html.indexOf('<meta name="kings-land-page" content="' + built[f] + '">') >= 0);

@@ -13,8 +13,9 @@ var PlanParts = (function () {
   // ------------------------------------------------------------ the map of plans
   function axes(g, xl, yl) {
     var c = g.ctx, R = g.mapR, v = g.vis, step = nice((v[1] - v[0]) / 5), d = places(step);
+    c.font = '600 12px ' + g.sans; var titleW = c.measureText(xl).width;
     c.font = '11px ' + g.mono; c.fillStyle = C.dim; c.strokeStyle = C.faint; c.lineWidth = 1; c.textAlign = 'center'; c.textBaseline = 'bottom';
-    for (var t = Math.ceil(v[0] / step) * step; t <= v[1]; t += step) { var a = g.P([t, v[2]]); if (a[0] < R[0] + 18 || a[0] > R[0] + R[2] - 24) continue; c.beginPath(); c.moveTo(a[0], R[1] + R[3]); c.lineTo(a[0], R[1] + R[3] - 5); c.stroke(); c.fillText(num(t, d), a[0], R[1] + R[3] - 6); }
+    for (var t = Math.ceil(v[0] / step) * step; t <= v[1]; t += step) { var a = g.P([t, v[2]]); if (a[0] < R[0] + 18 || a[0] > R[0] + R[2] - titleW - 20) continue; c.beginPath(); c.moveTo(a[0], R[1] + R[3]); c.lineTo(a[0], R[1] + R[3] - 5); c.stroke(); c.fillText(num(t, d), a[0], R[1] + R[3] - 6); }
     c.textAlign = 'left'; c.textBaseline = 'middle';
     for (t = Math.ceil(v[2] / step) * step; t <= v[3]; t += step) { var b = g.P([v[0], t]); if (b[1] < R[1] + 22 || b[1] > R[1] + R[3] - 30) continue; c.beginPath(); c.moveTo(R[0], b[1]); c.lineTo(R[0] + 5, b[1]); c.stroke(); c.fillText(num(t, d), R[0] + 7, b[1]); }
     c.font = '600 12px ' + g.sans; c.fillStyle = C.ink; c.textAlign = 'right'; c.textBaseline = 'bottom'; c.fillText(xl, R[0] + R[2] - 6, R[1] + R[3] - 4);
@@ -102,7 +103,7 @@ var PlanParts = (function () {
   function curvePanel(g, R, o) {
     var p = o.p == null ? 1 : o.p, pl = g.plot(R, o.t, o.v, { title: o.title }), short = pl.box[3] < 200;
     pl.frame(short ? 'days' : 'days since the last hard session', 'readiness');
-    pl.seg(o.t[0], 1, o.t[1], 1, 'rgba(242,245,248,0.45)', 1.2, seg(p, 0, 0.2), [5, 4]); g.labelPx(pl.X(o.t[1]) - 4, pl.Y(1) - 11, 'rested baseline 1', C.dim, { align: 'right', size: 11, plain: true, p: seg(p, 0.05, 0.2) });
+    pl.seg(o.t[0], 1, o.t[1], 1, 'rgba(242,245,248,0.45)', 1.2, seg(p, 0, 0.2), [5, 4]); g.labelPx(pl.X(o.baseAt == null ? o.t[1] : o.baseAt) - 4, pl.Y(1) + (o.baseBelow ? 12 : -11), 'rested baseline 1', C.dim, { align: 'right', size: 11, plain: true, p: seg(p, 0.05, 0.2) });
     if (o.r0 != null) { pl.seg(o.t[0], o.r0, o.t[1], o.r0, C.red, 1.2, seg(p, 0, 0.2), [3, 4]); g.labelPx(pl.X(o.t[1]) - 4, pl.Y(o.r0) - 12, 'below ' + num(o.r0, 1) + ' a session does harm', C.red, { align: 'right', size: 11, plain: true, p: seg(p, 0.05, 0.2) }); }
     (o.sessions || []).forEach(function (s, i) { var q = seg(p, 0.1 + 0.1 * i, 0.2 + 0.1 * i); if (!(q > 0)) return; pl.seg(s.t, o.v[0], s.t, o.v[0] + (o.v[1] - o.v[0]) * 0.18 * s.w / 5, s.col || C.gold, 6, q); if (s.text && !short) g.labelPx(pl.X(s.t) + 8, pl.Y(o.v[0] + (o.v[1] - o.v[0]) * 0.09 * s.w / 5), s.text, s.col || C.gold, { size: 11, plain: true, p: q }); });
     if (o.rOld) { pl.curve(o.rOld, 'rgba(242,245,248,0.35)', 1.8, seg(p, 0.1, 0.3)); if (o.old) g.labelPx(pl.X(o.oldAt || o.t[1]) - 4, pl.Y(o.rOld(o.oldAt || o.t[1])) - 12, o.old, C.dim, { align: 'right', size: 11, plain: true, p: seg(p, 0.2, 0.35) }); }
@@ -153,6 +154,61 @@ var PlanParts = (function () {
     });
     return pl;
   }
+  // The two effects of one hard session over the days after it: fitness (small, slow to fade) above zero and fatigue
+  // (large, quick to fade) below; o: { fit(t), fat(t) (its size, positive), fitAmp, fatAmp, t: [t0, t1], p, title }.
+  function effectsPanel(g, R, o) {
+    var p = o.p == null ? 1 : o.p, pl = g.plot(R, o.t, [-o.fatAmp * 1.15, o.fitAmp * 1.3], { title: o.title }), short = pl.box[3] < 130;
+    pl.frame(short ? 'days' : 'days after the hard session', 'effect');
+    pl.seg(o.t[0], 0, o.t[1], 0, 'rgba(242,245,248,0.45)', 1.2, seg(p, 0, 0.15), [5, 4]);
+    pl.curve(o.fit, C.green, 2.4, seg(p, 0.05, 0.35));
+    pl.curve(function (t) { return -o.fat(t); }, C.red, 2.4, seg(p, 0.3, 0.6));
+    var tf = o.t[0] + (o.t[1] - o.t[0]) * 0.42;
+    g.labelPx(pl.X(tf), pl.Y(o.fit(tf)) - 14, 'fitness: +' + num(o.fitAmp, 1) + ' at first, lasts', C.green, { size: 12, plain: true, p: seg(p, 0.25, 0.4) });
+    var ta = o.t[0] + (o.t[1] - o.t[0]) * 0.14;
+    g.labelPx(pl.X(ta) + 8, pl.Y(-o.fat(ta)) + 16, 'fatigue: −' + num(o.fatAmp, 1) + ' at first, fades fast', C.red, { size: 12, plain: true, p: seg(p, 0.5, 0.65) });
+    return pl;
+  }
+  // What one session gains and what it costs as its load grows, on one day: the gain is a straight line, the price of
+  // doing too much at once a parabola, and the benefit is the gap between them; o: { worth (gain per unit of load), a,
+  // wMax, p, title, example (a load), best (the load with the largest gap) }.
+  function gainPricePanel(g, R, o) {
+    var p = o.p == null ? 1 : o.p, wm = o.wMax, gain = function (w) { return o.worth * w; }, price = function (w) { return o.a * w * w; };
+    var top = Math.max(gain(wm), price(wm)) * 1.06, pl = g.plot(R, [0, wm], [0, top], { title: o.title }), c = g.ctx, short = pl.box[3] < 130;
+    pl.frame(short ? 'load' : 'load of the session', '');
+    pl.curve(gain, C.green, 2.4, seg(p, 0.05, 0.3)); pl.curve(price, C.red, 2.4, seg(p, 0.2, 0.45));
+    var wl = wm * 0.62, wp = wm * 0.7;
+    g.labelPx(pl.X(wl) - 8, pl.Y(gain(wl)) - 12, 'gain = ' + num(o.worth, 3) + ' × load', C.green, { size: 12, plain: true, align: 'right', p: seg(p, 0.2, 0.35) });
+    g.labelPx(pl.X(wp) + 10, pl.Y(price(wp)) + 16, 'price = ' + num(o.a, 2) + ' × load²', C.red, { size: 12, plain: true, p: seg(p, 0.35, 0.5) });
+    if (pl.box[3] > 260) g.labelPx(pl.box[0] + pl.box[2] - 4, pl.box[1] + pl.box[3] - 26, 'gold bars: benefit = gain − price', C.gold, { size: 12, plain: true, align: 'right', p: seg(p, 0.5, 0.65) });
+    function gap(w, text, side, q) {
+      if (!(q > 0)) return; var x = pl.X(w), y0 = pl.Y(price(w)), y1 = pl.Y(gain(w));
+      c.globalAlpha = clamp(q, 0, 1); c.strokeStyle = C.gold; c.lineWidth = 2.6; c.beginPath(); c.moveTo(x, y0); c.lineTo(x, y1); c.stroke();
+      c.lineWidth = 1.6; c.beginPath(); c.moveTo(x - 5, y0); c.lineTo(x + 5, y0); c.moveTo(x - 5, y1); c.lineTo(x + 5, y1); c.stroke(); c.globalAlpha = 1;
+      g.labelPx(x + (side < 0 ? -9 : 9), (y0 + y1) / 2, text, C.gold, { size: 12, plain: true, align: side < 0 ? 'right' : 'left', p: q });
+    }
+    gap(o.example, num(gain(o.example) - price(o.example), 2), 1, seg(p, 0.5, 0.65));
+    gap(o.best, num(gain(o.best) - price(o.best), 2), 1, seg(p, 0.68, 0.82));
+    g.labelPx(pl.X(o.best), pl.Y(gain(o.best)) - 14, 'largest at load ' + num(o.best, 2), C.gold, { size: 12, plain: true, align: 'right', p: seg(p, 0.75, 0.88) });
+    var wz = o.worth / o.a; if (wz < wm) pl.point(wz, gain(wz), C.red, 'gap gone at load ' + num(wz, 1), seg(p, 0.85, 1), 'left');
+    return pl;
+  }
+  // A key for the shading of the Coach's cost (drawn with a scale centred on zero cost): a box in the lower right
+  // corner of a tall map, one line along the top of a short one (a phone).
+  var KEY = [['rgb(26,58,92)', 'blue: big benefit, low cost', 'blue: benefit'], ['rgb(92,112,120)', 'grey: small benefit', 'grey: small'], ['rgb(150,98,58)', 'brown: harm, cost above 0', 'brown: harm']];
+  function costKey(g, p) {
+    if (!(p > 0)) return; var c = g.ctx, R = g.mapR, a = clamp(p, 0, 1);
+    if (R[3] < 400) {
+      c.font = '600 11.5px ' + g.sans; var widths = KEY.map(function (k) { return c.measureText(k[2]).width + 24; }), total = widths.reduce(function (x, y) { return x + y; }, 0) + 8;
+      var x0 = R[0] + R[2] - total - 8, y0 = R[1] + 8, xx = x0 + 8;
+      c.globalAlpha = a; c.fillStyle = C.box; c.fillRect(x0, y0, total, 22);
+      KEY.forEach(function (k, j) { c.globalAlpha = a; c.fillStyle = k[0]; c.fillRect(xx, y0 + 6, 12, 10); c.globalAlpha = 1; g.labelPx(xx + 16, y0 + 11, k[2], C.ink, { size: 11.5, plain: true, p: p }); xx += widths[j]; });
+      c.globalAlpha = 1; return;
+    }
+    var w = 214, h = 66, x = R[0] + R[2] - w - 10, y = R[1] + R[3] - h - 30;
+    c.globalAlpha = a; c.fillStyle = C.box; c.fillRect(x, y, w, h);
+    KEY.forEach(function (k, j) { c.globalAlpha = a; c.fillStyle = k[0]; c.fillRect(x + 8, y + 8 + 19 * j, 14, 12); c.globalAlpha = 1; g.labelPx(x + 28, y + 14 + 19 * j, k[1], C.ink, { size: 11.5, plain: true, p: p }); });
+    c.globalAlpha = 1;
+  }
   return { COACH: COACH, PHYSIO: PHYSIO, LOG: LOG, AIM: AIM, axes: axes, figure: figure, coach: coach, physio: physio, star: star, spring: spring, rightAngle: rightAngle, polygon: polygon, ruleLine: ruleLine,
-           lines: lines, table: table, split: split, subscript: subscript, curvePanel: curvePanel, scanPanel: scanPanel, gaugePanel: gaugePanel, calendar: calendar };
+           lines: lines, table: table, split: split, subscript: subscript, curvePanel: curvePanel, effectsPanel: effectsPanel, gainPricePanel: gainPricePanel, costKey: costKey, scanPanel: scanPanel, gaugePanel: gaugePanel, calendar: calendar };
 })();

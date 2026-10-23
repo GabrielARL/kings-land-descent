@@ -156,9 +156,10 @@ var Board = (function () {
   // Ticks along the map's bottom (x1) and left (x2) edges.
   Kit.prototype.axes = function () {
     var c = this.ctx, R = this.mapR, v = this.vis, step = nice((v[1] - v[0]) / 5), d = places(step);
+    c.font = '600 12px ' + this.sans; var nameW = c.measureText('x₁ →').width;   // a tick label must stop short of the axis name
     c.font = '11px ' + this.mono; c.fillStyle = C.dim; c.strokeStyle = C.faint; c.lineWidth = 1;
     c.textAlign = 'center'; c.textBaseline = 'bottom';
-    for (var t = Math.ceil(v[0] / step) * step; t <= v[1]; t += step) { var a = this.P([t, v[2]]); if (a[0] < R[0] + 18 || a[0] > R[0] + R[2] - 24) continue; c.beginPath(); c.moveTo(a[0], R[1] + R[3]); c.lineTo(a[0], R[1] + R[3] - 5); c.stroke(); c.fillText(num(t, d), a[0], R[1] + R[3] - 6); }
+    for (var t = Math.ceil(v[0] / step) * step; t <= v[1]; t += step) { var a = this.P([t, v[2]]); if (a[0] < R[0] + 18 || a[0] > R[0] + R[2] - 24 || a[0] + c.measureText(num(t, d)).width / 2 > R[0] + R[2] - 12 - nameW) continue; c.beginPath(); c.moveTo(a[0], R[1] + R[3]); c.lineTo(a[0], R[1] + R[3] - 5); c.stroke(); c.fillText(num(t, d), a[0], R[1] + R[3] - 6); }
     c.textAlign = 'left'; c.textBaseline = 'middle';
     for (t = Math.ceil(v[2] / step) * step; t <= v[3]; t += step) { var b = this.P([v[0], t]); if (b[1] < R[1] + 22 || b[1] > R[1] + R[3] - 30) continue; c.beginPath(); c.moveTo(R[0], b[1]); c.lineTo(R[0] + 5, b[1]); c.stroke(); c.fillText(num(t, d), R[0] + 7, b[1]); }
     c.font = '600 12px ' + this.sans; c.fillStyle = C.ink; c.textAlign = 'right'; c.textBaseline = 'bottom'; c.fillText('x₁ →', R[0] + R[2] - 6, R[1] + R[3] - 4);
@@ -220,13 +221,15 @@ var Board = (function () {
     }
     c.stroke(); c.setLineDash([]);
   });
-  Kit.prototype.label = mapOnly(function (q, text, col, o) { var a = this.P(q); o = o || {}; this.labelPx(a[0] + (o.dx || 0), a[1] + (o.dy || 0), text, col, o); });
-  // a label: text on a dark rounded box; o: { p, size, align ('left', 'center', 'right'), mono, plain (no box), base }
+  Kit.prototype.label = mapOnly(function (q, text, col, o) { var a = this.P(q); o = o || {}; if (o.inside && this.mapR) o.within = this.mapR; this.labelPx(a[0] + (o.dx || 0), a[1] + (o.dy || 0), text, col, o); });
+  // a label: text on a dark rounded box; o: { p, size, align ('left', 'center', 'right'), mono, plain (no box), base,
+  // within (a rectangle the whole label must stay inside; label() sets it to the map when o.inside) }
   Kit.prototype.labelPx = function (x, y, text, col, o) {
     o = o || {}; var p = o.p == null ? 1 : o.p; if (!(p > 0)) return;
     var c = this.ctx, size = o.size || 13; c.font = (o.mono ? '' : '600 ') + size + 'px ' + (o.mono ? this.mono : this.sans);
     var w = c.measureText(text).width, align = o.align || 'left', x0 = align === 'center' ? x - w / 2 : align === 'right' ? x - w : x;
-    x0 = clamp(x0, 4, this.W - w - 4); var yc = clamp(y, size / 2 + 4, this.H - size / 2 - 4);
+    var B = o.within, xlo = B ? B[0] + 8 : 4, xhi = B ? B[0] + B[2] - w - 8 : this.W - w - 4, ylo = B ? B[1] + size / 2 + 8 : size / 2 + 4, yhi = B ? B[1] + B[3] - size / 2 - 8 : this.H - size / 2 - 4;
+    x0 = clamp(x0, xlo, Math.max(xlo, xhi)); var yc = clamp(y, ylo, Math.max(ylo, yhi));
     c.globalAlpha = clamp(p, 0, 1);
     if (!o.plain) { c.fillStyle = C.box; c.beginPath(); rrect(c, x0 - 5, yc - size / 2 - 4, w + 10, size + 8, 5); c.fill(); }
     c.fillStyle = col || C.ink; c.textAlign = 'left'; c.textBaseline = 'middle'; c.fillText(text, x0, yc + 0.5); c.globalAlpha = 1;

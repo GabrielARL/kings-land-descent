@@ -228,7 +228,7 @@ try {
 var guidedLists = [], idsRe = /boardIds\s*:\s*\[([^\]]+)\]/g, idsMatch;
 while ((idsMatch = idsRe.exec(game))) guidedLists.push((idsMatch[1].match(/['"]([^'"]+)['"]/g) || []).map(function (s) { return s.slice(1, -1); }));
 var expectedIntro = ['twins', 'wanderer-role', 'warden-role'];
-var expectedCircuit = ['rope', 'without-ledger', 'ledger-role', 'aim', 'wander', 'warden', 'ledger', 'again'];
+var expectedCircuit = ['rope', 'without-ledger', 'ledger-role', 'aim', 'wander', 'wander-balance', 'warden', 'ledger', 'again'];
 check('guided ADMM introduction defines both copies before the ledger',
   guidedLists.length >= 1 && same(guidedLists[0], expectedIntro), guidedLists[0] ? guidedLists[0].join(', ') : 'missing');
 check('guided ADMM circuit shows the rope fail before the book, then the aim and the updates',
@@ -307,11 +307,12 @@ var lightPages = [
   ['light-single-error', 'One glitch is easy'],
   ['light-uncertain', 'Several glows are uncertain'],
   ['light-replicas', 'One check keeps one replica'],
+  ['light-polytope', 'Inside the cube: the even-parity polytope'],
   ['light-corrections', 'One lamp receives two corrections'],
   ['light-rounds', 'Run all checks together'],
   ['light-ldpc', 'From the light board to an LDPC graph']
 ];
-check('the nine approved light-board pages appear in exact order', lightPages.every(function (page, i) {
+check('the ten light-board pages appear in exact order', lightPages.every(function (page, i) {
   var here = course.indexOf("id: '" + page[0] + "'"), title = course.indexOf("title: '" + page[1] + "'", here);
   var previous = i ? course.indexOf("id: '" + lightPages[i - 1][0] + "'") : -1;
   return here > previous && title > here;
@@ -324,6 +325,23 @@ check('single-error localization is explicitly limited to its assumption',
 check('received glow and channel LLR are kept distinct',
   /measures a brightness yᵢ; a channel model turns that observation into a channel LLR/.test(course) &&
   /log\[p\(yᵢ\|0\)\/p\(yᵢ\|1\)\]/.test(course) && /negative favours 1/.test(course));
+check('the polytope page defines the hull as every mixture and says why it is convex',
+  /every mixture of the four passing corners/.test(course) && /This set of all mixtures is the convex hull of the four corners/.test(course) && /It is convex: the straight segment between any two of its points stays inside it/.test(course) &&
+  /again a mixture of the same four corners/.test(course) && /sliced off by one flat cut/.test(course));
+// the legend's two mixtures A and B, and the white dot between them: its blended weights stay ≥ 0, add to 1 and give its place
+(function () {
+  var names = ['000', '011', '101', '110'], C3 = { '000': [0, 0, 0], '011': [0, 1, 1], '101': [1, 0, 1], '110': [1, 1, 0] };
+  var WA = [0, 0.5, 0, 0.5], WB = [0.7, 0, 0.3, 0], PA = [0.5, 1, 0.5], PB = [0.3, 0, 0.3], ok = true;
+  function placeOf(w) { return [0, 1, 2].map(function (i) { return names.reduce(function (sum, nm, k) { return sum + w[k] * C3[nm][i]; }, 0); }); }
+  for (var it = 0; it <= 20; it++) {
+    var t = it / 20, w = WA.map(function (a, k) { return (1 - t) * a + t * WB[k]; }), pt = placeOf(w);
+    ok = ok && w.every(function (q) { return q >= 0; }) && Math.abs(w[0] + w[1] + w[2] + w[3] - 1) < 1e-12 &&
+      pt.every(function (q, i) { return Math.abs(q - ((1 - t) * PA[i] + t * PB[i])) < 1e-12; });
+  }
+  check('the white dot between A and B is a mixture at every point: weights at least 0, sum 1, and the right place',
+    ok && /A = ½·011 \+ ½·110 = \(0\.5, 1, 0\.5\)/.test(course) && /B = 0\.7·000 \+ 0\.3·101 = \(0\.3, 0, 0\.3\)/.test(course) &&
+    /WA = \[0, 0\.5, 0, 0\.5\], WB = \[0\.7, 0, 0\.3, 0\]/.test(course) && /Watch the white dot slide from A to B/.test(course) && /a second reason it is convex/.test(course));
+})();
 check('replicas are vectors, projections may be fractional and duals live on edges',
   /replica vector z<sub>R2<\/sub>/.test(course) && /projection may be fractional/.test(course) &&
   /Each check-bit edge has its own replica coordinate/.test(course) && /all 18 edge duals/.test(course));
@@ -364,6 +382,11 @@ try {
     words[0].word.join('') + ' gap=' + (words[1].value - words[0].value).toFixed(3));
   var projected = LM.project([0.9, 0.8, 0.7]), reprojected = LM.project(projected);
   check('the degree-three parity-polytope projector is idempotent', projected.every(function (q, i) { return Math.abs(q - reprojected[i]) < 1e-12; }));
+  var r2in = [3, 4, 5].map(function (bit, j) { return LM.trace[4].b[bit] + LM.trace[3].u[1][j]; }), r2z = LM.trace[4].z[1];
+  var EVEN = [[0, 0, 0], [0, 1, 1], [1, 0, 1], [1, 1, 0]], kkt = Math.max.apply(null, EVEN.map(function (v) { return v.reduce(function (s, q, i) { return s + (r2in[i] - r2z[i]) * (q - r2z[i]); }, 0); }));
+  var cuts = [r2z[0] + r2z[1] + r2z[2] - 2, r2z[0] - r2z[1] - r2z[2], r2z[1] - r2z[0] - r2z[2], r2z[2] - r2z[0] - r2z[1]];
+  check('the polytope page projects row R2 in round 4 onto the face that cuts off 100, certified nearest', cuts.every(function (q) { return q <= 1e-9; }) && Math.abs(cuts[1]) < 1e-9 && kkt <= 1e-9 &&
+    Math.hypot(r2in[0] - r2z[0], r2in[1] - r2z[1], r2in[2] - r2z[2]) > 0.1 && r2z.some(function (q) { return q > 0.05 && q < 0.95; }), r2z.map(function (q) { return q.toFixed(3); }).join(', ') + ', kkt ' + kkt.toExponential(1));
   var firstClear = LM.trace.findIndex(function (q) { return q.syndrome.every(function (v) { return v === 0; }); });
   check('syndrome clears before the computed ADMM trace settles', firstClear === 3 && LM.trace[3].primal > 0.02 && LM.trace[3].dual > 0.6 &&
     LM.trace[8].primal < 1e-12 && LM.trace[8].dual < 1e-12,
@@ -375,15 +398,45 @@ try {
 try {
   var desktopCourse = courseSandbox(960, 660), desktopIds = desktopCourse.course.steps.map(function (q) { return q.id; }), desktopDraws = 0;
   lightPages.forEach(function (page) { [0, 0.25, 0.5, 0.75, 1].forEach(function (p) { desktopCourse.Board.debug({ step: page[0], p: p }); desktopDraws++; }); });
-  check('the complete 56-page course builds in the drawing sandbox', desktopCourse.course.steps.length === 56 && lightPages.every(function (q) { return desktopIds.indexOf(q[0]) >= 0; }));
-  check('all nine light-board pages draw at five desktop moments without an error', desktopDraws === 45 && (desktopCourse.kingsLandErrors || []).length === 0,
+  check('the complete 58-page course builds in the drawing sandbox', desktopCourse.course.steps.length === 58 && lightPages.every(function (q) { return desktopIds.indexOf(q[0]) >= 0; }));
+  check('all ten light-board pages draw at five desktop moments without an error', desktopDraws === 50 && (desktopCourse.kingsLandErrors || []).length === 0,
     (desktopCourse.kingsLandErrors || []).slice(0, 3).join(' | '));
   var mobileCourse = courseSandbox(390, 488), mobileDraws = 0;
   lightPages.forEach(function (page) { mobileCourse.Board.debug({ step: page[0], p: 1 }); mobileDraws++; });
-  check('all nine light-board pages draw at the phone-stage size without an error', mobileDraws === 9 && (mobileCourse.kingsLandErrors || []).length === 0,
+  check('all ten light-board pages draw at the phone-stage size without an error', mobileDraws === 10 && (mobileCourse.kingsLandErrors || []).length === 0,
     (mobileCourse.kingsLandErrors || []).slice(0, 3).join(' | '));
 } catch (e) {
   check('light-board drawing sandbox', false, e && e.stack || e);
+}
+
+// The Wanderer's step is told as gradient descent on land plus rope, then as the balance of two pulls.  Its pages must
+// draw on every land the game offers, including the last circuit, where the twins have settled and the walk is flat.
+try {
+  var wsb = courseSandbox(960, 660), WE = wsb.Engine, WB = wsb.Board, wanderErrors = [], wanderDraws = 0;
+  ['canyon', 'wall', 'fort', 'ridge', 'misty'].forEach(function (key) {
+    var wp = {}, kk; for (kk in WE.PRESETS[key]) wp[kk] = WE.PRESETS[key][kk];
+    var WK = WE.KINDS[key], wland = WE.buildLand(key, wp), wx0 = WK.kind === 'tower' && wp.sx == null ? WE.lanternStart(wp) : [wp.sx, wp.sy], ww = WE.twins(wland, wx0, wp.rho, Math.round(wp.days));
+    [0, 4, ww.length + 5].forEach(function (day) {
+      var ok = WB.open({ hero: 'tw', name: 'the Wanderer', key: key, L: { view: WK.view, kind: WK.kind }, land: wland, p: wp, x0: wx0, day: day, walk: ww }, { ids: ['wander', 'wander-balance'], title: 't' });
+      if (!ok) { wanderErrors.push(key + ' day ' + day + ' did not open'); return; }
+      [0, 1].forEach(function (si) { [0, 0.5, 1].forEach(function (pp) { WB.debug({ step: si, p: pp }); wanderDraws++; }); });
+      WB.steps().forEach(function (st) { if (/undefined|NaN/.test(st.text + st.math)) wanderErrors.push(key + ' day ' + day + ' ' + st.id + ' has undefined or NaN'); });
+      WB.close();
+    });
+  });
+  check('the Wanderer’s two pages draw on all five lands, including the settled last circuit', wanderDraws === 90 && wanderErrors.length === 0 && (wsb.kingsLandErrors || []).length === 0,
+    wanderErrors.concat(wsb.kingsLandErrors || []).slice(0, 3).join(' | '));
+  var wallStep = wsb.course.steps.filter(function (q) { return q.id === 'wall-tw-wander'; })[0], wallBal = wsb.course.steps.filter(function (q) { return q.id === 'wall-tw-wander-balance'; })[0];
+  var plain = function (q) { return ((q && q.text || '') + ' ' + (q && q.math || '')).replace(/<[^>]*>/g, ''); };
+  check('the Wanderer’s step is first told as gradient descent on land plus rope',
+    /One way to find that lowest point is the Pilgrim’s: feel the slope of F and step downhill/.test(plain(wallStep)) && /x ← x − α·∇F\(x\)/.test(plain(wallStep)) && /the lowest point of F/.test(plain(wallStep)));
+  check('the Wanderer’s slope is told as two pulls, and downhill on F is their sum',
+    /downhill on F is the sum of two pulls: the land’s pull −∇f\(x\), downhill on the valley, and the rope’s pull ρ\(v − x\), toward the aim/.test(plain(wallStep)) &&
+    /downhill: −∇F\(x\) = −∇f\(x\) \+ ρ\(v₄ − x\)/.test(plain(wallStep)));
+  check('where the walk stops, the two pulls cancel and give the two equations the Wanderer solves',
+    /the two pulls on the Wanderer cancel/.test(plain(wallBal)) && /equal and opposite/.test(plain(wallBal)) && /one equation for each direction of the map/.test(plain(wallBal)) && /one solve, and the same spot the walk reaches/.test(plain(wallBal)));
+} catch (e) {
+  check('Wanderer-step drawing sandbox', false, e && e.stack || e);
 }
 
 var stepsAt = game.indexOf('var STEPS = ['), steps = balancedSlice(game, stepsAt, '[', ']');

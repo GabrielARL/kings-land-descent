@@ -315,7 +315,7 @@
   // The Twins' tale, from the King's request to one full circuit, told on day 4 to day 5: day 4 created the first
   // nonzero ledger entry, so the next aim visibly differs from the Warden's point.  Earlier versions used day 3, where u = 0 and v = z hid the mechanism.
   out = out.concat(pick(Ww, 'tw', 4,
-    ['twins', 'wanderer-role', 'warden-role', 'rope', 'without-ledger', 'ledger-role', 'aim', 'wander', 'warden', 'ledger', 'again'], CH.tw));
+    ['twins', 'wanderer-role', 'warden-role', 'rope', 'without-ledger', 'ledger-role', 'aim', 'wander', 'wander-balance', 'warden', 'ledger', 'again'], CH.tw));
   var Dw = Math.max(dPg, dLb, dTw) + 1;
   out.push({ id: 'race2', chapter: CH.tw, title: 'Three heroes at the wall', layout: 'map+side', view: [0.0, 1.6, -0.2, 1.4], dur: 6,
     text: 'At the wall the Cartographer is within 0.001 of the treasure on day ' + dLb + ', the Twins’ Warden on day ' + dTw + ' and the Pilgrim on day ' + dPg + '. At the Twins’ settled endpoint both tests are small: the gap is ' + num(primalEnd, 5) + ' and ρ times the Warden’s move is ' + num(dualEnd, 5) + '. The Warden’s book settles at u = ' + pair(uEnd) + ': the wall’s toll, −∇J(x*)/ρ = ' + pair(uTheory) + ', the slope of the land at the spot to dig divided by the rope’s stiffness.',
@@ -385,6 +385,128 @@
       g.labelPx(x, y2, 'R2: project onto P_even', C.violet, { align: 'center', plain: true, p: seg(p, 0.34, 0.6), size: narrow ? 10 : 11.5 });
       g.arrowPx([x, y2 + 18], [x, y3 - 16], C.blue, 2);
       g.labelPx(x, y3, 'replica vector z_R2 (possibly fractional)', C.blue, { align: 'center', plain: true, p: seg(p, 0.62, 0.88), size: narrow ? 9.5 : 11 });
+    } });
+
+  // ------------------------------------------------------------ the even-parity polytope of row R2, drawn in its cube
+  // The cube of the row's three lamps, its eight corners (the eight hard rows), the solid spanned by the four even
+  // corners, why that solid is convex (a segment between two mixtures, and the flat cuts), and R2's projection in round 4.
+  var EVEN3 = [[0, 0, 0], [0, 1, 1], [1, 0, 1], [1, 1, 0]], R2_ROUND = 4;
+  var R2_IN = [3, 4, 5].map(function (bit, j) { return LIGHT_TRACE[R2_ROUND].b[bit] + LIGHT_TRACE[R2_ROUND - 1].u[1][j]; }), R2_Z = LIGHT_TRACE[R2_ROUND].z[1].slice();
+  var R2_W = { w110: R2_Z[1], w101: R2_Z[2], w000: 1 - R2_Z[1] - R2_Z[2] };   // z lies on the face b₄ = b₅ + b₆ through 000, 101 and 110
+  function triple3(v) { return '(' + v.map(function (q) { return num(q, 3); }).join(', ') + ')'; }
+  function cubeView(R, yaw, pitch) {
+    var S = Math.min(R[2], R[3]) * 0.5, cx = R[0] + R[2] / 2, cy = R[1] + R[3] * 0.55;
+    return function (v) {
+      var x = v[0] - 0.5, y = v[1] - 0.5, z = v[2] - 0.5, x1 = x * Math.cos(yaw) - y * Math.sin(yaw), y1 = x * Math.sin(yaw) + y * Math.cos(yaw);
+      return [cx + S * x1, cy - S * (z * Math.cos(pitch) - y1 * Math.sin(pitch)), y1 * Math.cos(pitch) + z * Math.sin(pitch)];
+    };
+  }
+  out.push({ id: 'light-polytope', chapter: CH.cajode, title: 'Inside the cube: the even-parity polytope', layout: 'side', dur: 9,
+    text: 'What does that polytope look like? Row R2 has three lamps, so its replica is a point in a cube, one coordinate per lamp, from 0 (off) to 1 (on). ' +
+      'The cube’s eight corners are the eight hard rows. The four with an even number of lit lamps, 000, 011, 101 and 110, pass the check; the other four fail it. ' +
+      'The even-parity polytope is every mixture of the four passing corners: weights from 0 to 1 that add to 1. This set of all mixtures is the convex hull of the four corners. Drawn, it is the blue solid whose corners are those four rows. ' +
+      'It is convex: the straight segment between any two of its points stays inside it. ' +
+      'The reason is one line of arithmetic. A point between two mixtures is again a mixture of the same four corners, with weights that are still at least 0 and still add to 1. ' +
+      'Watch the white dot slide from A to B: its four weights change, but none turns negative and their sum stays 1. ' +
+      'The same solid is the cube with each failing corner sliced off by one flat cut. A segment between two points on the kept side of a cut stays on that side: a second reason it is convex. ' +
+      'In round ' + R2_ROUND + ', row R2’s b + u is ' + triple3(R2_IN) + ', just outside the solid. Its nearest point is z<sub>R2</sub> = ' + triple3(R2_Z) + ', on the cut that removes 100: a fractional replica, mostly the row 110.',
+    math: 'P<sub>even</sub> = { w₁·000 + w₂·011 + w₃·101 + w₄·110 :  w ≥ 0,  w₁ + w₂ + w₃ + w₄ = 1 }' +
+      at(0.45, '<br>convex: t·A + (1 − t)·B has weights t·w<sup>A</sup> + (1 − t)·w<sup>B</sup> ≥ 0, which still add to 1') +
+      at(0.62, '<br>the four cuts: b₄ + b₅ + b₆ ≤ 2,  b₄ ≤ b₅ + b₆,  b₅ ≤ b₄ + b₆,  b₆ ≤ b₄ + b₅') +
+      at(0.8, '<br>round ' + R2_ROUND + ': Π' + triple3(R2_IN) + ' = ' + triple3(R2_Z) + ' ≈ ' + num(R2_W.w110, 2) + '·110 + ' + num(R2_W.w101, 2) + '·101 + ' + num(R2_W.w000, 2) + '·000'),
+    draw: function (g, p) {
+      var R = g.sideR, narrow = R[2] < 560, c = g.ctx;
+      var CR = narrow ? [R[0], R[1] + 26, R[2], R[3] * 0.6] : [R[0], R[1] + 26, R[2] * 0.6, R[3] - 30];
+      var LR = narrow ? [R[0] + 12, R[1] + R[3] * 0.6 + 34, R[2] - 24, R[3] * 0.4 - 40] : [R[0] + R[2] * 0.6 + 6, R[1] + 48, R[2] * 0.4 - 18, R[3] - 60];
+      g.panel(R, 'Row R2’s cube: three lamps, eight hard rows');
+      var P3 = cubeView(CR, 0.45 + 0.45 * ease(p), 0.42), corners = [], m;
+      for (m = 0; m < 8; m++) corners.push([(m >> 2) & 1, (m >> 1) & 1, m & 1]);
+      var q0 = seg(p, 0, 0.1);
+      c.save(); c.globalAlpha = q0; c.strokeStyle = 'rgba(242,245,248,0.3)'; c.lineWidth = 1.2;
+      corners.forEach(function (a, ia) { corners.forEach(function (b2, ib) { var dd = Math.abs(a[0] - b2[0]) + Math.abs(a[1] - b2[1]) + Math.abs(a[2] - b2[2]); if (dd === 1 && ia < ib) { var A = P3(a), Bq = P3(b2); c.beginPath(); c.moveTo(A[0], A[1]); c.lineTo(Bq[0], Bq[1]); c.stroke(); } }); });
+      c.restore();
+      // which way each lamp's coordinate grows: three small arrows in the lower-left corner, clear of the corner names
+      var O3 = P3([0, 0, 0]), tri = [CR[0] + 62, CR[1] + CR[3] - 44];
+      ['b₄', 'b₅', 'b₆'].forEach(function (nm, j) {
+        var e = [0, 0, 0]; e[j] = 1; var A = P3(e), dx = A[0] - O3[0], dy = A[1] - O3[1], L = Math.hypot(dx, dy) || 1;
+        c.save(); c.globalAlpha = q0; g.arrowPx(tri, [tri[0] + 28 * dx / L, tri[1] + 28 * dy / L], C.dim, 1.6); c.restore();
+        g.labelPx(tri[0] + 41 * dx / L, tri[1] + 41 * dy / L, nm, C.ink, { align: 'center', size: 12, plain: true, p: q0 });
+      });
+      // the solid: the four faces of the tetrahedron spanned by the even corners
+      var qs = seg(p, 0.18, 0.4), onFace = function (f) { return f.pts.every(function (v) { return Math.abs(v[0] - v[1] - v[2]) < 1e-9; }); };
+      var faces = [[0, 1, 2], [0, 1, 3], [0, 2, 3], [1, 2, 3]].map(function (f) { var pts = f.map(function (j) { return EVEN3[j]; }); return { pts: pts, depth: pts.reduce(function (sum, v) { return sum + P3(v)[2]; }, 0) }; });
+      faces.sort(function (a, b) { return b.depth - a.depth; });
+      faces.forEach(function (f) {
+        if (!(qs > 0)) return; c.save(); c.globalAlpha = qs; c.beginPath();
+        f.pts.forEach(function (v, j) { var A = P3(v); if (j) c.lineTo(A[0], A[1]); else c.moveTo(A[0], A[1]); }); c.closePath();
+        c.fillStyle = p > 0.72 && onFace(f) ? 'rgba(217,194,255,0.34)' : 'rgba(169,205,246,0.13)'; c.fill(); c.strokeStyle = C.blue; c.lineWidth = 1.8; c.stroke(); c.restore();
+      });
+      // the eight corners: the even ones blue, the odd ones red and hollow
+      var midX = CR[0] + CR[2] / 2, midY = CR[1] + CR[3] * 0.55;
+      corners.forEach(function (v, j) {
+        var even = (v[0] + v[1] + v[2]) % 2 === 0, A = P3(v), qq = seg(p, 0.02 + 0.015 * j, 0.1 + 0.015 * j); if (!(qq > 0)) return;
+        c.save(); c.globalAlpha = qq; c.beginPath(); c.arc(A[0], A[1], even ? 6 : 5, 0, TAU);
+        if (even) { c.fillStyle = C.blue; c.fill(); } else { c.fillStyle = '#0b121b'; c.fill(); c.strokeStyle = C.red; c.lineWidth = 1.8; c.stroke(); }
+        c.restore();
+        g.labelPx(A[0] + (A[0] < midX ? -10 : 10), A[1] + (A[1] < midY ? -12 : 13), '' + v[0] + v[1] + v[2], even ? C.blue : C.red, { align: A[0] < midX ? 'right' : 'left', size: 12, mono: true, plain: true, p: qq });
+      });
+      // convexity: two mixtures A and B, and every point between them
+      var PA = [0.5, 1, 0.5], PB = [0.3, 0, 0.3], WA = [0, 0.5, 0, 0.5], WB = [0.7, 0, 0.3, 0], qa = seg(p, 0.42, 0.5), qsg = seg(p, 0.5, 0.6), qm = seg(p, 0.56, 0.7);
+      // the white dot slides from A to B and back to the middle; its weights on 000, 011, 101, 110 are the same blend of A's and B's
+      var tm = qm < 0.65 ? ease(qm / 0.65) : 1 - 0.5 * ease((qm - 0.65) / 0.35), WM = WA.map(function (wa, k) { return (1 - tm) * wa + tm * WB[k]; });
+      function dot3(v, r, fill, q) { if (!(q > 0)) return; var A = P3(v); c.save(); c.globalAlpha = clamp(q, 0, 1); c.beginPath(); c.arc(A[0], A[1], r, 0, TAU); c.fillStyle = fill; c.fill(); c.strokeStyle = '#0b121b'; c.lineWidth = 1.5; c.stroke(); c.restore(); }
+      if (qsg > 0) { var SA = P3(PA), SB = P3(PB); c.save(); c.strokeStyle = C.gold; c.lineWidth = 2.4; c.beginPath(); c.moveTo(SA[0], SA[1]); c.lineTo(SA[0] + (SB[0] - SA[0]) * qsg, SA[1] + (SB[1] - SA[1]) * qsg); c.stroke(); c.restore(); }
+      dot3(PA, 5.5, C.gold, qa); dot3(PB, 5.5, C.gold, qa);
+      if (qa > 0) { var LA = P3(PA), LB = P3(PB); g.labelPx(LA[0] + 10, LA[1] - 12, 'A', C.gold, { size: 13, p: qa }); g.labelPx(LB[0] - 10, LB[1] + 13, 'B', C.gold, { align: 'right', size: 13, p: qa }); }
+      if (qm > 0) dot3([PA[0] + (PB[0] - PA[0]) * tm, PA[1] + (PB[1] - PA[1]) * tm, PA[2] + (PB[2] - PA[2]) * tm], 4.5, '#fff6e6', 1);
+      // R2's projection in round 4: b + u outside, z on the face that cuts off 100
+      var qi = seg(p, 0.72, 0.8), qz = seg(p, 0.8, 0.92);
+      dot3(R2_IN, 5, C.orange, qi);
+      if (qz > 0) { var SI = P3(R2_IN), SZ = P3(R2_Z); c.save(); c.strokeStyle = C.violet; c.lineWidth = 2; c.setLineDash([4, 3]); c.beginPath(); c.moveTo(SI[0], SI[1]); c.lineTo(SI[0] + (SZ[0] - SI[0]) * qz, SI[1] + (SZ[1] - SI[1]) * qz); c.stroke(); c.setLineDash([]); c.restore(); }
+      dot3(R2_Z, 5.5, C.violet, seg(p, 0.88, 0.95));
+      if (qi > 0) { var LI = P3(R2_IN); g.labelPx(LI[0] + 10, LI[1] + 6, 'b + u', C.orange, { size: 12, p: qi }); }
+      if (qz > 0) { var LZ = P3(R2_Z); g.labelPx(LZ[0] + 9, LZ[1] - 13, 'z', C.violet, { size: 12, p: seg(p, 0.88, 0.95) }); }
+      var mixText = WM.map(function (wk, k) { return num(wk, 2) + '·' + ['000', '011', '101', '110'][k]; }).join(' + ');
+      // the legend, in step with the drawing
+      var items = narrow ? [
+        { t: 'blue corners pass (even), red corners fail (odd)', col: C.blue, at: 0.1 },
+        { t: 'the solid: every mixture of the blue four', col: C.blue, at: 0.3 },
+        { t: 'the white dot, between A and B, is a mixture too:', col: C.gold, at: 0.56 },
+        { t: mixText, col: C.ink, mono: true, at: 0.56 },
+        { t: 'weights ≥ 0 that add to 1, so the solid is convex', col: C.gold, at: 0.66 },
+        { t: 'round ' + R2_ROUND + ': b + u = ' + triple3(R2_IN), col: C.orange, at: 0.74 },
+        { t: 'nearest point z = ' + triple3(R2_Z) + ': fractional', col: C.violet, at: 0.86 }] : [
+        { t: 'eight corners: the eight hard rows', col: C.ink, at: 0.05 },
+        { t: 'corner 101: b₄ = 1, b₅ = 0, b₆ = 1', col: C.ink, at: 0.07 },
+        { t: 'blue: 000, 011, 101, 110 pass (even)', col: C.blue, at: 0.1 },
+        { t: 'red: 100, 010, 001, 111 fail (odd)', col: C.red, at: 0.14 },
+        { t: 'the solid: every mixture of the blue four', col: C.blue, at: 0.3 },
+        { t: 'A = ½·011 + ½·110 = (0.5, 1, 0.5)', col: C.gold, at: 0.44 },
+        { t: 'B = 0.7·000 + 0.3·101 = (0.3, 0, 0.3)', col: C.gold, at: 0.48 },
+        { t: 'the white dot, between A and B:', col: C.gold, at: 0.56 },
+        { t: mixText, col: C.ink, mono: true, at: 0.56 },
+        { bar: true, at: 0.56 },
+        { t: 'weights ≥ 0 that add to 1: a mixture', col: C.gold, at: 0.64 },
+        { t: 'every such dot is inside: convex', col: C.gold, at: 0.66 },
+        { t: 'violet: the cut that removes 100', col: C.violet, at: 0.72 },
+        { t: 'round ' + R2_ROUND + ': b + u = ' + triple3(R2_IN), col: C.orange, at: 0.74 },
+        { t: 'nearest point z = ' + triple3(R2_Z), col: C.violet, at: 0.84 },
+        { t: '≈ ' + num(R2_W.w110, 2) + '·110 + ' + num(R2_W.w101, 2) + '·101 + ' + num(R2_W.w000, 2) + '·000', col: C.violet, at: 0.9 },
+        { t: 'a fractional replica, mostly the row 110', col: C.violet, at: 0.92 }];
+      // the white dot's four weights as one bar of length 1: the parts change, the whole does not
+      function weightBar(x0, yc, wBar, q) {
+        if (!(q > 0)) return; var xx = x0, h = 12, shades = [0.95, 0.72, 0.5, 0.32];
+        c.save(); c.globalAlpha = clamp(q, 0, 1);
+        WM.forEach(function (wk, k) { var ww = wBar * wk; if (ww > 0.5) { c.fillStyle = 'rgba(169,205,246,' + shades[k] + ')'; c.fillRect(xx, yc - h / 2, ww, h); c.strokeStyle = '#0b121b'; c.lineWidth = 1.2; c.strokeRect(xx, yc - h / 2, ww, h); } xx += ww; });
+        c.strokeStyle = C.ink; c.lineWidth = 1; c.strokeRect(x0, yc - h / 2, wBar, h); c.restore();
+        g.labelPx(x0 + wBar + 8, yc, 'sum 1', C.ink, { plain: true, size: 11, p: q });
+      }
+      var rh = Math.min(narrow ? 19 : 28, LR[3] / items.length);
+      items.forEach(function (it, j) {
+        var yy = LR[1] + rh * j + rh / 2, q = seg(p, it.at, it.at + 0.08);
+        if (it.bar) weightBar(LR[0], yy, Math.min(220, LR[2] - 60), q);
+        else g.labelPx(LR[0], yy, it.t, it.col, { plain: true, mono: !!it.mono, size: it.mono ? (narrow ? 11 : 12) : narrow ? 11 : 12, p: q });
+      });
     } });
 
   out.push({ id: 'light-corrections', chapter: CH.cajode, title: 'One lamp receives two corrections', layout: 'side', dur: 5.5,

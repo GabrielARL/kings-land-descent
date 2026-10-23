@@ -22,7 +22,7 @@
   function shadeOf(prob, id) {
     var lo = Infinity, hi = -Infinity;
     for (var i = 0; i <= 40; i++) for (var j = 0; j <= 40; j++) { var val = prob.J([VIEW[0] + (VIEW[1] - VIEW[0]) * i / 40, VIEW[2] + (VIEW[3] - VIEW[2]) * j / 40]); if (val < lo) lo = val; if (val > hi) hi = val; }
-    return { lo: lo, hi: hi, id: id, rings: 12 };
+    return { lo: lo, hi: Math.max(-lo, 0.5), id: id, rings: 12 };   // centred on zero cost: harm brown, benefit blue
   }
   var shade0 = shadeOf(pr, 'J0'), shade1 = shadeOf(pr1, 'J1');
   function base(g, o) {
@@ -49,22 +49,83 @@
   var out = [], CH = { athlete: 'The athlete', pair: 'The Coach and the Physio', round: 'One planning round', season: 'The season', bridge: 'The same four moves elsewhere' };
 
   // ------------------------------------------------------------ 1. the athlete
-  var rDip = pr.r(0), rCrest = pr.r(crest);
-  out.push({ id: 'curve', chapter: CH.athlete, title: 'One hard session, then the body answers', layout: 'side', dur: 6,
-    text: 'An athlete trains in a cycle. A hard session leaves two traces: fatigue, large but quick to fade, and fitness, smaller but slow to fade. Readiness, the two traces on top of the rested baseline, dips right after the session, recovers, rises above the baseline to a crest a few days later, and then drifts back down. The crest is when the next hard session pays most. Too early, and the athlete trains on fatigue; too late, and the crest is wasted. Here is the curve after the last hard session, on day 0 with a load of ' + num(last.w, 1) + ': a dip to ' + num(rDip, 2) + ', a crest of ' + num(rCrest, 2) + ' on day ' + num(crest, 2) + '.',
-    math: 'readiness r(t) = 1 + fitness − fatigue = 1 + k₁e^(−t/τ₁) − k₂e^(−t/τ₂)' + at(0.3, ';  τ₁ = ' + p.tau1 + ' d, τ₂ = ' + p.tau2 + ' d') + at(0.6, '<br>dip r(0) = ' + num(rDip, 2) + ';  crest r(' + num(crest, 2) + ') = ' + num(rCrest, 2)),
+  // One hard session leaves fitness (small, slow to fade) and fatigue (large, quick to fade); readiness is the rested
+  // level 1 plus fitness minus fatigue.  The Coach scores a session by its benefit, w (r(t) − r0) − a w², and writes the
+  // cost J = −benefit so that the best session is the lowest point, as on the King's land.
+  var rDip = pr.r(0), rCrest = pr.r(crest), fitAmp = last.w / p.wRef * p.k1, fatAmp = last.w / p.wRef * p.k2;
+  var tRested = Math.log(fatAmp / fitAmp) / (1 / p.tau2 - 1 / p.tau1);
+  function fitness(t) { return fitAmp * Math.exp(-t / p.tau1); }
+  function fatigue(t) { return fatAmp * Math.exp(-t / p.tau2); }
+  function benefitAt(q) { return -pr.J(q); }
+  var worth = rCrest - p.r0, exLoad = 5, exGain = exLoad * worth, exPrice = p.a * exLoad * exLoad, wZero = worth / p.a;
+  out.push({ id: 'curve', chapter: CH.athlete, title: 'What one hard session does to the body', layout: 'side', dur: 7,
+    text: 'Before choosing the next hard session, the Coach needs to know how ready the athlete will be on each coming day. ' +
+      'The last hard session was on day 0, with a load of ' + num(last.w, 0) + '; load measures how hard a session is, in training-load units. ' +
+      'A hard session leaves two effects: fatigue, which is large but fades within a few days, and fitness, which is smaller but lasts several times longer. ' +
+      'Readiness adds them to the rested level: readiness = 1 + fitness − fatigue, where 1 means fully rested. ' +
+      'So readiness dips right after the session, to ' + num(rDip, 2) + ' on day 0, half the rested level. ' +
+      'Fatigue fades first, so readiness is back to 1 by day ' + num(tRested, 2) + ' and keeps rising to ' + num(rCrest, 2) + ' on day ' + num(crest, 2) + ': fitter than rested. ' +
+      'Sports scientists call this crest supercompensation; after it, fitness fades too and readiness drifts back toward 1.',
+    math: 'fitness = ' + num(fitAmp, 1) + '·e^(−t/' + p.tau1 + '),  fatigue = ' + num(fatAmp, 1) + '·e^(−t/' + p.tau2 + '),  t in days' + at(0.5, '<br>readiness r(t) = 1 + fitness − fatigue') + at(0.8, ':  r(0) = ' + num(rDip, 2) + ',  r(' + num(crest, 2) + ') = ' + num(rCrest, 2)),
     draw: function (g, q) {
-      P.curvePanel(g, g.sideR, { r: pr.r, t: [0, 12], v: [0.3, 1.6], p: q, title: 'readiness after one hard session', r0: p.r0, sessions: [{ t: 0, w: last.w, text: 'the last hard session, day 0' }],
-        marks: [{ t: 0.02, text: 'the dip: ' + num(rDip, 2), at: 0.22, side: 'right' }, { t: crest, text: 'the crest: ' + num(rCrest, 2) + ' on day ' + num(crest, 2), at: 0.36 }, { t: 11, text: 'back toward the baseline', at: 0.7, side: 'left' }] });
+      var R = g.sideR, half = Math.round((R[3] - 8) / 2), top = [R[0], R[1], R[2], half], bottom = [R[0], R[1] + half + 8, R[2], R[3] - half - 8];
+      P.effectsPanel(g, top, { fit: fitness, fat: fatigue, fitAmp: fitAmp, fatAmp: fatAmp, t: [0, 12], p: seg(q, 0, 0.55), title: 'what one hard session leaves behind' });
+      P.curvePanel(g, bottom, { r: pr.r, t: [0, 12], v: [0.3, 1.6], p: seg(q, 0.45, 1), title: 'readiness = 1 + fitness − fatigue', sessions: [{ t: 0, w: last.w, text: 'the session, day 0' }], from: 0.15, to: 0.55, baseAt: 8, baseBelow: true,
+        marks: [{ t: 0.02, text: 'tired: ' + num(rDip, 2), at: 0.55, side: 'right' }, { t: tRested, text: 'rested again, day ' + num(tRested, 2), at: 0.65, side: 'right' }, { t: crest, text: 'the crest: ' + num(rCrest, 2) + ' on day ' + num(crest, 2), at: 0.75 }, { t: 10.5, text: 'back toward 1', at: 0.85, side: 'left' }] });
     } });
 
-  out.push({ id: 'benefit', chapter: CH.athlete, title: 'The Coach’s map: every session scored', layout: 'map', view: VIEW, dur: 5.6,
-    text: 'The next session is one plan: the day it happens, t, and its load, w. The Coach scores every plan from the curve: a session of load w gains w × (r(t) − ' + num(p.r0, 1) + '), less ' + num(p.a, 2) + '·w² for doing too much at once; below a readiness of ' + num(p.r0, 1) + ' a session does harm. The map shows the Coach’s cost, minus the gain: dark where a session pays, bright where it hurts. The darkest spot, the Coach’s favourite, is the crest with a big load: c = ' + plan(free) + ', a gain of ' + num(-pr.freeJ, 2) + '.',
-    math: 'J(t, w) = −w·(r(t) − ' + num(p.r0, 1) + ') + ' + num(p.a, 2) + '·w²' + at(0.65, ';  lowest at c = ' + pr2(free) + ', J = ' + num(pr.freeJ, 2)),
+  out.push({ id: 'score', chapter: CH.athlete, title: 'The Coach’s aim: the most benefit from one session', layout: 'side', dur: 7,
+    text: 'The Coach’s aim is to choose the next hard session that will make the athlete fittest. ' +
+      'It can choose two things: the day of the session, t, counted from the last one, and its load, w. ' +
+      'Nothing has happened yet, so the Coach predicts each session’s training benefit from the readiness curve, with a simple rule. ' +
+      'The day sets what each unit of load is worth: readiness minus ' + num(p.r0, 1) + ', because below ' + num(p.r0, 1) + ' the body is too tired and hard training does harm. ' +
+      'The gain is the load times that worth: w × (r(t) − ' + num(p.r0, 1) + '). ' +
+      'Too much load at once also strains the body, and that price grows with the square of the load: ' + num(p.a, 2) + '·w². ' +
+      'On day ' + num(crest, 2) + ' each unit is worth ' + num(rCrest, 3) + ' − ' + num(p.r0, 1) + ' = ' + num(worth, 3) + ', so load ' + exLoad + ' gains ' + num(exGain, 2) + ', pays ' + num(exPrice, 2) + ' and leaves a benefit of ' + num(exGain - exPrice, 2) + '. ' +
+      'The benefit is the gap between gain and price; on this day it is largest at load ' + num(free[1], 2) + ', where it is ' + num(-pr.freeJ, 2) + '.',
+    math: 'benefit B(t, w) = w·(r(t) − ' + num(p.r0, 1) + ') − ' + num(p.a, 2) + '·w²' + at(0.5, '<br>day ' + num(crest, 2) + ', load ' + exLoad + ':  ' + exLoad + ' × ' + num(worth, 3) + ' − ' + num(p.a, 2) + ' × ' + exLoad + '² = ' + num(exGain, 2) + ' − ' + num(exPrice, 2) + ' = ' + num(exGain - exPrice, 2)) +
+      at(0.82, '<br>best load on day t: (r(t) − ' + num(p.r0, 1) + ')/(2 × ' + num(p.a, 2) + ');  day ' + num(crest, 2) + ': ' + num(free[1], 2) + ', benefit ' + num(-pr.freeJ, 2)),
     draw: function (g, q) {
-      base(g, { poly: false });
-      g.line([crest, VIEW[2]], [crest, VIEW[3]], C.gold, 1.2, seg(q, 0.15, 0.4), [5, 4]); g.label([crest, 9.6], 'the crest, day ' + num(crest, 2), C.gold, { dx: 8, p: seg(q, 0.3, 0.45), size: 12 });
-      g.halo(free, 16, C.gold, seg(q, 0.5, 0.7), 1.5); P.coach(g, free, seg(q, 0.55, 0.75), 'c, the Coach’s favourite: ' + plan(free), { dx: 16, dy: -14 });
+      var parts = P.split(g.sideR, 0.5);
+      var pl = P.curvePanel(g, parts[0], { r: pr.r, t: [0, 12], v: [0.3, 1.6], p: seg(q, 0, 0.45), title: 'what a unit of load is worth, by day', r0: p.r0, from: 0.05, to: 0.4, baseAt: 12, baseBelow: true,
+        marks: [{ t: crest, text: 'day ' + num(crest, 2) + ': ' + num(rCrest, 2), at: 0.42 }] });
+      pl.seg(crest, 0.3, crest, rCrest, C.gold, 1.2, seg(q, 0.3, 0.45), [4, 4]);
+      var qb = seg(q, 0.42, 0.55); if (qb > 0) { var cx2 = g.ctx, bx = pl.X(crest) + 10; cx2.globalAlpha = qb; cx2.strokeStyle = C.gold; cx2.lineWidth = 2.4; cx2.beginPath(); cx2.moveTo(bx - 5, pl.Y(p.r0)); cx2.lineTo(bx, pl.Y(p.r0)); cx2.lineTo(bx, pl.Y(rCrest)); cx2.lineTo(bx - 5, pl.Y(rCrest)); cx2.stroke(); cx2.globalAlpha = 1;
+        g.labelPx(bx + 6, pl.Y(0.8), 'worth ' + num(worth, 3) + ' per unit of load', C.gold, { size: 12, plain: true, p: qb }); }
+      P.gainPricePanel(g, parts[1], { worth: worth, a: p.a, wMax: 16, example: exLoad, best: free[1], p: seg(q, 0.45, 1), title: 'on day ' + num(crest, 2) + ': gain and price as the load grows' });
+    } });
+
+  var soonQ = [0.5, free[1]], lateQ = [10, free[1]], lightQ = [crest, 2], heavyLoad = 13;
+  function costAlongDay(t) { return pr.J([t, free[1]]); }
+  function costAlongLoad(w) { return pr.J([crest, w]); }
+  out.push({ id: 'benefit', chapter: CH.athlete, title: 'The Coach’s map: every session scored at once', layout: 'map+side', view: VIEW, dur: 7.2,
+    text: 'Each point of this map is one possible session: its day across, its load up. ' +
+      'The Coach scores every point with the rule of the last page. ' +
+      'Every method in this course searches for a lowest point, like the treasure on the King’s land, so the Coach turns the score upside down into a cost, J = − benefit. ' +
+      'The best session is then the lowest ground: blue ground is a big benefit, grey a small one, and brown is harm. ' +
+      'Keep the load at ' + num(free[1], 2) + ' and move the day, along the gold line: too soon, the athlete is still tired and this load does more harm than good; too late, the crest has passed and the session gains less. ' +
+      'Keep the day at ' + num(crest, 2) + ' and change the load, along the violet line: too light gains little, and too heavy strains more than it gains. ' +
+      'The lowest point is the Coach’s favourite, c: day ' + num(free[0], 2) + ', load ' + num(free[1], 2) + ', a benefit of ' + num(-pr.freeJ, 2) + '.',
+    math: 'cost J(t, w) = − benefit = −w·(r(t) − ' + num(p.r0, 1) + ') + ' + num(p.a, 2) + '·w²' + at(0.75, '<br>lowest at c = ' + pr2(free) + ':  J = ' + num(pr.freeJ, 2) + ', a benefit of ' + num(-pr.freeJ, 2)),
+    draw: function (g, q) {
+      base(g, { poly: false }); P.costKey(g, seg(q, 0.02, 0.15));
+      g.line([VIEW[0], free[1]], [VIEW[1], free[1]], C.gold, 1.5, seg(q, 0.12, 0.3), [6, 4]);
+      g.line([crest, VIEW[2]], [crest, VIEW[3]], C.violet, 1.5, seg(q, 0.45, 0.62), [6, 4]);
+      [[soonQ, 'too soon: harm', { dx: -4, dy: 24 }, 0.28], [lateQ, 'too late', { dx: 0, dy: 20, align: 'center' }, 0.36], [lightQ, 'too light', { dx: 12, dy: 0 }, 0.6]].forEach(function (e) {
+        var qq = seg(q, e[3], e[3] + 0.1), o = e[2]; g.dot(e[0], 5, C.ink, qq); g.label(e[0], e[1] + ' (' + (benefitAt(e[0]) >= 0 ? '+' : '−') + num(Math.abs(benefitAt(e[0])), 2) + ')', C.ink, { dx: o.dx, dy: o.dy, align: o.align, p: qq, size: 12 });
+      });
+      g.halo(free, 16, C.gold, seg(q, 0.82, 0.95), 1.5); P.coach(g, free, seg(q, 0.82, 0.95), 'c, the lowest point (+' + num(-pr.freeJ, 2) + ')', { dx: 16, dy: -22 });
+      var parts = P.split(g.sideR, 0.5);
+      var pa = g.plot(parts[0], [0, 12], [-3.4, 4], { title: 'gold line: load ' + num(free[1], 2) + ', the day moves' }), shortA = pa.box[3] < 130;
+      pa.frame(shortA ? 'day' : 'day of the session', shortA ? '' : 'cost J'); pa.seg(0, 0, 12, 0, 'rgba(242,245,248,0.4)', 1.2, seg(q, 0.12, 0.2), [4, 4]);
+      pa.curve(costAlongDay, C.gold, 2.4, seg(q, 0.15, 0.4));
+      pa.point(soonQ[0], costAlongDay(soonQ[0]), C.ink, 'too soon', seg(q, 0.3, 0.38)); pa.point(lateQ[0], costAlongDay(lateQ[0]), C.ink, 'too late', seg(q, 0.36, 0.44), 'left');
+      pa.point(crest, pr.freeJ, C.gold, 'lowest: c', seg(q, 0.84, 0.95));
+      var pb = g.plot(parts[1], [0, 16], [-3.4, 1.4], { title: 'violet line: day ' + num(crest, 2) + ', the load changes' }), shortB = pb.box[3] < 130;
+      pb.frame(shortB ? 'load' : 'load of the session', shortB ? '' : 'cost J'); pb.seg(0, 0, 16, 0, 'rgba(242,245,248,0.4)', 1.2, seg(q, 0.45, 0.52), [4, 4]);
+      pb.curve(costAlongLoad, C.violet, 2.4, seg(q, 0.48, 0.72));
+      pb.point(lightQ[1], costAlongLoad(lightQ[1]), C.ink, 'too light', seg(q, 0.6, 0.68)); pb.point(heavyLoad, costAlongLoad(heavyLoad), C.ink, 'too heavy', seg(q, 0.68, 0.76), 'left');
+      pb.point(free[1], pr.freeJ, C.gold, 'lowest: c', seg(q, 0.84, 0.95));
     } });
 
   var ruleRows = [

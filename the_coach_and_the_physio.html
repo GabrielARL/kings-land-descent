@@ -273,9 +273,10 @@ var Board = (function () {
   // Ticks along the map's bottom (x1) and left (x2) edges.
   Kit.prototype.axes = function () {
     var c = this.ctx, R = this.mapR, v = this.vis, step = nice((v[1] - v[0]) / 5), d = places(step);
+    c.font = '600 12px ' + this.sans; var nameW = c.measureText('x₁ →').width;   // a tick label must stop short of the axis name
     c.font = '11px ' + this.mono; c.fillStyle = C.dim; c.strokeStyle = C.faint; c.lineWidth = 1;
     c.textAlign = 'center'; c.textBaseline = 'bottom';
-    for (var t = Math.ceil(v[0] / step) * step; t <= v[1]; t += step) { var a = this.P([t, v[2]]); if (a[0] < R[0] + 18 || a[0] > R[0] + R[2] - 24) continue; c.beginPath(); c.moveTo(a[0], R[1] + R[3]); c.lineTo(a[0], R[1] + R[3] - 5); c.stroke(); c.fillText(num(t, d), a[0], R[1] + R[3] - 6); }
+    for (var t = Math.ceil(v[0] / step) * step; t <= v[1]; t += step) { var a = this.P([t, v[2]]); if (a[0] < R[0] + 18 || a[0] > R[0] + R[2] - 24 || a[0] + c.measureText(num(t, d)).width / 2 > R[0] + R[2] - 12 - nameW) continue; c.beginPath(); c.moveTo(a[0], R[1] + R[3]); c.lineTo(a[0], R[1] + R[3] - 5); c.stroke(); c.fillText(num(t, d), a[0], R[1] + R[3] - 6); }
     c.textAlign = 'left'; c.textBaseline = 'middle';
     for (t = Math.ceil(v[2] / step) * step; t <= v[3]; t += step) { var b = this.P([v[0], t]); if (b[1] < R[1] + 22 || b[1] > R[1] + R[3] - 30) continue; c.beginPath(); c.moveTo(R[0], b[1]); c.lineTo(R[0] + 5, b[1]); c.stroke(); c.fillText(num(t, d), R[0] + 7, b[1]); }
     c.font = '600 12px ' + this.sans; c.fillStyle = C.ink; c.textAlign = 'right'; c.textBaseline = 'bottom'; c.fillText('x₁ →', R[0] + R[2] - 6, R[1] + R[3] - 4);
@@ -337,13 +338,15 @@ var Board = (function () {
     }
     c.stroke(); c.setLineDash([]);
   });
-  Kit.prototype.label = mapOnly(function (q, text, col, o) { var a = this.P(q); o = o || {}; this.labelPx(a[0] + (o.dx || 0), a[1] + (o.dy || 0), text, col, o); });
-  // a label: text on a dark rounded box; o: { p, size, align ('left', 'center', 'right'), mono, plain (no box), base }
+  Kit.prototype.label = mapOnly(function (q, text, col, o) { var a = this.P(q); o = o || {}; if (o.inside && this.mapR) o.within = this.mapR; this.labelPx(a[0] + (o.dx || 0), a[1] + (o.dy || 0), text, col, o); });
+  // a label: text on a dark rounded box; o: { p, size, align ('left', 'center', 'right'), mono, plain (no box), base,
+  // within (a rectangle the whole label must stay inside; label() sets it to the map when o.inside) }
   Kit.prototype.labelPx = function (x, y, text, col, o) {
     o = o || {}; var p = o.p == null ? 1 : o.p; if (!(p > 0)) return;
     var c = this.ctx, size = o.size || 13; c.font = (o.mono ? '' : '600 ') + size + 'px ' + (o.mono ? this.mono : this.sans);
     var w = c.measureText(text).width, align = o.align || 'left', x0 = align === 'center' ? x - w / 2 : align === 'right' ? x - w : x;
-    x0 = clamp(x0, 4, this.W - w - 4); var yc = clamp(y, size / 2 + 4, this.H - size / 2 - 4);
+    var B = o.within, xlo = B ? B[0] + 8 : 4, xhi = B ? B[0] + B[2] - w - 8 : this.W - w - 4, ylo = B ? B[1] + size / 2 + 8 : size / 2 + 4, yhi = B ? B[1] + B[3] - size / 2 - 8 : this.H - size / 2 - 4;
+    x0 = clamp(x0, xlo, Math.max(xlo, xhi)); var yc = clamp(y, ylo, Math.max(ylo, yhi));
     c.globalAlpha = clamp(p, 0, 1);
     if (!o.plain) { c.fillStyle = C.box; c.beginPath(); rrect(c, x0 - 5, yc - size / 2 - 4, w + 10, size + 8, 5); c.fill(); }
     c.fillStyle = col || C.ink; c.textAlign = 'left'; c.textBaseline = 'middle'; c.fillText(text, x0, yc + 0.5); c.globalAlpha = 1;
@@ -1238,8 +1241,9 @@ var PlanParts = (function () {
   // ------------------------------------------------------------ the map of plans
   function axes(g, xl, yl) {
     var c = g.ctx, R = g.mapR, v = g.vis, step = nice((v[1] - v[0]) / 5), d = places(step);
+    c.font = '600 12px ' + g.sans; var titleW = c.measureText(xl).width;
     c.font = '11px ' + g.mono; c.fillStyle = C.dim; c.strokeStyle = C.faint; c.lineWidth = 1; c.textAlign = 'center'; c.textBaseline = 'bottom';
-    for (var t = Math.ceil(v[0] / step) * step; t <= v[1]; t += step) { var a = g.P([t, v[2]]); if (a[0] < R[0] + 18 || a[0] > R[0] + R[2] - 24) continue; c.beginPath(); c.moveTo(a[0], R[1] + R[3]); c.lineTo(a[0], R[1] + R[3] - 5); c.stroke(); c.fillText(num(t, d), a[0], R[1] + R[3] - 6); }
+    for (var t = Math.ceil(v[0] / step) * step; t <= v[1]; t += step) { var a = g.P([t, v[2]]); if (a[0] < R[0] + 18 || a[0] > R[0] + R[2] - titleW - 20) continue; c.beginPath(); c.moveTo(a[0], R[1] + R[3]); c.lineTo(a[0], R[1] + R[3] - 5); c.stroke(); c.fillText(num(t, d), a[0], R[1] + R[3] - 6); }
     c.textAlign = 'left'; c.textBaseline = 'middle';
     for (t = Math.ceil(v[2] / step) * step; t <= v[3]; t += step) { var b = g.P([v[0], t]); if (b[1] < R[1] + 22 || b[1] > R[1] + R[3] - 30) continue; c.beginPath(); c.moveTo(R[0], b[1]); c.lineTo(R[0] + 5, b[1]); c.stroke(); c.fillText(num(t, d), R[0] + 7, b[1]); }
     c.font = '600 12px ' + g.sans; c.fillStyle = C.ink; c.textAlign = 'right'; c.textBaseline = 'bottom'; c.fillText(xl, R[0] + R[2] - 6, R[1] + R[3] - 4);
@@ -1327,7 +1331,7 @@ var PlanParts = (function () {
   function curvePanel(g, R, o) {
     var p = o.p == null ? 1 : o.p, pl = g.plot(R, o.t, o.v, { title: o.title }), short = pl.box[3] < 200;
     pl.frame(short ? 'days' : 'days since the last hard session', 'readiness');
-    pl.seg(o.t[0], 1, o.t[1], 1, 'rgba(242,245,248,0.45)', 1.2, seg(p, 0, 0.2), [5, 4]); g.labelPx(pl.X(o.t[1]) - 4, pl.Y(1) - 11, 'rested baseline 1', C.dim, { align: 'right', size: 11, plain: true, p: seg(p, 0.05, 0.2) });
+    pl.seg(o.t[0], 1, o.t[1], 1, 'rgba(242,245,248,0.45)', 1.2, seg(p, 0, 0.2), [5, 4]); g.labelPx(pl.X(o.baseAt == null ? o.t[1] : o.baseAt) - 4, pl.Y(1) + (o.baseBelow ? 12 : -11), 'rested baseline 1', C.dim, { align: 'right', size: 11, plain: true, p: seg(p, 0.05, 0.2) });
     if (o.r0 != null) { pl.seg(o.t[0], o.r0, o.t[1], o.r0, C.red, 1.2, seg(p, 0, 0.2), [3, 4]); g.labelPx(pl.X(o.t[1]) - 4, pl.Y(o.r0) - 12, 'below ' + num(o.r0, 1) + ' a session does harm', C.red, { align: 'right', size: 11, plain: true, p: seg(p, 0.05, 0.2) }); }
     (o.sessions || []).forEach(function (s, i) { var q = seg(p, 0.1 + 0.1 * i, 0.2 + 0.1 * i); if (!(q > 0)) return; pl.seg(s.t, o.v[0], s.t, o.v[0] + (o.v[1] - o.v[0]) * 0.18 * s.w / 5, s.col || C.gold, 6, q); if (s.text && !short) g.labelPx(pl.X(s.t) + 8, pl.Y(o.v[0] + (o.v[1] - o.v[0]) * 0.09 * s.w / 5), s.text, s.col || C.gold, { size: 11, plain: true, p: q }); });
     if (o.rOld) { pl.curve(o.rOld, 'rgba(242,245,248,0.35)', 1.8, seg(p, 0.1, 0.3)); if (o.old) g.labelPx(pl.X(o.oldAt || o.t[1]) - 4, pl.Y(o.rOld(o.oldAt || o.t[1])) - 12, o.old, C.dim, { align: 'right', size: 11, plain: true, p: seg(p, 0.2, 0.35) }); }
@@ -1378,8 +1382,63 @@ var PlanParts = (function () {
     });
     return pl;
   }
+  // The two effects of one hard session over the days after it: fitness (small, slow to fade) above zero and fatigue
+  // (large, quick to fade) below; o: { fit(t), fat(t) (its size, positive), fitAmp, fatAmp, t: [t0, t1], p, title }.
+  function effectsPanel(g, R, o) {
+    var p = o.p == null ? 1 : o.p, pl = g.plot(R, o.t, [-o.fatAmp * 1.15, o.fitAmp * 1.3], { title: o.title }), short = pl.box[3] < 130;
+    pl.frame(short ? 'days' : 'days after the hard session', 'effect');
+    pl.seg(o.t[0], 0, o.t[1], 0, 'rgba(242,245,248,0.45)', 1.2, seg(p, 0, 0.15), [5, 4]);
+    pl.curve(o.fit, C.green, 2.4, seg(p, 0.05, 0.35));
+    pl.curve(function (t) { return -o.fat(t); }, C.red, 2.4, seg(p, 0.3, 0.6));
+    var tf = o.t[0] + (o.t[1] - o.t[0]) * 0.42;
+    g.labelPx(pl.X(tf), pl.Y(o.fit(tf)) - 14, 'fitness: +' + num(o.fitAmp, 1) + ' at first, lasts', C.green, { size: 12, plain: true, p: seg(p, 0.25, 0.4) });
+    var ta = o.t[0] + (o.t[1] - o.t[0]) * 0.14;
+    g.labelPx(pl.X(ta) + 8, pl.Y(-o.fat(ta)) + 16, 'fatigue: −' + num(o.fatAmp, 1) + ' at first, fades fast', C.red, { size: 12, plain: true, p: seg(p, 0.5, 0.65) });
+    return pl;
+  }
+  // What one session gains and what it costs as its load grows, on one day: the gain is a straight line, the price of
+  // doing too much at once a parabola, and the benefit is the gap between them; o: { worth (gain per unit of load), a,
+  // wMax, p, title, example (a load), best (the load with the largest gap) }.
+  function gainPricePanel(g, R, o) {
+    var p = o.p == null ? 1 : o.p, wm = o.wMax, gain = function (w) { return o.worth * w; }, price = function (w) { return o.a * w * w; };
+    var top = Math.max(gain(wm), price(wm)) * 1.06, pl = g.plot(R, [0, wm], [0, top], { title: o.title }), c = g.ctx, short = pl.box[3] < 130;
+    pl.frame(short ? 'load' : 'load of the session', '');
+    pl.curve(gain, C.green, 2.4, seg(p, 0.05, 0.3)); pl.curve(price, C.red, 2.4, seg(p, 0.2, 0.45));
+    var wl = wm * 0.62, wp = wm * 0.7;
+    g.labelPx(pl.X(wl) - 8, pl.Y(gain(wl)) - 12, 'gain = ' + num(o.worth, 3) + ' × load', C.green, { size: 12, plain: true, align: 'right', p: seg(p, 0.2, 0.35) });
+    g.labelPx(pl.X(wp) + 10, pl.Y(price(wp)) + 16, 'price = ' + num(o.a, 2) + ' × load²', C.red, { size: 12, plain: true, p: seg(p, 0.35, 0.5) });
+    if (pl.box[3] > 260) g.labelPx(pl.box[0] + pl.box[2] - 4, pl.box[1] + pl.box[3] - 26, 'gold bars: benefit = gain − price', C.gold, { size: 12, plain: true, align: 'right', p: seg(p, 0.5, 0.65) });
+    function gap(w, text, side, q) {
+      if (!(q > 0)) return; var x = pl.X(w), y0 = pl.Y(price(w)), y1 = pl.Y(gain(w));
+      c.globalAlpha = clamp(q, 0, 1); c.strokeStyle = C.gold; c.lineWidth = 2.6; c.beginPath(); c.moveTo(x, y0); c.lineTo(x, y1); c.stroke();
+      c.lineWidth = 1.6; c.beginPath(); c.moveTo(x - 5, y0); c.lineTo(x + 5, y0); c.moveTo(x - 5, y1); c.lineTo(x + 5, y1); c.stroke(); c.globalAlpha = 1;
+      g.labelPx(x + (side < 0 ? -9 : 9), (y0 + y1) / 2, text, C.gold, { size: 12, plain: true, align: side < 0 ? 'right' : 'left', p: q });
+    }
+    gap(o.example, num(gain(o.example) - price(o.example), 2), 1, seg(p, 0.5, 0.65));
+    gap(o.best, num(gain(o.best) - price(o.best), 2), 1, seg(p, 0.68, 0.82));
+    g.labelPx(pl.X(o.best), pl.Y(gain(o.best)) - 14, 'largest at load ' + num(o.best, 2), C.gold, { size: 12, plain: true, align: 'right', p: seg(p, 0.75, 0.88) });
+    var wz = o.worth / o.a; if (wz < wm) pl.point(wz, gain(wz), C.red, 'gap gone at load ' + num(wz, 1), seg(p, 0.85, 1), 'left');
+    return pl;
+  }
+  // A key for the shading of the Coach's cost (drawn with a scale centred on zero cost): a box in the lower right
+  // corner of a tall map, one line along the top of a short one (a phone).
+  var KEY = [['rgb(26,58,92)', 'blue: big benefit, low cost', 'blue: benefit'], ['rgb(92,112,120)', 'grey: small benefit', 'grey: small'], ['rgb(150,98,58)', 'brown: harm, cost above 0', 'brown: harm']];
+  function costKey(g, p) {
+    if (!(p > 0)) return; var c = g.ctx, R = g.mapR, a = clamp(p, 0, 1);
+    if (R[3] < 400) {
+      c.font = '600 11.5px ' + g.sans; var widths = KEY.map(function (k) { return c.measureText(k[2]).width + 24; }), total = widths.reduce(function (x, y) { return x + y; }, 0) + 8;
+      var x0 = R[0] + R[2] - total - 8, y0 = R[1] + 8, xx = x0 + 8;
+      c.globalAlpha = a; c.fillStyle = C.box; c.fillRect(x0, y0, total, 22);
+      KEY.forEach(function (k, j) { c.globalAlpha = a; c.fillStyle = k[0]; c.fillRect(xx, y0 + 6, 12, 10); c.globalAlpha = 1; g.labelPx(xx + 16, y0 + 11, k[2], C.ink, { size: 11.5, plain: true, p: p }); xx += widths[j]; });
+      c.globalAlpha = 1; return;
+    }
+    var w = 214, h = 66, x = R[0] + R[2] - w - 10, y = R[1] + R[3] - h - 30;
+    c.globalAlpha = a; c.fillStyle = C.box; c.fillRect(x, y, w, h);
+    KEY.forEach(function (k, j) { c.globalAlpha = a; c.fillStyle = k[0]; c.fillRect(x + 8, y + 8 + 19 * j, 14, 12); c.globalAlpha = 1; g.labelPx(x + 28, y + 14 + 19 * j, k[1], C.ink, { size: 11.5, plain: true, p: p }); });
+    c.globalAlpha = 1;
+  }
   return { COACH: COACH, PHYSIO: PHYSIO, LOG: LOG, AIM: AIM, axes: axes, figure: figure, coach: coach, physio: physio, star: star, spring: spring, rightAngle: rightAngle, polygon: polygon, ruleLine: ruleLine,
-           lines: lines, table: table, split: split, subscript: subscript, curvePanel: curvePanel, scanPanel: scanPanel, gaugePanel: gaugePanel, calendar: calendar };
+           lines: lines, table: table, split: split, subscript: subscript, curvePanel: curvePanel, effectsPanel: effectsPanel, gainPricePanel: gainPricePanel, costKey: costKey, scanPanel: scanPanel, gaugePanel: gaugePanel, calendar: calendar };
 })();
 </script>
 <script>
@@ -1407,7 +1466,7 @@ var PlanParts = (function () {
   function shadeOf(prob, id) {
     var lo = Infinity, hi = -Infinity;
     for (var i = 0; i <= 40; i++) for (var j = 0; j <= 40; j++) { var val = prob.J([VIEW[0] + (VIEW[1] - VIEW[0]) * i / 40, VIEW[2] + (VIEW[3] - VIEW[2]) * j / 40]); if (val < lo) lo = val; if (val > hi) hi = val; }
-    return { lo: lo, hi: hi, id: id, rings: 12 };
+    return { lo: lo, hi: Math.max(-lo, 0.5), id: id, rings: 12 };   // centred on zero cost: harm brown, benefit blue
   }
   var shade0 = shadeOf(pr, 'J0'), shade1 = shadeOf(pr1, 'J1');
   function base(g, o) {
@@ -1434,22 +1493,83 @@ var PlanParts = (function () {
   var out = [], CH = { athlete: 'The athlete', pair: 'The Coach and the Physio', round: 'One planning round', season: 'The season', bridge: 'The same four moves elsewhere' };
 
   // ------------------------------------------------------------ 1. the athlete
-  var rDip = pr.r(0), rCrest = pr.r(crest);
-  out.push({ id: 'curve', chapter: CH.athlete, title: 'One hard session, then the body answers', layout: 'side', dur: 6,
-    text: 'An athlete trains in a cycle. A hard session leaves two traces: fatigue, large but quick to fade, and fitness, smaller but slow to fade. Readiness, the two traces on top of the rested baseline, dips right after the session, recovers, rises above the baseline to a crest a few days later, and then drifts back down. The crest is when the next hard session pays most. Too early, and the athlete trains on fatigue; too late, and the crest is wasted. Here is the curve after the last hard session, on day 0 with a load of ' + num(last.w, 1) + ': a dip to ' + num(rDip, 2) + ', a crest of ' + num(rCrest, 2) + ' on day ' + num(crest, 2) + '.',
-    math: 'readiness r(t) = 1 + fitness − fatigue = 1 + k₁e^(−t/τ₁) − k₂e^(−t/τ₂)' + at(0.3, ';  τ₁ = ' + p.tau1 + ' d, τ₂ = ' + p.tau2 + ' d') + at(0.6, '<br>dip r(0) = ' + num(rDip, 2) + ';  crest r(' + num(crest, 2) + ') = ' + num(rCrest, 2)),
+  // One hard session leaves fitness (small, slow to fade) and fatigue (large, quick to fade); readiness is the rested
+  // level 1 plus fitness minus fatigue.  The Coach scores a session by its benefit, w (r(t) − r0) − a w², and writes the
+  // cost J = −benefit so that the best session is the lowest point, as on the King's land.
+  var rDip = pr.r(0), rCrest = pr.r(crest), fitAmp = last.w / p.wRef * p.k1, fatAmp = last.w / p.wRef * p.k2;
+  var tRested = Math.log(fatAmp / fitAmp) / (1 / p.tau2 - 1 / p.tau1);
+  function fitness(t) { return fitAmp * Math.exp(-t / p.tau1); }
+  function fatigue(t) { return fatAmp * Math.exp(-t / p.tau2); }
+  function benefitAt(q) { return -pr.J(q); }
+  var worth = rCrest - p.r0, exLoad = 5, exGain = exLoad * worth, exPrice = p.a * exLoad * exLoad, wZero = worth / p.a;
+  out.push({ id: 'curve', chapter: CH.athlete, title: 'What one hard session does to the body', layout: 'side', dur: 7,
+    text: 'Before choosing the next hard session, the Coach needs to know how ready the athlete will be on each coming day. ' +
+      'The last hard session was on day 0, with a load of ' + num(last.w, 0) + '; load measures how hard a session is, in training-load units. ' +
+      'A hard session leaves two effects: fatigue, which is large but fades within a few days, and fitness, which is smaller but lasts several times longer. ' +
+      'Readiness adds them to the rested level: readiness = 1 + fitness − fatigue, where 1 means fully rested. ' +
+      'So readiness dips right after the session, to ' + num(rDip, 2) + ' on day 0, half the rested level. ' +
+      'Fatigue fades first, so readiness is back to 1 by day ' + num(tRested, 2) + ' and keeps rising to ' + num(rCrest, 2) + ' on day ' + num(crest, 2) + ': fitter than rested. ' +
+      'Sports scientists call this crest supercompensation; after it, fitness fades too and readiness drifts back toward 1.',
+    math: 'fitness = ' + num(fitAmp, 1) + '·e^(−t/' + p.tau1 + '),  fatigue = ' + num(fatAmp, 1) + '·e^(−t/' + p.tau2 + '),  t in days' + at(0.5, '<br>readiness r(t) = 1 + fitness − fatigue') + at(0.8, ':  r(0) = ' + num(rDip, 2) + ',  r(' + num(crest, 2) + ') = ' + num(rCrest, 2)),
     draw: function (g, q) {
-      P.curvePanel(g, g.sideR, { r: pr.r, t: [0, 12], v: [0.3, 1.6], p: q, title: 'readiness after one hard session', r0: p.r0, sessions: [{ t: 0, w: last.w, text: 'the last hard session, day 0' }],
-        marks: [{ t: 0.02, text: 'the dip: ' + num(rDip, 2), at: 0.22, side: 'right' }, { t: crest, text: 'the crest: ' + num(rCrest, 2) + ' on day ' + num(crest, 2), at: 0.36 }, { t: 11, text: 'back toward the baseline', at: 0.7, side: 'left' }] });
+      var R = g.sideR, half = Math.round((R[3] - 8) / 2), top = [R[0], R[1], R[2], half], bottom = [R[0], R[1] + half + 8, R[2], R[3] - half - 8];
+      P.effectsPanel(g, top, { fit: fitness, fat: fatigue, fitAmp: fitAmp, fatAmp: fatAmp, t: [0, 12], p: seg(q, 0, 0.55), title: 'what one hard session leaves behind' });
+      P.curvePanel(g, bottom, { r: pr.r, t: [0, 12], v: [0.3, 1.6], p: seg(q, 0.45, 1), title: 'readiness = 1 + fitness − fatigue', sessions: [{ t: 0, w: last.w, text: 'the session, day 0' }], from: 0.15, to: 0.55, baseAt: 8, baseBelow: true,
+        marks: [{ t: 0.02, text: 'tired: ' + num(rDip, 2), at: 0.55, side: 'right' }, { t: tRested, text: 'rested again, day ' + num(tRested, 2), at: 0.65, side: 'right' }, { t: crest, text: 'the crest: ' + num(rCrest, 2) + ' on day ' + num(crest, 2), at: 0.75 }, { t: 10.5, text: 'back toward 1', at: 0.85, side: 'left' }] });
     } });
 
-  out.push({ id: 'benefit', chapter: CH.athlete, title: 'The Coach’s map: every session scored', layout: 'map', view: VIEW, dur: 5.6,
-    text: 'The next session is one plan: the day it happens, t, and its load, w. The Coach scores every plan from the curve: a session of load w gains w × (r(t) − ' + num(p.r0, 1) + '), less ' + num(p.a, 2) + '·w² for doing too much at once; below a readiness of ' + num(p.r0, 1) + ' a session does harm. The map shows the Coach’s cost, minus the gain: dark where a session pays, bright where it hurts. The darkest spot, the Coach’s favourite, is the crest with a big load: c = ' + plan(free) + ', a gain of ' + num(-pr.freeJ, 2) + '.',
-    math: 'J(t, w) = −w·(r(t) − ' + num(p.r0, 1) + ') + ' + num(p.a, 2) + '·w²' + at(0.65, ';  lowest at c = ' + pr2(free) + ', J = ' + num(pr.freeJ, 2)),
+  out.push({ id: 'score', chapter: CH.athlete, title: 'The Coach’s aim: the most benefit from one session', layout: 'side', dur: 7,
+    text: 'The Coach’s aim is to choose the next hard session that will make the athlete fittest. ' +
+      'It can choose two things: the day of the session, t, counted from the last one, and its load, w. ' +
+      'Nothing has happened yet, so the Coach predicts each session’s training benefit from the readiness curve, with a simple rule. ' +
+      'The day sets what each unit of load is worth: readiness minus ' + num(p.r0, 1) + ', because below ' + num(p.r0, 1) + ' the body is too tired and hard training does harm. ' +
+      'The gain is the load times that worth: w × (r(t) − ' + num(p.r0, 1) + '). ' +
+      'Too much load at once also strains the body, and that price grows with the square of the load: ' + num(p.a, 2) + '·w². ' +
+      'On day ' + num(crest, 2) + ' each unit is worth ' + num(rCrest, 3) + ' − ' + num(p.r0, 1) + ' = ' + num(worth, 3) + ', so load ' + exLoad + ' gains ' + num(exGain, 2) + ', pays ' + num(exPrice, 2) + ' and leaves a benefit of ' + num(exGain - exPrice, 2) + '. ' +
+      'The benefit is the gap between gain and price; on this day it is largest at load ' + num(free[1], 2) + ', where it is ' + num(-pr.freeJ, 2) + '.',
+    math: 'benefit B(t, w) = w·(r(t) − ' + num(p.r0, 1) + ') − ' + num(p.a, 2) + '·w²' + at(0.5, '<br>day ' + num(crest, 2) + ', load ' + exLoad + ':  ' + exLoad + ' × ' + num(worth, 3) + ' − ' + num(p.a, 2) + ' × ' + exLoad + '² = ' + num(exGain, 2) + ' − ' + num(exPrice, 2) + ' = ' + num(exGain - exPrice, 2)) +
+      at(0.82, '<br>best load on day t: (r(t) − ' + num(p.r0, 1) + ')/(2 × ' + num(p.a, 2) + ');  day ' + num(crest, 2) + ': ' + num(free[1], 2) + ', benefit ' + num(-pr.freeJ, 2)),
     draw: function (g, q) {
-      base(g, { poly: false });
-      g.line([crest, VIEW[2]], [crest, VIEW[3]], C.gold, 1.2, seg(q, 0.15, 0.4), [5, 4]); g.label([crest, 9.6], 'the crest, day ' + num(crest, 2), C.gold, { dx: 8, p: seg(q, 0.3, 0.45), size: 12 });
-      g.halo(free, 16, C.gold, seg(q, 0.5, 0.7), 1.5); P.coach(g, free, seg(q, 0.55, 0.75), 'c, the Coach’s favourite: ' + plan(free), { dx: 16, dy: -14 });
+      var parts = P.split(g.sideR, 0.5);
+      var pl = P.curvePanel(g, parts[0], { r: pr.r, t: [0, 12], v: [0.3, 1.6], p: seg(q, 0, 0.45), title: 'what a unit of load is worth, by day', r0: p.r0, from: 0.05, to: 0.4, baseAt: 12, baseBelow: true,
+        marks: [{ t: crest, text: 'day ' + num(crest, 2) + ': ' + num(rCrest, 2), at: 0.42 }] });
+      pl.seg(crest, 0.3, crest, rCrest, C.gold, 1.2, seg(q, 0.3, 0.45), [4, 4]);
+      var qb = seg(q, 0.42, 0.55); if (qb > 0) { var cx2 = g.ctx, bx = pl.X(crest) + 10; cx2.globalAlpha = qb; cx2.strokeStyle = C.gold; cx2.lineWidth = 2.4; cx2.beginPath(); cx2.moveTo(bx - 5, pl.Y(p.r0)); cx2.lineTo(bx, pl.Y(p.r0)); cx2.lineTo(bx, pl.Y(rCrest)); cx2.lineTo(bx - 5, pl.Y(rCrest)); cx2.stroke(); cx2.globalAlpha = 1;
+        g.labelPx(bx + 6, pl.Y(0.8), 'worth ' + num(worth, 3) + ' per unit of load', C.gold, { size: 12, plain: true, p: qb }); }
+      P.gainPricePanel(g, parts[1], { worth: worth, a: p.a, wMax: 16, example: exLoad, best: free[1], p: seg(q, 0.45, 1), title: 'on day ' + num(crest, 2) + ': gain and price as the load grows' });
+    } });
+
+  var soonQ = [0.5, free[1]], lateQ = [10, free[1]], lightQ = [crest, 2], heavyLoad = 13;
+  function costAlongDay(t) { return pr.J([t, free[1]]); }
+  function costAlongLoad(w) { return pr.J([crest, w]); }
+  out.push({ id: 'benefit', chapter: CH.athlete, title: 'The Coach’s map: every session scored at once', layout: 'map+side', view: VIEW, dur: 7.2,
+    text: 'Each point of this map is one possible session: its day across, its load up. ' +
+      'The Coach scores every point with the rule of the last page. ' +
+      'Every method in this course searches for a lowest point, like the treasure on the King’s land, so the Coach turns the score upside down into a cost, J = − benefit. ' +
+      'The best session is then the lowest ground: blue ground is a big benefit, grey a small one, and brown is harm. ' +
+      'Keep the load at ' + num(free[1], 2) + ' and move the day, along the gold line: too soon, the athlete is still tired and this load does more harm than good; too late, the crest has passed and the session gains less. ' +
+      'Keep the day at ' + num(crest, 2) + ' and change the load, along the violet line: too light gains little, and too heavy strains more than it gains. ' +
+      'The lowest point is the Coach’s favourite, c: day ' + num(free[0], 2) + ', load ' + num(free[1], 2) + ', a benefit of ' + num(-pr.freeJ, 2) + '.',
+    math: 'cost J(t, w) = − benefit = −w·(r(t) − ' + num(p.r0, 1) + ') + ' + num(p.a, 2) + '·w²' + at(0.75, '<br>lowest at c = ' + pr2(free) + ':  J = ' + num(pr.freeJ, 2) + ', a benefit of ' + num(-pr.freeJ, 2)),
+    draw: function (g, q) {
+      base(g, { poly: false }); P.costKey(g, seg(q, 0.02, 0.15));
+      g.line([VIEW[0], free[1]], [VIEW[1], free[1]], C.gold, 1.5, seg(q, 0.12, 0.3), [6, 4]);
+      g.line([crest, VIEW[2]], [crest, VIEW[3]], C.violet, 1.5, seg(q, 0.45, 0.62), [6, 4]);
+      [[soonQ, 'too soon: harm', { dx: -4, dy: 24 }, 0.28], [lateQ, 'too late', { dx: 0, dy: 20, align: 'center' }, 0.36], [lightQ, 'too light', { dx: 12, dy: 0 }, 0.6]].forEach(function (e) {
+        var qq = seg(q, e[3], e[3] + 0.1), o = e[2]; g.dot(e[0], 5, C.ink, qq); g.label(e[0], e[1] + ' (' + (benefitAt(e[0]) >= 0 ? '+' : '−') + num(Math.abs(benefitAt(e[0])), 2) + ')', C.ink, { dx: o.dx, dy: o.dy, align: o.align, p: qq, size: 12 });
+      });
+      g.halo(free, 16, C.gold, seg(q, 0.82, 0.95), 1.5); P.coach(g, free, seg(q, 0.82, 0.95), 'c, the lowest point (+' + num(-pr.freeJ, 2) + ')', { dx: 16, dy: -22 });
+      var parts = P.split(g.sideR, 0.5);
+      var pa = g.plot(parts[0], [0, 12], [-3.4, 4], { title: 'gold line: load ' + num(free[1], 2) + ', the day moves' }), shortA = pa.box[3] < 130;
+      pa.frame(shortA ? 'day' : 'day of the session', shortA ? '' : 'cost J'); pa.seg(0, 0, 12, 0, 'rgba(242,245,248,0.4)', 1.2, seg(q, 0.12, 0.2), [4, 4]);
+      pa.curve(costAlongDay, C.gold, 2.4, seg(q, 0.15, 0.4));
+      pa.point(soonQ[0], costAlongDay(soonQ[0]), C.ink, 'too soon', seg(q, 0.3, 0.38)); pa.point(lateQ[0], costAlongDay(lateQ[0]), C.ink, 'too late', seg(q, 0.36, 0.44), 'left');
+      pa.point(crest, pr.freeJ, C.gold, 'lowest: c', seg(q, 0.84, 0.95));
+      var pb = g.plot(parts[1], [0, 16], [-3.4, 1.4], { title: 'violet line: day ' + num(crest, 2) + ', the load changes' }), shortB = pb.box[3] < 130;
+      pb.frame(shortB ? 'load' : 'load of the session', shortB ? '' : 'cost J'); pb.seg(0, 0, 16, 0, 'rgba(242,245,248,0.4)', 1.2, seg(q, 0.45, 0.52), [4, 4]);
+      pb.curve(costAlongLoad, C.violet, 2.4, seg(q, 0.48, 0.72));
+      pb.point(lightQ[1], costAlongLoad(lightQ[1]), C.ink, 'too light', seg(q, 0.6, 0.68)); pb.point(heavyLoad, costAlongLoad(heavyLoad), C.ink, 'too heavy', seg(q, 0.68, 0.76), 'left');
+      pb.point(free[1], pr.freeJ, C.gold, 'lowest: c', seg(q, 0.84, 0.95));
     } });
 
   var ruleRows = [
@@ -1718,12 +1838,13 @@ var Realm = (function () {
   var PLACES = {
     game:     { file: 'index.html', name: 'King’s Land Descent', bar: 'The game', sub: 'walk the land yourself', q: [1.7, 3.95], icon: 'flag' },
     tutorial: { file: 'tutorial.html', name: 'Three heroes downhill', bar: 'Three heroes downhill', sub: 'gradient descent, L-BFGS, ADMM', q: [3.6, 6.15], icon: 'castle' },
+    soldiers: { file: 'bp_and_cajode.html', name: 'Counting soldiers', bar: 'BP and CAJODE', sub: 'belief propagation and CAJODE', q: [1.25, 7.0], icon: 'soldiers' },
     keep:     { file: 'jade_keep_tutorial.html', name: 'CAJODE', bar: 'CAJODE receiver', sub: 'joint OFDM demodulation and decoding', q: [9.55, 6.3], icon: 'keep' },
     coach:    { file: 'the_coach_and_the_physio.html', name: 'The Coach and the Physio', bar: 'Coach and Physio', sub: 'a training plan', q: [4.75, 2.15], icon: 'track' },
     dive:     { file: 'localization_is_decoding.html', name: 'The inspection dive', bar: 'Inspection dive', sub: 'localization at a monopile', q: [7.55, 3.15], icon: 'pile' },
     net:      { file: 'finding_the_tear.html', name: 'Finding the tear', bar: 'Finding the tear', sub: 'a fish-farm net', q: [10.45, 1.95], icon: 'pen' }
   };
-  var ORDER = ['game', 'tutorial', 'keep', 'coach', 'dive', 'net'];
+  var ORDER = ['game', 'tutorial', 'soldiers', 'keep', 'coach', 'dive', 'net'];
 
   // ------------------------------------------------------------ the map of the King’s land, world box [0, 12] × [0, 8]
   var MAP = [0, 12, 0, 8], LO = -0.6, HI = 1.9;
@@ -1731,7 +1852,7 @@ var Realm = (function () {
   // the mainland in the west with the castle hill, the Keep’s island in the north-east, a headland sheltering the pens
   function terrain(q) {
     var x = q[0], y = q[1];
-    return -1 + bump(x, y, 2.6, 4.4, 2.5, 3.0, 1.75) + bump(x, y, 3.7, 6.2, 0.9, 0.8, 0.6) + bump(x, y, 4.9, 2.0, 1.4, 1.2, 0.5)
+    return -1 + bump(x, y, 2.6, 4.4, 2.5, 3.0, 1.75) + bump(x, y, 3.7, 6.2, 0.9, 0.8, 0.6) + bump(x, y, 1.25, 7.0, 0.8, 0.6, 0.55) + bump(x, y, 4.9, 2.0, 1.4, 1.2, 0.5)
       + bump(x, y, 9.6, 6.45, 1.2, 0.95, 1.35) + bump(x, y, 11.7, 1.5, 0.8, 1.5, 1.1) + 0.12 * Math.sin(1.7 * x + 0.6) * Math.cos(1.3 * y);
   }
   // a road between two places: a gentle quadratic curve, the same both ways (sea lanes are dashed)
@@ -1750,6 +1871,16 @@ var Realm = (function () {
 
   // ------------------------------------------------------------ the places’ icons, drawn in canvas pixels
   function disc(c, x, y, r, fill) { c.beginPath(); c.arc(x, y, r, 0, TAU); c.fillStyle = fill; c.fill(); }
+  // a soldier of the soldier slides at (x, y), the middle of its body, s about half its height
+  function trooper(c, x, y, s, body) {
+    c.fillStyle = 'rgba(8,12,18,0.9)'; c.beginPath(); c.moveTo(x - 0.46 * s, y + 0.58 * s); c.lineTo(x - 0.46 * s, y - 0.42 * s); c.arc(x, y - 0.42 * s, 0.46 * s, Math.PI, TAU); c.lineTo(x + 0.46 * s, y + 0.58 * s); c.closePath(); c.fill();
+    c.fillStyle = body || '#cfd8e2'; c.beginPath(); c.moveTo(x - 0.38 * s, y + 0.52 * s); c.lineTo(x - 0.38 * s, y - 0.36 * s); c.arc(x, y - 0.36 * s, 0.38 * s, Math.PI, TAU); c.lineTo(x + 0.38 * s, y + 0.52 * s); c.closePath(); c.fill();
+    disc(c, x, y - 0.8 * s, 0.3 * s, '#e8c9a8'); c.fillStyle = '#3d6fa8'; c.beginPath(); c.arc(x, y - 0.88 * s, 0.31 * s, Math.PI, TAU); c.closePath(); c.fill(); c.fillRect(x - 0.4 * s, y - 0.9 * s, 0.8 * s, 0.09 * s);
+  }
+  function junctionBox(c, x, y, w, label, font) {
+    c.fillStyle = '#1a2330'; c.strokeStyle = '#ffd27a'; c.lineWidth = 1.8; c.beginPath(); c.rect(x - w / 2, y - w / 2, w, w); c.fill(); c.stroke();
+    if (label) { c.fillStyle = '#ffd27a'; c.font = '700 ' + Math.round(0.5 * w) + 'px ' + (font || 'sans-serif'); c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(label, x, y + 0.5); }
+  }
   function icon(c, kind, x, y, s, t) {
     c.lineJoin = 'round'; c.lineCap = 'round';
     if (kind === 'castle') {
@@ -1782,6 +1913,11 @@ var Realm = (function () {
       c.fillStyle = '#cfd8e2'; c.strokeStyle = '#2b3a4a'; c.lineWidth = 1.2; c.beginPath(); c.rect(x - 0.17 * s, y - 0.95 * s, 0.34 * s, 1.45 * s); c.fill(); c.stroke();
       c.fillStyle = '#f5c25c'; c.beginPath(); c.rect(x - 0.2 * s, y - 0.4 * s, 0.4 * s, 0.13 * s); c.fill();
       var b = (t || 0) * TAU; disc(c, x + 0.55 * s * Math.cos(b), y + 0.15 * s + 0.12 * s * Math.sin(b), 0.11 * s, C.gold);
+    } else if (kind === 'soldiers') {
+      c.strokeStyle = 'rgba(242,245,248,0.6)'; c.lineWidth = 1.4;
+      [[-0.62, 0.2], [0, 0.55], [0.62, 0.2]].forEach(function (d) { c.beginPath(); c.moveTo(x, y - 0.42 * s); c.lineTo(x + d[0] * s, y + d[1] * s - 0.1 * s); c.stroke(); });
+      junctionBox(c, x, y - 0.5 * s, 0.42 * s);
+      [[-0.62, 0.32], [0, 0.66], [0.62, 0.32]].forEach(function (d, j) { trooper(c, x + d[0] * s, y + d[1] * s, 0.3 * s, j === 1 ? '#ff9a8a' : '#cfd8e2'); });
     } else if (kind === 'pen') {
       c.save(); c.beginPath(); c.arc(x, y, 0.75 * s, 0, TAU); c.clip();
       c.strokeStyle = 'rgba(230,233,238,0.5)'; c.lineWidth = 1;
@@ -1909,6 +2045,9 @@ var Realm = (function () {
       case 'beacon': disc(c, x - 5, y + 5, 3, C.gold); c.strokeStyle = C.gold; c.lineWidth = 1.4; [6, 11].forEach(function (rr) { c.beginPath(); c.arc(x - 5, y + 5, rr, -1.3, -0.1); c.stroke(); }); break;
       case 'doppler': c.strokeStyle = PALE; [[-10, 3, -2, -3], [0, -3, 9, 2]].forEach(function (a) { arrowPx(c, x + a[0], y + a[1], x + a[2], y + a[3], PALE, 1.5); }); break;
       case 'link': disc(c, x - 7, y, 4, C.gold); c.strokeStyle = 'rgba(242,245,248,0.6)'; c.lineWidth = 1.3; c.beginPath(); c.moveTo(x - 3, y); c.lineTo(x + 4, y - 6); c.moveTo(x - 3, y); c.lineTo(x + 4, y + 6); c.stroke(); c.fillStyle = C.blue; c.fillRect(x + 3, y - 9, 6, 6); c.fillRect(x + 3, y + 3, 6, 6); break;
+      case 'soldier': trooper(c, x, y + 2, 9); break;
+      case 'officer': trooper(c, x, y + 2, 9, '#f2c27a'); break;
+      case 'junction': junctionBox(c, x, y, 15, 'c', g.sans); break;
       case 'flag': c.strokeStyle = '#f2f5f8'; c.lineWidth = 1.8; c.beginPath(); c.moveTo(x - 4, y + 9); c.lineTo(x - 4, y - 9); c.stroke(); c.fillStyle = '#f7f3ea'; c.beginPath(); c.moveTo(x - 4, y - 9); c.lineTo(x + 8, y - 5); c.lineTo(x - 4, y - 1); c.closePath(); c.fill(); break;
       default: disc(c, x, y, 4, C.ink);
     }
@@ -2273,6 +2412,24 @@ var Realm = (function () {
       }
     } };
   };
+  // The soldier tutorial’s connected Tanner chain: six bits at three checks; bit 0 has the only wrong channel decision.
+  SCENES.soldierTree = function () {
+    var pos = { 0: [4, -1.2], 1: [-3.5, -1.2], 2: [-1, 0], 3: [0.35, 1.55], 4: [1.75, 0], 5: [4, 1.2] }, J = [[-2.3, 0], [0.35, 0], [2.85, 0]], L = [-0.6, 4, 0.8, -3, -0.8, -0.8], checks = [[1, 2], [2, 3, 4], [4, 5, 0]];
+    return { layout: 'map', view: [-5.2, 5.2, -2.7, 2.5], dur: 6.4, draw: function (g, p) {
+      var c = g.ctx, s = clamp(g.s * 0.33, 9, 18);
+      checks.forEach(function (ch, k) { ch.forEach(function (i, j) { g.line(pos[i], J[k], 'rgba(242,245,248,0.45)', 1.6, seg(p, 0.2 + 0.05 * j + 0.15 * k, 0.32 + 0.05 * j + 0.15 * k)); }); });
+      [0, 1, 2, 3, 4, 5].forEach(function (i, n) {
+        var q = seg(p, 0.02 + 0.04 * n, 0.14 + 0.04 * n); if (!(q > 0)) return; var a = g.P(pos[i]);
+        g.clip(g.mapR); c.globalAlpha = q; trooper(c, a[0], a[1], s * backOut(q), i === 0 ? '#ff9a8a' : '#cfd8e2'); c.globalAlpha = 1; c.restore();
+        g.labelPx(a[0], a[1] + 0.85 * s + 10, 'bit ' + i, i === 0 ? C.red : C.dim, { align: 'center', size: 11.5, plain: true, p: q });
+        g.label(pos[i], (L[i] >= 0 ? '+' : '−') + Math.abs(L[i]).toFixed(2), i === 0 ? C.red : C.gold, { dx: pos[i][0] < -2 ? -50 : pos[i][0] > 3 ? 50 : 0, dy: Math.abs(pos[i][0]) < 2 ? -34 : 0, align: 'center', size: 12, mono: true, p: seg(p, 0.45 + 0.04 * n, 0.55 + 0.04 * n) });
+      });
+      J.forEach(function (q, k) { var a = g.P(q), qq = seg(p, 0.3 + 0.1 * k, 0.42 + 0.1 * k); if (!(qq > 0)) return; g.clip(g.mapR); c.globalAlpha = qq; junctionBox(c, a[0], a[1], 1.3 * s, ['c₀', 'c₁', 'c₂'][k], g.sans); c.globalAlpha = 1; c.restore(); });
+      g.label(J[0], 'holds', C.blue, { dy: -34, align: 'center', size: 12, p: seg(p, 0.72, 0.86) });
+      g.label(J[1], 'holds', C.blue, { dy: 34, align: 'center', size: 12, p: seg(p, 0.76, 0.9) });
+      g.label(J[2], 'violated', C.red, { dy: -34, align: 'center', size: 12, p: seg(p, 0.8, 0.94) });
+    } };
+  };
   // The inspection dive: a monopile, seven photos round it, four look-alike headings, ranges and Doppler steps.
   SCENES.diveIntro = function () {
     var Rs = 1.62, heads = [40, 70, 100, 130, 160, 190, 220], bea = [2.45, 2.0], ranged = [0, 2, 3, 5];
@@ -2402,7 +2559,7 @@ var Realm = (function () {
           [[['wanderer', 'the Wanderer x'], ['knot', 'the shared knot positions p']], [['warden', 'the Warden z'], ['net', 'one copy per mesh rule']], [['book', 'the Warden’s book u'], ['book', 'one scaled dual per copy']], [['wall', 'the kingdom wall'], ['net', 'a parallelogram rule per mesh']]],
           'New here: binary twine states, robust weights and a verifying close-up.')] },
     // ---- from the receiver
-    { id: 'keep-light', from: 'keep', at: ['parity-polytope'], to: 'tutorial', land: 'light-patterns', sign: 'The smallest check, on a light board', hook: 'Three heroes downhill grows one even-parity check into nine lamps and six checks.', who: 'you', carry: ['one parity set'],
+    { id: 'keep-light', from: 'keep', at: ['parity-polytope'], to: 'tutorial', land: 'light-patterns', sign: 'The smallest check, on a light board', hook: 'Three heroes downhill grows one check that requires even parity into nine lamps and six checks.', who: 'you', carry: ['one parity set'],
       scenes: [M('From the receiver to the light board', 'When a parity set is new, a light board shows it with lamps before symbols. Two lamps pass when an even number is lit. Nine lamps with a check on every row and column make a small product code with the same replicas and scaled duals.'),
         K('What the parity set becomes', 'The tale uses lamps for bits and a glow for the received evidence. It holds the evidence fixed, as this page does.',
           [[['bit', 'bits b₁, b₂ in [0, 1]'], ['lamps2', 'two lamps, off (0) or on (1)']], [['check', 'the valid words 00 and 11'], ['lamps4', 'the patterns that pass']], [['wall', 'the line z₁ = z₂'], ['lamps2', 'every blend of 00 and 11']], [['book', 'a replica zₐ, a dual uₐ'], ['book', 'one replica per row or column']]],
@@ -2450,6 +2607,41 @@ var Realm = (function () {
         K('The receiver’s words in the game', 'Follow the Wanderer under View and press N to live one day; B works out the day step by step.',
           [[['bit', 'b in [0, 1]'], ['lamps2', 'x = 2b − 1 in [−1, +1]']], [['check', 'the parity set z₁ = z₂'], ['wall', 'the Warden’s line x₁ = x₂']], [['bit', 'the shared bits b'], ['wanderer', 'the Wanderer']], [['check', 'the check’s replica z'], ['warden', 'the Warden']]],
           'New here: a land with no channel, and lesson 7 of the trial on the light board.')] },
+    // ---- the counting soldiers: belief propagation beside CAJODE’s circuit
+    { id: 'light-soldiers', from: 'tutorial', at: ['light-replicas'], to: 'soldiers', land: 'count', who: 'you', carry: ['one replica per check'],
+      scenes: [M('From the light board to the soldiers', 'The light board ran the note-taking circuit on nine lamps. The soldier slides tell that circuit with soldiers and set beside it the BP soldier, from belief propagation (BP), whose junctions reply instead of projecting. Both decode one small tree and one loop.'),
+        S('soldierTree', {}, 'Six bits, three connected checks', 'Bits 2 and 4 join neighbouring checks into one open chain. Bit 0 has the only wrong channel decision, so c₂ is violated. BP and the CAJODE constraint circuit both decode it, by different mechanisms.'),
+        K('What the light board becomes', 'The lamps and checks keep their meaning; only the drawing changes. An LLR is a log-likelihood ratio.',
+          [[['lamp', 'a lamp'], ['soldier', 'a soldier']], [['checks', 'a row or column check'], ['junction', 'a junction']], [['glow', 'observed glow → channel LLR'], ['glow', 'received sample → channel LLR']], [['book', 'a replica vector z'], ['junction', 'a record vector']], [['book', 'an edge dual u'], ['book', 'a note per edge']]],
+          'New here: the BP soldier, whose junctions reply from the other soldiers.')] },
+    { id: 'soldiers-light', from: 'soldiers', at: ['keeps', 'carry'], to: 'tutorial', land: 'light-patterns', who: 'you', carry: ['records', 'notes'],
+      scenes: [M('From the soldiers to the light board', 'The soldiers decoded a connected tree with three parity checks. Three heroes downhill grows overlapping checks into nine lamps, where every lamp sits in a row check and a column check, and runs the same replicas and scaled duals on them.'),
+        S('lightBoard', {}, 'Nine lamps, six checks', 'Four picture lamps fill the upper-left square, and parity lamps complete every row and column. The centre lamp is one bit, tested by row R2 and by column C2.'),
+        K('What the soldiers become', 'The board holds its evidence fixed, as the soldiers did.',
+          [[['soldier', 'a soldier'], ['lamp', 'a lamp']], [['junction', 'a junction'], ['checks', 'a row or column check']], [['junction', 'a record'], ['book', 'a replica vector z']], [['book', 'a note per edge'], ['book', 'an edge dual u']]],
+          'New here: one lamp receives two corrections, one from its row and one from its column.')] },
+    { id: 'soldiers-twins', from: 'soldiers', at: ['notes1'], to: 'tutorial', land: 'wall-tw-without-ledger', who: 'you', carry: ['a note'],
+      scenes: [M('From the soldiers to the kingdom wall', 'A note adds up card minus record, circuit after circuit. Three heroes downhill meets the same number at the kingdom wall, where one Warden keeps one book of the Wanderer’s gaps.'),
+        K('Who is who at the wall', 'One junction with one record shrinks to one Warden on one wall.',
+          [[['soldier', 'a card b'], ['wanderer', 'the Wanderer x']], [['junction', 'a record z'], ['warden', 'the Warden z']], [['book', 'a note u'], ['book', 'the Warden’s book u']], [['check', 'a junction’s valid patterns'], ['wall', 'the kingdom wall']]],
+          'New here: the rope alone fails first, which is why the book is needed.')] },
+    { id: 'keep-soldiers', from: 'keep', at: ['separate-chain'], to: 'soldiers', land: 'count', who: 'you', carry: ['records', 'notes'],
+      scenes: [M('From the receiver to the soldiers', 'CAJODE calls no belief-propagation (BP) decoder. The soldier slides show what it does instead, on six soldiers. The BP soldier passes replies, and the note-taking soldier, CAJODE’s circuit with the channel known, keeps records and notes.'),
+        S('soldierTree', {}, 'Six bits, three connected checks', 'Bits 2 and 4 join neighbouring checks into one open chain. Bit 0 has the only wrong channel decision, so c₂ is violated. The tutorial decodes this tree first with BP, then with the CAJODE constraint circuit.'),
+        K('What the receiver becomes', 'The channel is known on these pages, so the officer’s map stays still until the last chapter.',
+          [[['bit', 'the shared bits b'], ['soldier', 'a card per soldier']], [['check', 'a replica vector z per check'], ['junction', 'a record vector per junction']], [['book', 'a scaled dual per edge'], ['book', 'a note per edge']], [['wall', 'a parity polytope'], ['junction', 'a junction’s valid patterns']], [['wave', 'the response C'], ['officer', 'the officer’s map']]],
+          'New here: the BP soldier, whose replies leave their recipient out.')] },
+    { id: 'soldiers-keep', from: 'soldiers', at: ['officer', 'carry'], to: 'keep', land: 'received-grid', who: 'you', carry: ['cards', 'records', 'notes'],
+      scenes: [M('From the soldiers to the receiver', 'The soldiers decoded with the officer’s map held still. The CAJODE tutorial restores the map: an orthogonal frequency-division multiplexing (OFDM) frame, pilots, and a response estimated inside every circuit.'),
+        S('receiverMini', {}, 'The receiver in miniature', MINI),
+        K('What the soldiers become', 'The records and notes keep their meaning; the cards now also fit the received samples.',
+          [[['soldier', 'a card per soldier'], ['bit', 'the shared bits b']], [['junction', 'a record vector per junction'], ['check', 'a replica vector z per check']], [['book', 'a note per edge'], ['book', 'a scaled dual per edge']], [['officer', 'the officer’s map'], ['wave', 'the response C']], [['glow', 'a received sample'], ['carrier', 'a carrier observation']]],
+          'New here: robust weights, and an exact channel solve inside each circuit.')] },
+    { id: 'soldiers-coach', from: 'soldiers', at: ['carry'], to: 'coach', land: 'curve', who: 'you', carry: ['cards', 'records', 'notes'],
+      scenes: [M('From the soldiers to the training ground', 'Strip the note-taking soldier to one card, one record and one note, and it can plan a training session. The Coach scores sessions, the Physio keeps four safety rules, and a log carries their disagreement.'),
+        K('What the soldiers become', 'Two numbers replace six soldiers, so every move can be drawn on one map.',
+          [[['soldier', 'a card per soldier'], ['coach', 'the plan x = (day, load)']], [['junction', 'a record per junction'], ['physio', 'the Physio’s copy z']], [['book', 'a note per edge'], ['book', 'the planning log u']], [['check', 'a junction’s valid patterns'], ['polygon', 'a polygon of safe plans']]],
+          'New here: a readiness curve that scores every session.')] },
     // ---- from the training plan
     { id: 'coach-twins', from: 'coach', at: ['without-ledger'], to: 'tutorial', land: 'wall-tw-without-ledger', sign: 'Where the tether and the log first appeared', hook: 'At the kingdom wall the Twins fail the same way without a book, then learn to aim past the Warden.', who: 'you', carry: ['the tether', 'the log'],
       scenes: [M('Back to the kingdom wall', 'The tether and the planning log come from a tale. At the kingdom wall the Wanderer and the Warden are tied by a rope and settle a fixed gap apart, as the Coach and the Physio do without the log. The next pages show the book and the aim it gives.'),
@@ -2471,6 +2663,13 @@ var Realm = (function () {
         K('The training ground’s words in the game', 'Press N to live one day and B to see its four moves worked out.',
           [[['coach', 'the Coach x'], ['wanderer', 'the Wanderer you can follow']], [['physio', 'the Physio z'], ['warden', 'the blue figure on the wall']], [['book', 'the planning log u'], ['book', 'the orange ledger arrow']], [['polygon', 'four safety rules'], ['wall', 'the square wall']]],
           'New here: a valley you can walk yourself, with your own staff.')] },
+    { id: 'coach-soldiers', from: 'coach', at: ['bridge'], to: 'soldiers', land: 'count', who: 'you', carry: ['the four moves'],
+      scenes: [M('From the training ground to the soldiers', 'The Coach and the Physio negotiated one plan under four rules. A decoder negotiates every bit under many parity checks. The soldier slides show it soldier by soldier, beside the BP soldier of belief propagation (BP), which decodes the same bits without a log.'),
+        S('oneToMany', { left: { title: 'one plan, one Physio', node: 'the plan (day, load)', sets: ['the four rules'] }, right: { title: 'one soldier, two junctions', node: 'soldier 0 on the loop', sets: ['junction c₀', 'junction c₂'] } },
+          'One copy per junction', 'One plan with one Physio and one log becomes a soldier at two junctions. Each junction keeps its own record of the soldier’s card, and each edge its own note.'),
+        K('What the training plan becomes', 'The moves are the same; the set is a junction’s valid patterns.',
+          [[['coach', 'the plan x'], ['soldier', 'a card per soldier']], [['physio', 'the Physio’s copy z'], ['junction', 'a record per junction']], [['book', 'the planning log u'], ['book', 'a note per edge']], [['polygon', 'four safety rules'], ['check', 'a junction’s valid patterns']]],
+          'New here: the BP soldier, which decodes the same bits by replies alone.')] },
     // ---- from the dive
     { id: 'dive-light', from: 'dive', at: ['analogy'], to: 'tutorial', land: 'light-patterns', sign: 'The exact rule behind the likeness', hook: 'A light board shows a parity check pruning patterns, then grows it into a code.', who: 'you', carry: ['four headings'],
       scenes: [M('From the monopile to the light board', 'The range band resembles a parity check. Three heroes downhill shows the exact rule with lamps: two lamps, four patterns, two that pass. Its next pages grow the check into nine lamps and connect it to CAJODE.'),
@@ -2563,17 +2762,17 @@ var Realm = (function () {
     continue: { label: 'Continue', head: 'Continue the lesson', cta: 'Continue the lesson →' },
     chooser:  { label: 'Where next', head: 'Choose what to learn next', cta: 'Open the next lesson →' }
   };
-  var PRIMARY_ROADS = ['tale-staff', 'tale-misty-game', 'game-canyon', 'game-wall', 'game-fort', 'game-misty', 'twins-coach', 'light-keep', 'tale-done', 'tale-dive', 'tale-net', 'keep-light-shared', 'keep-twins', 'keep-coach', 'keep-dive', 'keep-net', 'coach-twins', 'coach-dive', 'dive-light', 'dive-net-aliases', 'dive-keep', 'dive-net-next', 'net-misty-game', 'net-keep-copies', 'net-keep-circuit'];
-  var SECONDARY_ROADS = ['misty-net', 'keep-light', 'keep-net-robust', 'keep-net-blocks', 'keep-net-done', 'keep-fort-game', 'coach-wall-game', 'dive-twins', 'net-misty', 'net-twins'];
+  var PRIMARY_ROADS = ['tale-staff', 'tale-misty-game', 'game-canyon', 'game-wall', 'game-fort', 'game-misty', 'twins-coach', 'light-keep', 'tale-done', 'tale-dive', 'tale-net', 'keep-light-shared', 'keep-twins', 'keep-coach', 'keep-dive', 'keep-net', 'coach-twins', 'coach-dive', 'dive-light', 'dive-net-aliases', 'dive-keep', 'dive-net-next', 'net-misty-game', 'net-keep-copies', 'net-keep-circuit', 'light-soldiers', 'soldiers-light', 'soldiers-twins', 'keep-soldiers', 'soldiers-keep', 'soldiers-coach'];
+  var SECONDARY_ROADS = ['coach-soldiers', 'misty-net', 'keep-light', 'keep-net-robust', 'keep-net-blocks', 'keep-net-done', 'keep-fort-game', 'coach-wall-game', 'dive-twins', 'net-misty', 'net-twins'];
   var MAP_ROADS = ['tale-twins-game', 'game-ridge', 'coach-keep', 'dive-coach', 'net-keep-robust', 'net-keep-blocks', 'net-keep-done', 'net-dive-aliases'];
 
   var ROAD_ROLES = {
     practice: ['tale-staff', 'tale-misty-game', 'keep-fort-game', 'coach-wall-game', 'net-misty-game', 'tale-twins-game'],
     explain: ['game-canyon', 'game-wall', 'game-fort', 'game-misty', 'coach-twins', 'game-ridge'],
-    simplify: ['keep-light-shared', 'keep-twins', 'keep-light', 'dive-twins', 'net-misty', 'net-twins', 'dive-coach'],
-    apply: ['twins-coach', 'light-keep', 'dive-keep', 'coach-keep'],
-    compare: ['tale-done', 'coach-dive', 'dive-light', 'dive-net-aliases', 'net-keep-copies', 'net-keep-circuit', 'misty-net', 'keep-net-robust', 'keep-net-blocks', 'keep-net-done', 'net-keep-robust', 'net-keep-blocks', 'net-keep-done', 'net-dive-aliases'],
-    chooser: ['tale-dive', 'tale-net', 'keep-coach', 'keep-dive', 'keep-net', 'dive-net-next']
+    simplify: ['soldiers-twins', 'keep-light-shared', 'keep-twins', 'keep-light', 'dive-twins', 'net-misty', 'net-twins', 'dive-coach'],
+    apply: ['twins-coach', 'light-keep', 'dive-keep', 'coach-keep', 'soldiers-keep', 'soldiers-light'],
+    compare: ['light-soldiers', 'keep-soldiers', 'coach-soldiers', 'tale-done', 'coach-dive', 'dive-light', 'dive-net-aliases', 'net-keep-copies', 'net-keep-circuit', 'misty-net', 'keep-net-robust', 'keep-net-blocks', 'keep-net-done', 'net-keep-robust', 'net-keep-blocks', 'net-keep-done', 'net-dive-aliases'],
+    chooser: ['tale-dive', 'tale-net', 'keep-coach', 'keep-dive', 'keep-net', 'dive-net-next', 'soldiers-coach']
   };
 
   function listed(a, id) { return a.indexOf(id) >= 0; }
@@ -2581,6 +2780,35 @@ var Realm = (function () {
   function roleOf(id) { var keys = Object.keys(ROAD_ROLES); for (var j = 0; j < keys.length; j++) if (listed(ROAD_ROLES[keys[j]], id)) return keys[j]; return 'compare'; }
 
   var ROAD_COPY = {
+    'light-soldiers': {
+      sign: 'Compare BP replies with check replicas', hook: 'Six soldiers decode one tree twice: once by BP replies from the other soldiers, once by records and notes.', cta: 'Compare the two soldiers →',
+      same: 'Each check still keeps its own view of the bits it touches.', different: 'A BP reply leaves its recipient out; a record takes in every card, and a note keeps the disagreement.'
+    },
+    'keep-soldiers': {
+      sign: 'Compare CAJODE’s circuit with a BP decoder', hook: 'Six soldiers decode one tree twice: the BP soldier passes replies, and the note-taking soldier runs CAJODE’s circuit with records and notes.', cta: 'Compare the two soldiers →',
+      same: 'Both decode the same codeword from the same readings.', different: 'BP passes support from the other bits; CAJODE projects onto each check and keeps the disagreement.'
+    },
+    'soldiers-twins': {
+      sign: 'See a note as the Warden’s book', hook: 'At the kingdom wall one Warden keeps one book, and the rope fails without it.', cta: 'Watch the rope fail before the book →',
+      same: 'A note adds card minus record, as the book adds the Wanderer’s gap.', different: 'One wall and one copy replace three parity checks and eight edge notes.'
+    },
+    'soldiers-light': {
+      sign: 'See a soldier shared by two checks', hook: 'On nine lamps every bit sits in a row check and a column check, and each check keeps its own replica.', cta: 'Build the self-checking board →',
+      same: 'Records and notes keep their roles as replicas and scaled dual variables.', different: 'A 3 × 3 board replaces the tree, so every bit has two checks.',
+      offers: { carry: { role: 'chooser', badge: 'Overlapping checks', direct: true, order: 1, sign: 'Grow one check into a light board', hook: 'See every bit in two checks, each with its own replica and notes.', cta: 'Build the self-checking board →' } }
+    },
+    'soldiers-keep': {
+      sign: 'Follow the circuit inside an OFDM receiver', hook: 'Restore the officer’s map: an OFDM frame, pilots and a response estimated inside every circuit.', cta: 'Apply the circuit to CAJODE →',
+      same: 'Cards, records and notes keep their roles as bits, replicas and scaled dual variables.', different: 'The readings come from received samples through an estimated channel response.',
+      offers: { carry: { role: 'chooser', badge: 'Actual OFDM receiver', recommended: true, direct: true, order: 0, sign: 'Follow CAJODE from carriers to a candidate word', hook: 'Move from soldiers with a known channel to joint OFDM demodulation and decoding.', cta: 'Continue to the CAJODE receiver →' } }
+    },
+    'soldiers-coach': {
+      badge: 'Simplest ADMM recap', direct: true, order: 2, sign: 'Plan one safe training session', hook: 'See the same four moves with one visible day-and-load plan.', cta: 'Review the moves on a training plan →',
+      same: 'A card, a record and a note become the plan, the Physio’s copy and the log.', different: 'Two numbers replace six soldiers, and four safety rules replace the parity checks.'
+    },
+    'coach-soldiers': {
+      sign: 'See the four moves decode bits', hook: 'The note-taking soldier runs the four moves on six bits, beside a BP soldier that passes replies.', cta: 'See the moves on a decoder →'
+    },
     'tale-staff': {
       sign: 'Measure the slope yourself', hook: 'Tap four nearby points, build the gradient, then choose the downhill direction.', cta: 'Try the staff in the canyon →',
       same: 'Four height samples still form one gradient.', different: 'The worked numbers become measurements at the point where you stand.'
@@ -2599,7 +2827,7 @@ var Realm = (function () {
     },
     'game-fort': {
       sign: 'Grow one parity check into a light board', hook: 'Start with four two-lamp patterns, then see how overlapping row and column checks repair uncertain evidence.', cta: 'Build the self-checking board →',
-      same: 'The passing endpoints are still the even-parity patterns.', different: 'Nine lamps reveal why one bit can belong to several checks.'
+      same: 'The passing endpoints are still the patterns with even parity.', different: 'Nine lamps reveal why one bit can belong to several checks.'
     },
     'game-misty': {
       sign: 'Compare all three heroes in the hills', hook: 'The tutorial overlays their walks and shows why none can certify the deepest unseen pit.', cta: 'See the three walks together →',
@@ -2713,7 +2941,7 @@ var Realm = (function () {
   // the whole map, from wherever the reader stands
   function mapStep(here, onPage) {
     var lit = ROADS.filter(function (r) { return r.from === here || r.to === here; }).map(function (r) { return ORDER.indexOf(r.from) < ORDER.indexOf(r.to) ? r.from + '|' + r.to : r.to + '|' + r.from; });
-    var mine = ROADS.filter(function (r) { return r.from === here; }), html = 'Six places teach one set of moves. Three heroes find the lowest spot of a land in fog; the Twins add a law with two copies, a rope and a book. The same copies decode bits in CAJODE, plan a training session, tag photos at a monopile and find a tear in a net.<br><br>';
+    var mine = ROADS.filter(function (r) { return r.from === here; }), html = 'Seven places teach one set of moves. Three heroes find the lowest spot of a land in fog; the Twins add a law with two copies, a rope and a book. Counting soldiers set those copies beside belief propagation. The same copies decode bits in CAJODE, plan a training session, tag photos at a monopile and find a tear in a net.<br><br>';
     html += ORDER.map(function (k) { var P0 = PLACES[k]; return (k === here ? '<b>' + P0.name + '</b> (you are here)' : '<a href="' + P0.file + '" data-realm-go="1">' + P0.name + '</a>') + ', ' + P0.sub; }).join('<br>');
     if (mine.length) {
       function roadLine(r) {
@@ -2725,7 +2953,7 @@ var Realm = (function () {
       html += '<br><br><b>Concept roads from this page</b><br>' + main.map(roadLine).join('<br>');
       if (more.length) html += '<details class="realm-map-more"><summary>More comparisons</summary>' + more.map(roadLine).join('<br>') + '</details>';
     }
-    return { id: 'realm-map', chapter: 'The map of the King’s land', title: 'Six places, one set of moves', layout: 'map', view: MAP, dur: 4.4, text: html, math: '',
+    return { id: 'realm-map', chapter: 'The map of the King’s land', title: 'Seven places, one set of moves', layout: 'map', view: MAP, dur: 4.4, text: html, math: '',
              draw: function (g, p) { realmMap(g, { here: here, lit: lit, t: p, p: 1 }); } };
   }
 
