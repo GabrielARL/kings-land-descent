@@ -201,7 +201,7 @@ fieldset.predict p { margin: 7px 0 0; color: var(--muted); font-size: 14px; }
     'pilot-only': 'Two receiver pipelines end at the decoder and have no return arrow from decoder to channel estimation.',
     jade: 'The JADE pipeline has a return arrow carrying decoder extrinsic log-likelihood ratios into another receiver pass.',
     coral: 'The CORAL diagram shows channel coefficients and one relaxed scalar per coded bit updated in its joint loop.',
-    cajode: 'The CAJODE diagram adds local bit-variable copies for each parity check and scaled dual variables that track disagreement.',
+    cajode: 'The CAJODE diagram separates one objective function and its constraints, one ADMM iteration, and the checks applied after thresholding the bit variables. It has no arrow from a decoder back to the channel estimator.',
     cohorts: 'Two outlined groups show that the five receiver results come from two separate experimental cohorts.',
     missing: 'A receiver-by-channel coverage matrix uses hatching for missing results and text beneath it to give the missing reason.',
     common: 'The recording-hydrophone tiles with all five receivers are highlighted; hatched tiles are excluded from the five-way pooled comparison.',

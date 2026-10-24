@@ -171,7 +171,7 @@
     text: 'Belief propagation is a decoder component, while the five rows in the mechanism map are complete receiver routes. The first two estimate from pilots and then decode once. ' +
       'JADE returns extrinsic information from the decoder to the next pass that estimates the channel response and variables representing the coded bits. CORAL includes the code constraints as penalty terms while estimating those variables, without a separate decoder. CAJODE gives each parity check a constrained local copy and represents its disagreement with scaled dual variables. ' +
       'The next four pages unpack those differences before any performance curve appears.',
-    math: 'ask of each route: how is the response estimated?  where does the code enter?  what returns to the next update?',
+    math: 'ask of each route: how is the response estimated?  where does the code enter?  what computation repeats?',
     a11y: 'Receiver mechanism map. OFDM plus FEC uses pilot-assisted channel estimation, runs the belief-propagation decoder once and provides no feedback. Partial FFT plus FEC combines partial FFT outputs, then runs the belief-propagation decoder once and provides no feedback. JADE returns extrinsic information from the normalized min-sum decoder to another pass that estimates the channel response and variables representing the coded bits. CORAL estimates those variables with a penalty term formed from parity checks and no belief-propagation decoder. CAJODE projects a local copy of the bit variables for each parity check onto its parity polytope and updates scaled dual variables.',
     draw: function (g, p) {
       var R = g.sideR, narrow = R[2] < 560; g.panel(R, 'compare mechanisms before curves');
@@ -216,17 +216,18 @@
       }
     } });
 
-  out.push({ id: 'cajode', chapter: CH.rx, title: 'CAJODE: local copies and scaled dual variables', layout: 'side', dur: 7,
-    text: 'CAJODE, Code-Aided Joint OFDM Demodulation and Error Correction, estimates the channel response and variables representing the coded bits jointly. The alternating direction method of multipliers (ADMM) coordinates one constrained local copy of the bit variables for each parity check. Each edge between a parity check and one of its bit variables has a scaled dual variable. ' +
-      'One update computes one weight for each received sample, obtains a bit update by majorization–minimization, and recomputes the weights. It then solves exactly for the sparse channel estimate, projects the local copies onto parity polytopes, and updates the scaled dual variables. ' +
-      'After thresholding the shared bits, a candidate is accepted only if every parity check passes, the bits fixed by the configuration have the required values, and the cyclic redundancy check (CRC) passes. Acceptance is separate from convergence of the continuous variables. This table permits at most 50 updates.',
-    math: 'weights → bits → recomputed weights → channel → parity-polytope projections → scaled dual variables' + at(0.8, ';  candidate: parity + fixed bits + CRC'),
-    draw: function (g, p) {
-      var R = g.sideR, narrow = R[2] < 560; g.panel(R, 'one complete CAJODE update');
-      var y = P.pipeline(g, R, { title: 'CAJODE', col: RX.cajode.col, q: seg(p, 0, 0.8), y: R[1] + 44, perRow: narrow ? 2 : 3, h: narrow ? 46 : 70, rowGap: 60,
-        back: 'next update, at most 50 here', boxes: ['one weight per|received sample', 'majorization–|minimization|bit update', 'recompute|weights', 'solve for sparse|channel estimate', 'parity-polytope|projections', 'scaled dual|variables'] });
-      var q = seg(p, 0.8, 1); g.labelPx(R[0] + R[2] / 2, Math.min(R[1] + R[3] - 18, y + 10), 'accept candidate only after parity + fixed bits + CRC', C.gold, { size: narrow ? 10.8 : 12.5, align: 'center', p: q });
-    } });
+  out.push({ id: 'cajode', chapter: CH.rx, title: 'CAJODE: one objective function, one ADMM iteration', layout: 'side', dur: 8,
+    text: 'CAJODE, Code-Aided Joint OFDM Demodulation and Error Correction, does not run a belief-propagation decoder and feed its output back to a channel estimator. ' +
+      'Instead, it poses one constrained optimization problem over the channel response C, shared relaxed coded bits b, and a local copy z_a for each parity check. ' +
+      'Its objective function compares the received samples with samples predicted by C and b. As their residual energy grows, this term increases more slowly than squared error. ' +
+      'Other terms keep C near an estimate obtained from the pilots, discourage large differences across adjacent carriers and symbols, and use β Σ bᵢ(1−bᵢ) to pull b toward binary values. ' +
+      'The constraints keep b in [0,1], hold configured bits fixed, place each z_a in its parity polytope, and require z_a to agree with the corresponding entries of b. ' +
+      'One alternating direction method of multipliers (ADMM) iteration computes one weight per observation, updates b by majorization–minimization, recomputes those weights, solves the linear system for C, projects z, and updates the scaled dual variables u. ' +
+      'It is an ADMM iteration, not a decoder iteration. Afterward, the receiver thresholds b and accepts the resulting bits only when parity, configured bits, and cyclic redundancy check (CRC) checks all pass. ' +
+      'Passing those checks is separate from ADMM convergence; this table permits at most 50 ADMM iterations.',
+    math: 'min over C, b, {zₐ}  J(C,b),  subject to b ∈ [0,1]ⁿ, zₐ ∈ Pₐ and zₐ = b_N(a)' + at(0.55, ';  ADMM: one weight per observation → b → weights → C → z → u') + at(0.82, ';  then threshold b and check it'),
+    a11y: 'The CAJODE diagram has three separate regions. The first gives one constrained optimization problem and its objective function over the channel response, shared relaxed bits and local copies constrained to parity polytopes. The second shows one ADMM iteration: one weight per observation, a majorization–minimization bit update, recomputed weights, solving a linear system for the channel response, projections onto parity polytopes and updates of the scaled dual variables. This is not a decoder iteration, and there is no arrow from a decoder back to the channel estimator. The third region shows the parity, configured bits and CRC checks applied after thresholding b. Passing those checks is separate from ADMM convergence.',
+    draw: function (g, p) { P.cajodeSolver(g, g.sideR, { p: p, col: RX.cajode.col }); } });
 
   var coh = {}; D.receivers.forEach(function (r) { (coh[r.cohort] = coh[r.cohort] || []).push(r.id); });
   var replay = coh.four_receivers_red_replay || [], modern = coh.modern_r3_ber || [];

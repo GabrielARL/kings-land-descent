@@ -89,6 +89,8 @@ if (course) {
   check('every step draws at seven moments, at desktop and phone sizes, without an error (' + drawn + ' drawings)', drawn === steps.length * 7 * 2 && errs.length === 0, errs.slice(0, 3).join(' | '));
   function text(id) { var q = steps[ids.indexOf(id)]; return ((q && q.text || '') + ' ' + (q && q.math || '')).replace(/<[^>]*>/g, ''); }
   var all = steps.map(function (q) { return q.title + ' ' + text(q.id); }).join(' ');
+  var courseSrc = fs.readFileSync(path.join(__dirname, 'ber_course.js'), 'utf8'), ca = courseSrc.indexOf("id: 'cajode'"), cb = courseSrc.indexOf('var coh =', ca);
+  var cajodeStep = steps[ids.indexOf('cajode')], cajodeSrc = ca >= 0 && cb > ca ? courseSrc.slice(ca, cb) : '', cajodeCopy = text('cajode') + ' ' + (cajodeStep && cajodeStep.a11y || '');
 
   // the pages' statements, recomputed here from the CSV rows
   if (rows) {
@@ -120,7 +122,11 @@ if (course) {
     /a posteriori LLR/.test(text('jade')) && /extrinsic information/.test(text('jade')) && /normalized min-sum message-passing iterations/.test(text('jade')) && /hyperbolic tangent function/.test(text('jade')) &&
     /name, not an expanded acronym/.test(text('coral')) && /jcade_regularized_power/.test(text('coral')) && /modifies the parity component/.test(text('coral')) && /objective function decreases/.test(text('coral')) &&
     !/every update is a gradient step|changes it only by gradient steps|Coded One-scalar Relaxation/.test(text('coral')) &&
-    /weights → bits → recomputed weights → channel → parity-polytope projections → scaled dual variables/.test(text('cajode')) && /every parity check passes, the bits fixed by the configuration have the required values, and the cyclic redundancy check/.test(text('cajode')) && /at most 50 updates/.test(text('cajode')));
+    /ADMM: one weight per observation → b → weights → C → z → u/.test(text('cajode')) && /accepts the resulting bits only when parity, configured bits, and cyclic redundancy check/.test(text('cajode')) && /at most 50 ADMM iterations/.test(text('cajode')));
+  check('CAJODE separates its constrained problem, ADMM iteration and post-threshold checks',
+    /constrained optimization problem/.test(cajodeCopy) && /objective function/.test(cajodeCopy) && /ADMM iteration, not a decoder iteration/.test(cajodeCopy) && /checks applied after thresholding b/.test(cajodeCopy));
+  check('CAJODE is not rendered with the feedback-pipeline primitive', ca >= 0 && cb > ca && !/P\.pipeline\s*\(/.test(cajodeSrc) && !/\bback\s*:/.test(cajodeSrc));
+  check('the CAJODE accessible description preserves the three-part distinction', /objective function/.test(cajodeStep && cajodeStep.a11y || '') && /ADMM iteration/.test(cajodeStep && cajodeStep.a11y || '') && /checks applied after thresholding b/.test(cajodeStep && cajodeStep.a11y || '') && /no arrow from a decoder back to the channel estimator/.test(cajodeStep && cajodeStep.a11y || ''));
   check('the two cohorts and the common-coverage boundary are explicit', /authenticated four-receiver Red replay/.test(text('cohorts')) && /older jade_bp output/.test(text('cohorts')) && /newer R3 BER campaign/.test(text('cohorts')) &&
     /do not establish identical received samples, payloads, or noise draws/.test(text('cohorts')) && /common-coverage descriptive comparison/.test(text('common')) && /do not make the two cohorts a paired experiment/.test(text('common')));
   check('zero observations and missing results are stated without a false bound', /It is not a measured BER/.test(text('zero')) && /A missing result is never drawn as zero/.test(text('missing')) &&

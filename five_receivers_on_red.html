@@ -1318,6 +1318,75 @@ var Board = (function () {
     }
     return yb + 26;
   }
+
+  // CAJODE is one constrained optimization problem with an internal ADMM schedule.  It deliberately does not use
+  // pipeline(): a receiver-style return arrow would make the numerical iteration look like decoder feedback.
+  function cajodeSolver(g, R, o) {
+    o = o || {}; var c = g.ctx, p = o.p == null ? 1 : o.p, col = o.col || RX.cajode.col, narrow = R[2] < 560;
+    g.panel(R, narrow ? 'CAJODE: objective + ADMM iteration' : 'one objective function and one ADMM iteration');
+
+    var margin = narrow ? 11 : 14, x = R[0] + margin, w = R[2] - 2 * margin, top = R[1] + 36;
+    var oh = narrow ? 124 : 142, qo = seg(p, 0, 0.24);
+    c.save(); c.globalAlpha = qo; c.fillStyle = 'rgba(255,176,113,0.055)'; c.strokeStyle = col; c.lineWidth = 1.5;
+    c.beginPath(); rrect(c, x, top, w, oh, 9); c.fill(); c.stroke(); c.restore();
+    g.labelPx(x + 12, top + (narrow ? 14 : 16), 'ONE OBJECTIVE FUNCTION AND ITS CONSTRAINTS', col, { plain: true, size: narrow ? 10.5 : 12, p: qo });
+    g.labelPx(x + w / 2, top + (narrow ? 37 : 42), 'min over C, b, {zₐ}   J(C, b)', C.ink, { plain: true, size: narrow ? 14 : 17, align: 'center', p: qo });
+
+    if (narrow) {
+      g.labelPx(x + w / 2, top + 59, 'J: received ↔ predicted samples; C ↔ estimate from pilots', C.dim, { plain: true, size: 10.2, align: 'center', p: qo });
+      g.labelPx(x + w / 2, top + 75, '+ adjacent C differences + β Σ bᵢ(1−bᵢ)', C.dim, { plain: true, size: 10.2, align: 'center', p: qo });
+      g.labelPx(x + w / 2, top + 98, 'constraints: b ∈ [0,1]ⁿ; configured bits held', C.gold, { plain: true, size: 9.9, align: 'center', p: qo });
+      g.labelPx(x + w / 2, top + 115, 'zₐ ∈ Pₐ   and   zₐ = b_N(a)', C.gold, { plain: true, size: 9.9, align: 'center', p: qo });
+    } else {
+      var terms = ['received vs predicted', 'near estimate from pilots', 'adjacent carriers', 'adjacent symbols', 'β Σ bᵢ(1−bᵢ)'];
+      var tg = 7, tw = (w - 24 - tg * (terms.length - 1)) / terms.length, ty = top + 59, th = 27;
+      terms.forEach(function (term, i) {
+        var tx = x + 12 + i * (tw + tg); c.save(); c.globalAlpha = qo; c.fillStyle = 'rgba(255,255,255,0.045)'; c.strokeStyle = C.faint; c.lineWidth = 1;
+        c.beginPath(); rrect(c, tx, ty, tw, th, 6); c.fill(); c.stroke(); c.restore();
+        fitText(g, tx + tw / 2, ty + th / 2, term, C.dim, tw - 8, 10.5, qo);
+      });
+      g.labelPx(x + w / 2, top + 108, 'b ∈ [0,1]ⁿ; configured bits held; zₐ ∈ Pₐ; zₐ = b_N(a)', C.gold, { plain: true, size: 11.5, align: 'center', p: qo });
+      g.labelPx(x + w / 2, top + 128, 'C: channel response   b: shared relaxed bits   zₐ: check a’s local copy', C.dim, { plain: true, size: 10.8, align: 'center', p: qo });
+    }
+
+    var headingY = top + oh + (narrow ? 18 : 20), qh = seg(p, 0.2, 0.34);
+    g.labelPx(x, headingY, 'ONE ADMM ITERATION — NOT A DECODER ITERATION', col, { plain: true, size: narrow ? 10.5 : 12, p: qh });
+    var labels = ['1  one weight|per observation', '2  relaxed bits b|majorization–minimization', '3  recompute weights|after b moves',
+                  '4  channel response C|solve its linear system', '5  local copies zₐ|project onto Pₐ', '6  scaled duals uₐ|uₐ ← uₐ + b_N(a) − zₐ'];
+    var cols = narrow ? 2 : 3, gapX = narrow ? 12 : 16, gapY = narrow ? 7 : 13, bh = narrow ? 39 : 55;
+    var bw = (w - gapX * (cols - 1)) / cols, gridTop = headingY + (narrow ? 14 : 15);
+    var pos = labels.map(function (_, i) {
+      var row = Math.floor(i / cols), k = i % cols; if (row % 2) k = cols - 1 - k;
+      return [x + k * (bw + gapX), gridTop + row * (bh + gapY)];
+    });
+    labels.forEach(function (label, i) {
+      var qs = seg(p, 0.3 + 0.42 * i / labels.length, 0.3 + 0.42 * (i + 1) / labels.length), pt = pos[i]; if (!(qs > 0)) return;
+      c.save(); c.globalAlpha = qs; c.fillStyle = 'rgba(255,255,255,0.05)'; c.strokeStyle = col; c.lineWidth = 1.35;
+      c.beginPath(); rrect(c, pt[0], pt[1], bw, bh, 7); c.fill(); c.stroke(); c.restore();
+      fitText(g, pt[0] + bw / 2, pt[1] + bh / 2, label, C.ink, bw - 10, narrow ? 9.3 : 11, qs);
+      if (i) {
+        var prev = pos[i - 1], sameRow = Math.abs(prev[1] - pt[1]) < 1; c.save(); c.globalAlpha = qs;
+        if (sameRow) {
+          var dir = pt[0] > prev[0] ? 1 : -1;
+          g.arrowPx([dir > 0 ? prev[0] + bw + 2 : prev[0] - 2, prev[1] + bh / 2], [dir > 0 ? pt[0] - 2 : pt[0] + bw + 2, pt[1] + bh / 2], col, 1.35);
+        } else g.arrowPx([prev[0] + bw / 2, prev[1] + bh + 2], [pt[0] + bw / 2, pt[1] - 2], col, 1.35);
+        c.restore();
+      }
+    });
+
+    var rows = Math.ceil(labels.length / cols), gridBottom = gridTop + rows * bh + (rows - 1) * gapY, qstate = seg(p, 0.68, 0.82);
+    var sx = x + w * 0.34, ex = x + w * 0.66, stateY = gridBottom + (narrow ? 13 : 17);
+    g.labelPx(sx - 9, stateY, 'state k', C.dim, { plain: true, size: narrow ? 10 : 11, align: 'right', p: qstate });
+    c.save(); c.globalAlpha = qstate; g.arrowPx([sx, stateY], [ex, stateY], col, 1.35); c.restore();
+    g.labelPx(ex + 9, stateY, 'state k + 1', C.dim, { plain: true, size: narrow ? 10 : 11, p: qstate });
+
+    var ay = gridBottom + (narrow ? 28 : 34), ah = narrow ? 64 : 61, qa = seg(p, 0.8, 1);
+    c.save(); c.globalAlpha = qa; c.fillStyle = 'rgba(255,210,122,0.055)'; c.strokeStyle = C.gold; c.lineWidth = 1.35;
+    c.beginPath(); rrect(c, x, ay, w, ah, 8); c.fill(); c.stroke(); c.restore();
+    g.labelPx(x + 11, ay + 15, 'AFTER THE ITERATION: CHECK THE THRESHOLDED BITS', C.gold, { plain: true, size: narrow ? 9.7 : 11.5, p: qa });
+    g.labelPx(x + w / 2, ay + (narrow ? 34 : 35), 'threshold b → parity → configured fixed bits → CRC', C.ink, { plain: true, size: narrow ? 10.2 : 12, align: 'center', p: qa });
+    g.labelPx(x + w / 2, ay + (narrow ? 54 : 53), 'passing these checks ≠ ADMM convergence; at most 50 iterations here', C.dim, { plain: true, size: narrow ? 9.1 : 10.8, align: 'center', p: qa });
+  }
   // the largest bold size, from start down to 8, at which text fits maxW
   function fitSize(g, text, maxW, start) { var c = g.ctx, s = start; while (s > 8) { c.font = '600 ' + s + 'px ' + g.sans; if (c.measureText(text).width <= maxW) break; s -= 0.5; } return s; }
   // text centred at (x, y), shrunk until it fits maxW; two lines when it holds a '|'
@@ -1403,7 +1472,7 @@ var Board = (function () {
   }
 
   window.BerParts = { RX: RX, ORDER: ORDER, MISSING: MISSING, pow10: pow10, powPx: powPx, zeroArrow: zeroArrow, sci: sci, group: group, marker: marker, rxMarker: rxMarker, berPlot: berPlot, legend: legend,
-                      pipeline: pipeline, fitText: fitText, fitSize: fitSize, tiles: tiles, hatch: hatch, matrix: matrix, berColour: berColour, rrect: rrect };
+                      pipeline: pipeline, cajodeSolver: cajodeSolver, fitText: fitText, fitSize: fitSize, tiles: tiles, hatch: hatch, matrix: matrix, berColour: berColour, rrect: rrect };
 })();
 </script>
 <script>
@@ -1580,7 +1649,7 @@ var Board = (function () {
     text: 'Belief propagation is a decoder component, while the five rows in the mechanism map are complete receiver routes. The first two estimate from pilots and then decode once. ' +
       'JADE returns extrinsic information from the decoder to the next pass that estimates the channel response and variables representing the coded bits. CORAL includes the code constraints as penalty terms while estimating those variables, without a separate decoder. CAJODE gives each parity check a constrained local copy and represents its disagreement with scaled dual variables. ' +
       'The next four pages unpack those differences before any performance curve appears.',
-    math: 'ask of each route: how is the response estimated?  where does the code enter?  what returns to the next update?',
+    math: 'ask of each route: how is the response estimated?  where does the code enter?  what computation repeats?',
     a11y: 'Receiver mechanism map. OFDM plus FEC uses pilot-assisted channel estimation, runs the belief-propagation decoder once and provides no feedback. Partial FFT plus FEC combines partial FFT outputs, then runs the belief-propagation decoder once and provides no feedback. JADE returns extrinsic information from the normalized min-sum decoder to another pass that estimates the channel response and variables representing the coded bits. CORAL estimates those variables with a penalty term formed from parity checks and no belief-propagation decoder. CAJODE projects a local copy of the bit variables for each parity check onto its parity polytope and updates scaled dual variables.',
     draw: function (g, p) {
       var R = g.sideR, narrow = R[2] < 560; g.panel(R, 'compare mechanisms before curves');
@@ -1625,17 +1694,18 @@ var Board = (function () {
       }
     } });
 
-  out.push({ id: 'cajode', chapter: CH.rx, title: 'CAJODE: local copies and scaled dual variables', layout: 'side', dur: 7,
-    text: 'CAJODE, Code-Aided Joint OFDM Demodulation and Error Correction, estimates the channel response and variables representing the coded bits jointly. The alternating direction method of multipliers (ADMM) coordinates one constrained local copy of the bit variables for each parity check. Each edge between a parity check and one of its bit variables has a scaled dual variable. ' +
-      'One update computes one weight for each received sample, obtains a bit update by majorization–minimization, and recomputes the weights. It then solves exactly for the sparse channel estimate, projects the local copies onto parity polytopes, and updates the scaled dual variables. ' +
-      'After thresholding the shared bits, a candidate is accepted only if every parity check passes, the bits fixed by the configuration have the required values, and the cyclic redundancy check (CRC) passes. Acceptance is separate from convergence of the continuous variables. This table permits at most 50 updates.',
-    math: 'weights → bits → recomputed weights → channel → parity-polytope projections → scaled dual variables' + at(0.8, ';  candidate: parity + fixed bits + CRC'),
-    draw: function (g, p) {
-      var R = g.sideR, narrow = R[2] < 560; g.panel(R, 'one complete CAJODE update');
-      var y = P.pipeline(g, R, { title: 'CAJODE', col: RX.cajode.col, q: seg(p, 0, 0.8), y: R[1] + 44, perRow: narrow ? 2 : 3, h: narrow ? 46 : 70, rowGap: 60,
-        back: 'next update, at most 50 here', boxes: ['one weight per|received sample', 'majorization–|minimization|bit update', 'recompute|weights', 'solve for sparse|channel estimate', 'parity-polytope|projections', 'scaled dual|variables'] });
-      var q = seg(p, 0.8, 1); g.labelPx(R[0] + R[2] / 2, Math.min(R[1] + R[3] - 18, y + 10), 'accept candidate only after parity + fixed bits + CRC', C.gold, { size: narrow ? 10.8 : 12.5, align: 'center', p: q });
-    } });
+  out.push({ id: 'cajode', chapter: CH.rx, title: 'CAJODE: one objective function, one ADMM iteration', layout: 'side', dur: 8,
+    text: 'CAJODE, Code-Aided Joint OFDM Demodulation and Error Correction, does not run a belief-propagation decoder and feed its output back to a channel estimator. ' +
+      'Instead, it poses one constrained optimization problem over the channel response C, shared relaxed coded bits b, and a local copy z_a for each parity check. ' +
+      'Its objective function compares the received samples with samples predicted by C and b. As their residual energy grows, this term increases more slowly than squared error. ' +
+      'Other terms keep C near an estimate obtained from the pilots, discourage large differences across adjacent carriers and symbols, and use β Σ bᵢ(1−bᵢ) to pull b toward binary values. ' +
+      'The constraints keep b in [0,1], hold configured bits fixed, place each z_a in its parity polytope, and require z_a to agree with the corresponding entries of b. ' +
+      'One alternating direction method of multipliers (ADMM) iteration computes one weight per observation, updates b by majorization–minimization, recomputes those weights, solves the linear system for C, projects z, and updates the scaled dual variables u. ' +
+      'It is an ADMM iteration, not a decoder iteration. Afterward, the receiver thresholds b and accepts the resulting bits only when parity, configured bits, and cyclic redundancy check (CRC) checks all pass. ' +
+      'Passing those checks is separate from ADMM convergence; this table permits at most 50 ADMM iterations.',
+    math: 'min over C, b, {zₐ}  J(C,b),  subject to b ∈ [0,1]ⁿ, zₐ ∈ Pₐ and zₐ = b_N(a)' + at(0.55, ';  ADMM: one weight per observation → b → weights → C → z → u') + at(0.82, ';  then threshold b and check it'),
+    a11y: 'The CAJODE diagram has three separate regions. The first gives one constrained optimization problem and its objective function over the channel response, shared relaxed bits and local copies constrained to parity polytopes. The second shows one ADMM iteration: one weight per observation, a majorization–minimization bit update, recomputed weights, solving a linear system for the channel response, projections onto parity polytopes and updates of the scaled dual variables. This is not a decoder iteration, and there is no arrow from a decoder back to the channel estimator. The third region shows the parity, configured bits and CRC checks applied after thresholding b. Passing those checks is separate from ADMM convergence.',
+    draw: function (g, p) { P.cajodeSolver(g, g.sideR, { p: p, col: RX.cajode.col }); } });
 
   var coh = {}; D.receivers.forEach(function (r) { (coh[r.cohort] = coh[r.cohort] || []).push(r.id); });
   var replay = coh.four_receivers_red_replay || [], modern = coh.modern_r3_ber || [];
@@ -3418,7 +3488,7 @@ var Realm = (function () {
     'pilot-only': 'Two receiver pipelines end at the decoder and have no return arrow from decoder to channel estimation.',
     jade: 'The JADE pipeline has a return arrow carrying decoder extrinsic log-likelihood ratios into another receiver pass.',
     coral: 'The CORAL diagram shows channel coefficients and one relaxed scalar per coded bit updated in its joint loop.',
-    cajode: 'The CAJODE diagram adds local bit-variable copies for each parity check and scaled dual variables that track disagreement.',
+    cajode: 'The CAJODE diagram separates one objective function and its constraints, one ADMM iteration, and the checks applied after thresholding the bit variables. It has no arrow from a decoder back to the channel estimator.',
     cohorts: 'Two outlined groups show that the five receiver results come from two separate experimental cohorts.',
     missing: 'A receiver-by-channel coverage matrix uses hatching for missing results and text beneath it to give the missing reason.',
     common: 'The recording-hydrophone tiles with all five receivers are highlighted; hatched tiles are excluded from the five-way pooled comparison.',

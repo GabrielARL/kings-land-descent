@@ -164,6 +164,75 @@
     }
     return yb + 26;
   }
+
+  // CAJODE is one constrained optimization problem with an internal ADMM schedule.  It deliberately does not use
+  // pipeline(): a receiver-style return arrow would make the numerical iteration look like decoder feedback.
+  function cajodeSolver(g, R, o) {
+    o = o || {}; var c = g.ctx, p = o.p == null ? 1 : o.p, col = o.col || RX.cajode.col, narrow = R[2] < 560;
+    g.panel(R, narrow ? 'CAJODE: objective + ADMM iteration' : 'one objective function and one ADMM iteration');
+
+    var margin = narrow ? 11 : 14, x = R[0] + margin, w = R[2] - 2 * margin, top = R[1] + 36;
+    var oh = narrow ? 124 : 142, qo = seg(p, 0, 0.24);
+    c.save(); c.globalAlpha = qo; c.fillStyle = 'rgba(255,176,113,0.055)'; c.strokeStyle = col; c.lineWidth = 1.5;
+    c.beginPath(); rrect(c, x, top, w, oh, 9); c.fill(); c.stroke(); c.restore();
+    g.labelPx(x + 12, top + (narrow ? 14 : 16), 'ONE OBJECTIVE FUNCTION AND ITS CONSTRAINTS', col, { plain: true, size: narrow ? 10.5 : 12, p: qo });
+    g.labelPx(x + w / 2, top + (narrow ? 37 : 42), 'min over C, b, {zₐ}   J(C, b)', C.ink, { plain: true, size: narrow ? 14 : 17, align: 'center', p: qo });
+
+    if (narrow) {
+      g.labelPx(x + w / 2, top + 59, 'J: received ↔ predicted samples; C ↔ estimate from pilots', C.dim, { plain: true, size: 10.2, align: 'center', p: qo });
+      g.labelPx(x + w / 2, top + 75, '+ adjacent C differences + β Σ bᵢ(1−bᵢ)', C.dim, { plain: true, size: 10.2, align: 'center', p: qo });
+      g.labelPx(x + w / 2, top + 98, 'constraints: b ∈ [0,1]ⁿ; configured bits held', C.gold, { plain: true, size: 9.9, align: 'center', p: qo });
+      g.labelPx(x + w / 2, top + 115, 'zₐ ∈ Pₐ   and   zₐ = b_N(a)', C.gold, { plain: true, size: 9.9, align: 'center', p: qo });
+    } else {
+      var terms = ['received vs predicted', 'near estimate from pilots', 'adjacent carriers', 'adjacent symbols', 'β Σ bᵢ(1−bᵢ)'];
+      var tg = 7, tw = (w - 24 - tg * (terms.length - 1)) / terms.length, ty = top + 59, th = 27;
+      terms.forEach(function (term, i) {
+        var tx = x + 12 + i * (tw + tg); c.save(); c.globalAlpha = qo; c.fillStyle = 'rgba(255,255,255,0.045)'; c.strokeStyle = C.faint; c.lineWidth = 1;
+        c.beginPath(); rrect(c, tx, ty, tw, th, 6); c.fill(); c.stroke(); c.restore();
+        fitText(g, tx + tw / 2, ty + th / 2, term, C.dim, tw - 8, 10.5, qo);
+      });
+      g.labelPx(x + w / 2, top + 108, 'b ∈ [0,1]ⁿ; configured bits held; zₐ ∈ Pₐ; zₐ = b_N(a)', C.gold, { plain: true, size: 11.5, align: 'center', p: qo });
+      g.labelPx(x + w / 2, top + 128, 'C: channel response   b: shared relaxed bits   zₐ: check a’s local copy', C.dim, { plain: true, size: 10.8, align: 'center', p: qo });
+    }
+
+    var headingY = top + oh + (narrow ? 18 : 20), qh = seg(p, 0.2, 0.34);
+    g.labelPx(x, headingY, 'ONE ADMM ITERATION — NOT A DECODER ITERATION', col, { plain: true, size: narrow ? 10.5 : 12, p: qh });
+    var labels = ['1  one weight|per observation', '2  relaxed bits b|majorization–minimization', '3  recompute weights|after b moves',
+                  '4  channel response C|solve its linear system', '5  local copies zₐ|project onto Pₐ', '6  scaled duals uₐ|uₐ ← uₐ + b_N(a) − zₐ'];
+    var cols = narrow ? 2 : 3, gapX = narrow ? 12 : 16, gapY = narrow ? 7 : 13, bh = narrow ? 39 : 55;
+    var bw = (w - gapX * (cols - 1)) / cols, gridTop = headingY + (narrow ? 14 : 15);
+    var pos = labels.map(function (_, i) {
+      var row = Math.floor(i / cols), k = i % cols; if (row % 2) k = cols - 1 - k;
+      return [x + k * (bw + gapX), gridTop + row * (bh + gapY)];
+    });
+    labels.forEach(function (label, i) {
+      var qs = seg(p, 0.3 + 0.42 * i / labels.length, 0.3 + 0.42 * (i + 1) / labels.length), pt = pos[i]; if (!(qs > 0)) return;
+      c.save(); c.globalAlpha = qs; c.fillStyle = 'rgba(255,255,255,0.05)'; c.strokeStyle = col; c.lineWidth = 1.35;
+      c.beginPath(); rrect(c, pt[0], pt[1], bw, bh, 7); c.fill(); c.stroke(); c.restore();
+      fitText(g, pt[0] + bw / 2, pt[1] + bh / 2, label, C.ink, bw - 10, narrow ? 9.3 : 11, qs);
+      if (i) {
+        var prev = pos[i - 1], sameRow = Math.abs(prev[1] - pt[1]) < 1; c.save(); c.globalAlpha = qs;
+        if (sameRow) {
+          var dir = pt[0] > prev[0] ? 1 : -1;
+          g.arrowPx([dir > 0 ? prev[0] + bw + 2 : prev[0] - 2, prev[1] + bh / 2], [dir > 0 ? pt[0] - 2 : pt[0] + bw + 2, pt[1] + bh / 2], col, 1.35);
+        } else g.arrowPx([prev[0] + bw / 2, prev[1] + bh + 2], [pt[0] + bw / 2, pt[1] - 2], col, 1.35);
+        c.restore();
+      }
+    });
+
+    var rows = Math.ceil(labels.length / cols), gridBottom = gridTop + rows * bh + (rows - 1) * gapY, qstate = seg(p, 0.68, 0.82);
+    var sx = x + w * 0.34, ex = x + w * 0.66, stateY = gridBottom + (narrow ? 13 : 17);
+    g.labelPx(sx - 9, stateY, 'state k', C.dim, { plain: true, size: narrow ? 10 : 11, align: 'right', p: qstate });
+    c.save(); c.globalAlpha = qstate; g.arrowPx([sx, stateY], [ex, stateY], col, 1.35); c.restore();
+    g.labelPx(ex + 9, stateY, 'state k + 1', C.dim, { plain: true, size: narrow ? 10 : 11, p: qstate });
+
+    var ay = gridBottom + (narrow ? 28 : 34), ah = narrow ? 64 : 61, qa = seg(p, 0.8, 1);
+    c.save(); c.globalAlpha = qa; c.fillStyle = 'rgba(255,210,122,0.055)'; c.strokeStyle = C.gold; c.lineWidth = 1.35;
+    c.beginPath(); rrect(c, x, ay, w, ah, 8); c.fill(); c.stroke(); c.restore();
+    g.labelPx(x + 11, ay + 15, 'AFTER THE ITERATION: CHECK THE THRESHOLDED BITS', C.gold, { plain: true, size: narrow ? 9.7 : 11.5, p: qa });
+    g.labelPx(x + w / 2, ay + (narrow ? 34 : 35), 'threshold b → parity → configured fixed bits → CRC', C.ink, { plain: true, size: narrow ? 10.2 : 12, align: 'center', p: qa });
+    g.labelPx(x + w / 2, ay + (narrow ? 54 : 53), 'passing these checks ≠ ADMM convergence; at most 50 iterations here', C.dim, { plain: true, size: narrow ? 9.1 : 10.8, align: 'center', p: qa });
+  }
   // the largest bold size, from start down to 8, at which text fits maxW
   function fitSize(g, text, maxW, start) { var c = g.ctx, s = start; while (s > 8) { c.font = '600 ' + s + 'px ' + g.sans; if (c.measureText(text).width <= maxW) break; s -= 0.5; } return s; }
   // text centred at (x, y), shrunk until it fits maxW; two lines when it holds a '|'
@@ -249,5 +318,5 @@
   }
 
   window.BerParts = { RX: RX, ORDER: ORDER, MISSING: MISSING, pow10: pow10, powPx: powPx, zeroArrow: zeroArrow, sci: sci, group: group, marker: marker, rxMarker: rxMarker, berPlot: berPlot, legend: legend,
-                      pipeline: pipeline, fitText: fitText, fitSize: fitSize, tiles: tiles, hatch: hatch, matrix: matrix, berColour: berColour, rrect: rrect };
+                      pipeline: pipeline, cajodeSolver: cajodeSolver, fitText: fitText, fitSize: fitSize, tiles: tiles, hatch: hatch, matrix: matrix, berColour: berColour, rrect: rrect };
 })();
