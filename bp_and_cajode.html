@@ -1625,7 +1625,7 @@ var SoldierParts = (function () {
   function recordTag(g, k, z, p) { g.label(TJ[k], 'replica z', RECORD, { dy: k === 1 ? -34 : 34, align: 'center', size: 11.5, p: p }); }
   function noteTags(g, u, p) { T.checks.forEach(function (c, k) { c.forEach(function (i, j) { g.dot(lerp2(TJ[k], TP[i], 0.55), 3.5 + 4 * Math.min(1, Math.abs(u[k][j]) / 0.4), P.NOTE, p); }); }); }
   out.push({ id: 'cast', chapter: CH.nt, title: 'Three kinds of optimization variable, with clear owners', layout: 'map+side', view: TREEV, dur: 6,
-    text: 'SAPPHIRE is the project’s joint OFDM data-detection and error-correction receiver. It uses the alternating direction method of multipliers (ADMM) to solve one constrained optimization problem, rather than exchanging feedback between separate detector and decoder modules. Here the channel is frozen, leaving the part we call its constraint circuit. Each bit owns one relaxed bit variable b(i) between 0 and 1. Each check owns one replica variable z(a,i) for every incident bit and keeps that vector inside its parity polytope. Each check–bit edge owns one scaled dual variable u(a,i), which accumulates continuous disagreement b(i)−z(a,i). The drawings call z a record and u a note. These are optimization variables, not BP beliefs or BP messages.',
+    text: 'SAPPHIRE is the project’s OFDM receiver for joint detection and decoding. It uses the alternating direction method of multipliers (ADMM) to solve one constrained optimization problem, rather than exchanging feedback between separate detector and decoder modules. Here the channel is frozen, leaving the part we call its constraint circuit. Each bit owns one relaxed bit variable b(i) between 0 and 1. Each check owns one replica variable z(a,i) for every incident bit and keeps that vector inside its parity polytope. Each check–bit edge owns one scaled dual variable u(a,i), which accumulates continuous disagreement b(i)−z(a,i). The drawings call z a record and u a note. These are optimization variables, not BP beliefs or BP messages.',
     math: 'bit i: b(i) ∈ [0,1];  check a: z(a) ∈ parity polytope;  edge (a,i): scaled dual u(a,i)',
     draw: function (g, p) {
       treeComic(g, { tags: cardTags(H0.b), tagCols: cardCols(H0.b, T.sent), wrong: wrongCards(H0.b, T.sent) });
@@ -1980,7 +1980,7 @@ var Realm = (function () {
     game:     { file: 'index.html', name: 'King’s Land Descent', bar: 'The game', sub: 'walk the land yourself', q: [1.7, 3.95], icon: 'flag' },
     tutorial: { file: 'tutorial.html', name: 'Three heroes downhill', bar: 'Three heroes downhill', sub: 'gradient descent, L-BFGS, ADMM', q: [3.6, 6.15], icon: 'castle' },
     soldiers: { file: 'bp_and_cajode.html', name: 'Counting soldiers', bar: 'BP and SAPPHIRE', sub: 'belief propagation and SAPPHIRE', q: [1.25, 7.0], icon: 'soldiers' },
-    keep:     { file: 'jade_keep_tutorial.html', name: 'SAPPHIRE', bar: 'SAPPHIRE receiver', sub: 'joint OFDM data detection and decoding', q: [9.55, 6.3], icon: 'keep' },
+    keep:     { file: 'jade_keep_tutorial.html', name: 'SAPPHIRE', bar: 'SAPPHIRE receiver', sub: 'joint detection and decoding', q: [9.55, 6.3], icon: 'keep' },
     coach:    { file: 'the_coach_and_the_physio.html', name: 'The Coach and the Physio', bar: 'Coach and Physio', sub: 'a training plan', q: [4.75, 2.15], icon: 'track' },
     dive:     { file: 'localization_is_decoding.html', name: 'The inspection dive', bar: 'Inspection dive', sub: 'localization at a monopile', q: [7.55, 3.15], icon: 'pile' },
     net:      { file: 'finding_the_tear.html', name: 'Finding the tear', bar: 'Finding the tear', sub: 'a fish-farm net', q: [10.45, 1.95], icon: 'pen' },
@@ -2991,7 +2991,7 @@ var Realm = (function () {
     'soldiers-keep': {
       sign: 'Follow the circuit inside an OFDM receiver', hook: 'Restore the officer’s map: an OFDM frame, pilots and a response estimated inside every circuit.', cta: 'Apply the circuit to SAPPHIRE →',
       same: 'Cards, records and notes keep their roles as bits, replicas and scaled dual variables.', different: 'The readings come from received samples through an estimated channel response.',
-      offers: { carry: { role: 'chooser', badge: 'Actual OFDM receiver', recommended: true, direct: true, order: 0, sign: 'Follow SAPPHIRE from carriers to a candidate word', hook: 'Move from soldiers with a known channel to joint OFDM data detection and decoding.', cta: 'Continue to the SAPPHIRE receiver →' } }
+      offers: { carry: { role: 'chooser', badge: 'Actual OFDM receiver', recommended: true, direct: true, order: 0, sign: 'Follow SAPPHIRE from carriers to a candidate word', hook: 'Move from soldiers with a known channel to joint detection and decoding in the OFDM receiver.', cta: 'Continue to the SAPPHIRE receiver →' } }
     },
     'soldiers-coach': {
       badge: 'Simplest ADMM recap', direct: true, order: 2, sign: 'Plan one safe training session', hook: 'See the same four moves with one visible day-and-load plan.', cta: 'Review the moves on a training plan →',
@@ -3032,7 +3032,7 @@ var Realm = (function () {
     'light-keep': {
       sign: 'Put the light board inside an OFDM receiver', hook: 'Trace how post-FFT carrier observations, pilots, the channel response and coded bits create the evidence constrained by the checks.', cta: 'Apply the checks to SAPPHIRE →',
       same: 'Shared bits, per-check replicas and scaled dual variables keep the same roles.', different: 'The glows now come from received samples through an estimated channel response.',
-      offers: { end: { role: 'chooser', badge: 'Actual OFDM receiver', direct: true, order: 1, sign: 'Follow SAPPHIRE from carriers to a candidate word', hook: 'Move from the light-board abstraction to joint OFDM data detection and decoding.', cta: 'Continue to the SAPPHIRE receiver →' } }
+      offers: { end: { role: 'chooser', badge: 'Actual OFDM receiver', direct: true, order: 1, sign: 'Follow SAPPHIRE from carriers to a candidate word', hook: 'Move from the light-board abstraction to joint detection and decoding in the OFDM receiver.', cta: 'Continue to the SAPPHIRE receiver →' } }
     },
     'tale-done': {
       sign: 'Compare the receiver’s three milestones', hook: 'A candidate can match before replica agreement and before the full toy state settles.', cta: 'See the numerical timeline →',

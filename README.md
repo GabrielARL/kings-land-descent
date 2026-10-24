@@ -8,7 +8,7 @@ The eight pages are joined by concept roads. Thirty-three lesson-relevant roads 
 
 - [Play King's Land Descent](https://gabrielarl.github.io/kings-land-descent/)
 - [Open the guided tutorial](https://gabrielarl.github.io/kings-land-descent/tutorial.html)
-- [Learn SAPPHIRE joint OFDM data detection and error-correction decoding](https://gabrielarl.github.io/kings-land-descent/jade_keep_tutorial.html)
+- [Learn how SAPPHIRE combines detection and decoding in an OFDM receiver](https://gabrielarl.github.io/kings-land-descent/jade_keep_tutorial.html)
 - [Compare the BP protocol with the SAPPHIRE constraint circuit](https://gabrielarl.github.io/kings-land-descent/bp_and_cajode.html)
 - [Plan a training session with the Coach and the Physio](https://gabrielarl.github.io/kings-land-descent/the_coach_and_the_physio.html)
 - [Localize an inspection dive](https://gabrielarl.github.io/kings-land-descent/localization_is_decoding.html)
@@ -56,8 +56,6 @@ The first suite checks the terrain and optimization engine. The second protects 
 On “Nearest is not lowest,” the same two lawful points are now ranked by both questions. The Warden chooses Π<sub>C</sub>(x̂) because 0.450 < 0.504 in distance from x̂; the King chooses x* because 0.131 < 0.329 in height J. A probe moves down their shared wall before a circle and an equal-height ellipse show why the two questions have different answers.
 
 The `light-replicas` step now begins with the overlap that requires replicas: the shared bit b₅ belongs to both R2 and C2, so each check needs a separate local vector while equality constraints reconnect those vectors to the shared decision. Its animation follows b₅ into both replicas, forms q = b + u, and projects q = (1, 1, 1) to the fractional point (⅔, ⅔, ⅔), shown as an equal blend of three passing rows.
-
-On “Nearest is not lowest,” the same two lawful points are ranked by both questions. The Warden chooses Π<sub>C</sub>(c) because 0.450 < 0.504 in distance from c; the King chooses x* because 0.131 < 0.329 in height J. A probe moves down their shared wall before a circle and an equal-height ellipse show why the two questions have different answers.
 
 ## Repository contents
 

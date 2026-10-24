@@ -2626,8 +2626,8 @@ var KeepParts = (function () {
     text: 'A conventional receiver estimates the channel from pilots, applies an equalizer or combiner, forms decoder inputs, and then decodes. That modular chain is useful, but information normally travels only forward: a later code constraint cannot revise an earlier channel fit. If a Partial-FFT front end is used, reducing its views to one scalar at this stage is also an irreversible compression.',
     math: 'pilots → channel estimate → equalize/combine → decoder inputs → decoded word',
     draw: function (g, p) { P.receiverFlow(g, g.sideR, { p: p, title: 'one-way conventional receiver chain', mode: 'conventional', conventional: ['received samples', 'pilot channel estimate', 'equalize / combine', 'decoder inputs', 'hard bits'] }); } });
-  out.push({ id: 'joint-loop', chapter: CH.observations, title: 'What joint data detection and decoding means here', layout: 'side', dur: 6,
-    text: 'SAPPHIRE keeps the standard post-FFT carrier observations inside one objective and alternates between two unknown blocks. That is the joint data-detection and error-correction decoding message here: pilots anchor the channel/ICI response, while code constraints restrict the coded bits. The two sources of structure cooperate through the banded observation model, but neither replaces the other: parity checks do not turn unknown data into pilots, and pilots do not enforce a valid codeword.',
+  out.push({ id: 'joint-loop', chapter: CH.observations, title: 'What joint detection and decoding means here', layout: 'side', dur: 6,
+    text: 'SAPPHIRE keeps the standard post-FFT carrier observations inside one objective and alternates between two unknown blocks. That is how joint detection and decoding works here: pilots anchor the channel/ICI response, while code constraints restrict the coded bits. The two sources of structure cooperate through the banded observation model, but neither replaces the other: parity checks do not turn unknown data into pilots, and pilots do not enforce a valid codeword.',
     math: 'post-FFT y<sub>s,k</sub> ← prediction C·s(b);  pilots constrain C;  parity checks constrain b',
     draw: function (g, p) { P.receiverFlow(g, g.sideR, { p: p, title: 'joint OFDM receiver flow', mode: 'joint', joint: ['post-FFT carrier observations', 'joint fit of C and b', 'parity-constrained updates', 'parity / fixed-bit / CRC test'], showSupports: true }); } });
 
@@ -2797,7 +2797,7 @@ var Realm = (function () {
     game:     { file: 'index.html', name: 'King’s Land Descent', bar: 'The game', sub: 'walk the land yourself', q: [1.7, 3.95], icon: 'flag' },
     tutorial: { file: 'tutorial.html', name: 'Three heroes downhill', bar: 'Three heroes downhill', sub: 'gradient descent, L-BFGS, ADMM', q: [3.6, 6.15], icon: 'castle' },
     soldiers: { file: 'bp_and_cajode.html', name: 'Counting soldiers', bar: 'BP and SAPPHIRE', sub: 'belief propagation and SAPPHIRE', q: [1.25, 7.0], icon: 'soldiers' },
-    keep:     { file: 'jade_keep_tutorial.html', name: 'SAPPHIRE', bar: 'SAPPHIRE receiver', sub: 'joint OFDM data detection and decoding', q: [9.55, 6.3], icon: 'keep' },
+    keep:     { file: 'jade_keep_tutorial.html', name: 'SAPPHIRE', bar: 'SAPPHIRE receiver', sub: 'joint detection and decoding', q: [9.55, 6.3], icon: 'keep' },
     coach:    { file: 'the_coach_and_the_physio.html', name: 'The Coach and the Physio', bar: 'Coach and Physio', sub: 'a training plan', q: [4.75, 2.15], icon: 'track' },
     dive:     { file: 'localization_is_decoding.html', name: 'The inspection dive', bar: 'Inspection dive', sub: 'localization at a monopile', q: [7.55, 3.15], icon: 'pile' },
     net:      { file: 'finding_the_tear.html', name: 'Finding the tear', bar: 'Finding the tear', sub: 'a fish-farm net', q: [10.45, 1.95], icon: 'pen' },
@@ -3808,7 +3808,7 @@ var Realm = (function () {
     'soldiers-keep': {
       sign: 'Follow the circuit inside an OFDM receiver', hook: 'Restore the officer’s map: an OFDM frame, pilots and a response estimated inside every circuit.', cta: 'Apply the circuit to SAPPHIRE →',
       same: 'Cards, records and notes keep their roles as bits, replicas and scaled dual variables.', different: 'The readings come from received samples through an estimated channel response.',
-      offers: { carry: { role: 'chooser', badge: 'Actual OFDM receiver', recommended: true, direct: true, order: 0, sign: 'Follow SAPPHIRE from carriers to a candidate word', hook: 'Move from soldiers with a known channel to joint OFDM data detection and decoding.', cta: 'Continue to the SAPPHIRE receiver →' } }
+      offers: { carry: { role: 'chooser', badge: 'Actual OFDM receiver', recommended: true, direct: true, order: 0, sign: 'Follow SAPPHIRE from carriers to a candidate word', hook: 'Move from soldiers with a known channel to joint detection and decoding in the OFDM receiver.', cta: 'Continue to the SAPPHIRE receiver →' } }
     },
     'soldiers-coach': {
       badge: 'Simplest ADMM recap', direct: true, order: 2, sign: 'Plan one safe training session', hook: 'See the same four moves with one visible day-and-load plan.', cta: 'Review the moves on a training plan →',
@@ -3849,7 +3849,7 @@ var Realm = (function () {
     'light-keep': {
       sign: 'Put the light board inside an OFDM receiver', hook: 'Trace how post-FFT carrier observations, pilots, the channel response and coded bits create the evidence constrained by the checks.', cta: 'Apply the checks to SAPPHIRE →',
       same: 'Shared bits, per-check replicas and scaled dual variables keep the same roles.', different: 'The glows now come from received samples through an estimated channel response.',
-      offers: { end: { role: 'chooser', badge: 'Actual OFDM receiver', direct: true, order: 1, sign: 'Follow SAPPHIRE from carriers to a candidate word', hook: 'Move from the light-board abstraction to joint OFDM data detection and decoding.', cta: 'Continue to the SAPPHIRE receiver →' } }
+      offers: { end: { role: 'chooser', badge: 'Actual OFDM receiver', direct: true, order: 1, sign: 'Follow SAPPHIRE from carriers to a candidate word', hook: 'Move from the light-board abstraction to joint detection and decoding in the OFDM receiver.', cta: 'Continue to the SAPPHIRE receiver →' } }
     },
     'tale-done': {
       sign: 'Compare the receiver’s three milestones', hook: 'A candidate can match before replica agreement and before the full toy state settles.', cta: 'See the numerical timeline →',
