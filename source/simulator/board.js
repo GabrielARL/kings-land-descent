@@ -91,16 +91,20 @@ var Board = (function () {
     o = o || {};
     var R = this.mapR, v = this.vis, cell = o.cell || 4, nx = Math.max(40, Math.round(R[2] / cell)), ny = Math.max(30, Math.round(R[3] / cell));
     var key = (o.id || 'J') + '|' + v.map(function (a) { return a.toPrecision(7); }).join(',') + '|' + nx + 'x' + ny;
-    var g = this.grid && this.grid.key === key ? this.grid : null;
+    // the last few grids are kept, so a page may draw two lands in one frame (one fading into the other) without
+    // recomputing either; each grid keeps its own rings and level lines
+    var g = this.grid && this.grid.key === key ? this.grid : (this.grids && this.grids[key]) || null;
     if (!g) {
       var vals = new Float64Array((nx + 1) * (ny + 1)), lo = Infinity, hi = -Infinity;
       for (var j = 0; j <= ny; j++) for (var i = 0; i <= nx; i++) {
         var z = fn([v[0] + (v[1] - v[0]) * i / nx, v[2] + (v[3] - v[2]) * j / ny]); vals[j * (nx + 1) + i] = z;
         if (isFinite(z)) { if (z < lo) lo = z; if (z > hi) hi = z; }
       }
-      g = this.grid = { key: key, vals: vals, nx: nx, ny: ny, lo: lo, hi: hi, img: null, imgKey: '', rings: null, ringKey: '' };
-      this.lines = {};
+      g = { key: key, vals: vals, nx: nx, ny: ny, lo: lo, hi: hi, img: null, imgKey: '', rings: null, ringKey: '', lines: {} };
+      if (!this.grids) { this.grids = {}; this.gridOrder = []; }
+      this.grids[key] = g; this.gridOrder.push(key); if (this.gridOrder.length > 4) delete this.grids[this.gridOrder.shift()];
     }
+    this.grid = g; this.lines = g.lines;
     var lo = o.lo != null ? o.lo : g.lo, hi = o.hi != null ? o.hi : g.hi; if (!(hi > lo)) hi = lo + 1;
     var c = this.ctx;
     if (g.imgKey !== lo + '|' + hi + '|' + !!o.pits) {
@@ -160,8 +164,8 @@ var Board = (function () {
     c.font = '11px ' + this.mono; c.fillStyle = C.dim; c.strokeStyle = C.faint; c.lineWidth = 1;
     c.textAlign = 'center'; c.textBaseline = 'bottom';
     for (var t = Math.ceil(v[0] / step) * step; t <= v[1]; t += step) { var a = this.P([t, v[2]]); if (a[0] < R[0] + 18 || a[0] > R[0] + R[2] - 24 || a[0] + c.measureText(num(t, d)).width / 2 > R[0] + R[2] - 12 - nameW) continue; c.beginPath(); c.moveTo(a[0], R[1] + R[3]); c.lineTo(a[0], R[1] + R[3] - 5); c.stroke(); c.fillText(num(t, d), a[0], R[1] + R[3] - 6); }
-    c.textAlign = 'left'; c.textBaseline = 'middle';
-    for (t = Math.ceil(v[2] / step) * step; t <= v[3]; t += step) { var b = this.P([v[0], t]); if (b[1] < R[1] + 22 || b[1] > R[1] + R[3] - 30) continue; c.beginPath(); c.moveTo(R[0], b[1]); c.lineTo(R[0] + 5, b[1]); c.stroke(); c.fillText(num(t, d), R[0] + 7, b[1]); }
+    c.textAlign = 'left'; c.textBaseline = 'middle';   // the top 46 px stay clear of '↑ x₂' and of a counter at the top-left
+    for (t = Math.ceil(v[2] / step) * step; t <= v[3]; t += step) { var b = this.P([v[0], t]); if (b[1] < R[1] + 46 || b[1] > R[1] + R[3] - 30) continue; c.beginPath(); c.moveTo(R[0], b[1]); c.lineTo(R[0] + 5, b[1]); c.stroke(); c.fillText(num(t, d), R[0] + 7, b[1]); }
     c.font = '600 12px ' + this.sans; c.fillStyle = C.ink; c.textAlign = 'right'; c.textBaseline = 'bottom'; c.fillText('x₁ →', R[0] + R[2] - 6, R[1] + R[3] - 4);
     c.textAlign = 'left'; c.textBaseline = 'top'; c.fillText('↑ x₂', R[0] + 6, R[1] + 5);
   };
@@ -428,6 +432,7 @@ var Board = (function () {
     watchers.forEach(function (f) { try { f(i, steps[i], !!road); } catch (e) { (window.kingsLandErrors = window.kingsLandErrors || []).push('watcher: ' + (e && e.stack || e)); } });
     Array.prototype.forEach.call($('board-list').querySelectorAll('[data-i]'), function (li) {
       var j = +li.getAttribute('data-i'); li.classList.toggle('on', j === i); li.classList.toggle('done', j < i);
+      if (j === i) li.setAttribute('aria-current', 'step'); else li.removeAttribute('aria-current');
       if (j === i && li.scrollIntoView) { var box = $('board-list'); if (li.offsetTop < box.scrollTop || li.offsetTop + li.offsetHeight > box.scrollTop + box.clientHeight) box.scrollTop = li.offsetTop - box.clientHeight / 2; }
     });
     tick();
@@ -436,7 +441,7 @@ var Board = (function () {
     var html = '', chap = null;
     steps.forEach(function (s, j) {
       if (s.chapter !== chap) { chap = s.chapter; html += '<li class="bl-chap">' + chap + '</li>'; }
-      html += '<li class="bl-step" data-i="' + j + '"><span>' + (j + 1) + '</span>' + s.title + '</li>';
+      html += '<li><button type="button" class="bl-step" data-i="' + j + '"><span>' + (j + 1) + '</span>' + s.title + '</button></li>';
     });
     $('board-list').innerHTML = html;
   }

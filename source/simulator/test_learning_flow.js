@@ -229,6 +229,9 @@ var guidedLists = [], idsRe = /boardIds\s*:\s*\[([^\]]+)\]/g, idsMatch;
 while ((idsMatch = idsRe.exec(game))) guidedLists.push((idsMatch[1].match(/['"]([^'"]+)['"]/g) || []).map(function (s) { return s.slice(1, -1); }));
 var expectedIntro = ['twins', 'wanderer-role', 'warden-role'];
 var expectedCircuit = ['rope', 'without-ledger', 'ledger-role', 'aim', 'wander', 'wander-balance', 'warden', 'ledger', 'again'];
+// the tutorial adds day-by-day pages: the first three days with the rope alone, and three days with the book after the detailed circuit
+var expectedCourseCircuit = ['rope', 'rope-day-1', 'rope-day-2', 'rope-day-3', 'without-ledger', 'ledger-role', 'aim', 'wander', 'wander-balance', 'warden', 'ledger',
+  'book-day-1', 'book-day-2', 'book-day-3', 'again'];
 check('guided ADMM introduction defines both copies before the ledger',
   guidedLists.length >= 1 && same(guidedLists[0], expectedIntro), guidedLists[0] ? guidedLists[0].join(', ') : 'missing');
 check('guided ADMM circuit shows the rope fail before the book, then the aim and the updates',
@@ -267,9 +270,9 @@ var admmAt = course.indexOf("pick(Ww, 'tw', 4"), admmPick = admmAt < 0 ? '' : co
 check('standalone ADMM lesson uses the first nonzero-ledger circuit',
   admmAt >= 0 && /Earlier versions used day 3, where u = 0 and v = z hid the mechanism/.test(course));
 check('standalone ADMM lesson follows the expanded causal order',
-  expectedIntro.slice(1).concat(expectedCircuit).every(function (id, i, ids) {
+  expectedIntro.slice(1).concat(expectedCourseCircuit).every(function (id, i, ids) {
     return admmPick.indexOf("'" + id + "'") >= 0 && (!i || admmPick.indexOf("'" + ids[i - 1] + "'") < admmPick.indexOf("'" + id + "'"));
-  }), expectedIntro.slice(1).concat(expectedCircuit).join(', '));
+  }), expectedIntro.slice(1).concat(expectedCourseCircuit).join(', '));
 
 try {
   var AE = require(path.join(dir, 'engine.js')), ap = {}, ak;
@@ -398,7 +401,7 @@ try {
 try {
   var desktopCourse = courseSandbox(960, 660), desktopIds = desktopCourse.course.steps.map(function (q) { return q.id; }), desktopDraws = 0;
   lightPages.forEach(function (page) { [0, 0.25, 0.5, 0.75, 1].forEach(function (p) { desktopCourse.Board.debug({ step: page[0], p: p }); desktopDraws++; }); });
-  check('the complete 58-page course builds in the drawing sandbox', desktopCourse.course.steps.length === 58 && lightPages.every(function (q) { return desktopIds.indexOf(q[0]) >= 0; }));
+  check('the complete 64-page course builds in the drawing sandbox', desktopCourse.course.steps.length === 64 && lightPages.every(function (q) { return desktopIds.indexOf(q[0]) >= 0; }));
   check('all ten light-board pages draw at five desktop moments without an error', desktopDraws === 50 && (desktopCourse.kingsLandErrors || []).length === 0,
     (desktopCourse.kingsLandErrors || []).slice(0, 3).join(' | '));
   var mobileCourse = courseSandbox(390, 488), mobileDraws = 0;
@@ -407,6 +410,53 @@ try {
     (mobileCourse.kingsLandErrors || []).slice(0, 3).join(' | '));
 } catch (e) {
   check('light-board drawing sandbox', false, e && e.stack || e);
+}
+
+// Day by day: each day the Wanderer faces a new land, the valley plus the rope's bowl around a spot made from the day
+// before (yesterday's z with the rope alone, the aim z − u with the book). Its lowest point is where the Wanderer
+// stops; tomorrow's spot is made from today's result; every day page draws at desktop and phone sizes.
+try {
+  var DE = require(path.join(dir, 'engine.js')), dpp = {}, dkk; for (dkk in DE.PRESETS.wall) dpp[dkk] = DE.PRESETS.wall[dkk];
+  var dLand = DE.buildLand('wall', dpp), dWalk = DE.twins(dLand, [dpp.sx, dpp.sy], dpp.rho, 12), dA = dLand.A, dc = dLand.c, drho = dpp.rho;
+  var SUBS = '₀₁₂₃₄₅₆₇₈₉', fmt = function (v) { var t = v.toFixed(3); if (/^-0(\.0*)?$/.test(t)) t = t.slice(1); return t.replace('-', '−'); };
+  var pr3 = function (v) { return '(' + fmt(v[0]) + ', ' + fmt(v[1]) + ')'; }, minus = function (a, b) { return [a[0] - b[0], a[1] - b[1]]; };
+  // x is the lowest point of f + ρ/2·|x − aim|² when the land's pull and the rope's pull cancel: A(x − c) + ρ(x − aim) = 0
+  var lowestOf = function (x, aim) {
+    var g0 = dA[0][0] * (x[0] - dc[0]) + dA[0][1] * (x[1] - dc[1]) + drho * (x[0] - aim[0]), g1 = dA[1][0] * (x[0] - dc[0]) + dA[1][1] * (x[1] - dc[1]) + drho * (x[1] - aim[1]);
+    return Math.hypot(g0, g1) < 1e-9;
+  };
+  var ropeX = [dWalk[0].x], ropeZ = [dWalk[0].z]; for (var rdd = 1; rdd <= 4; rdd++) { ropeX.push(dLand.wanderer(ropeZ[rdd - 1], drho)); ropeZ.push(dLand.project(ropeX[rdd])); }
+  var dsb = courseSandbox(960, 660), dPage = function (id) { return dsb.course.steps.filter(function (q) { return q.id === 'wall-tw-' + id; })[0]; };
+  var plainOf = function (q) { return ((q && q.text || '') + ' ' + (q && q.math || '')).replace(/<[^>]*>/g, ''); };
+  var ropeDaysOk = [1, 2, 3].every(function (d) {
+    var q = dPage('rope-day-' + d), t = plainOf(q);
+    return !!q && q.title === 'Day ' + d + ': today’s land is built from z' + SUBS[d - 1] && lowestOf(ropeX[d], ropeZ[d - 1]) &&
+      t.indexOf('F' + SUBS[d] + '(x) = f(x) + ρ/2·|x − z' + SUBS[d - 1] + '|²') >= 0 && t.indexOf('z' + SUBS[d - 1] + ' = ' + pr3(ropeZ[d - 1])) >= 0 &&
+      t.indexOf('x' + SUBS[d] + ' = the lowest point of F' + SUBS[d] + ' = ' + pr3(ropeX[d])) >= 0 && t.indexOf('z' + SUBS[d] + ' = Π(x' + SUBS[d] + ') = ' + pr3(ropeZ[d])) >= 0;
+  });
+  check('rope-alone days 1–3: each land is tied to yesterday’s Warden, and the Wanderer stops at its lowest point', ropeDaysOk &&
+    [1, 2, 3].every(function (d) { return Math.hypot(ropeX[d][0] - ropeZ[d][0], ropeX[d][1] - ropeZ[d][1]) < 1e-12; }) && ropeZ[4][0] < ropeX[4][0],
+    'x1..x3 = ' + ropeX.slice(1, 4).map(pr3).join(' '));
+  var bookDaysOk = [6, 7, 8].every(function (d, i) {
+    var q = dPage('book-day-' + (i + 1)), t = plainOf(q), now = dWalk[d], pr = dWalk[d - 1], aim = minus(pr.z, pr.u), aimNext = minus(now.z, now.u);
+    return !!q && q.title === 'Day ' + d + ': today’s land is built from z' + SUBS[d - 1] + ' and u' + SUBS[d - 1] && lowestOf(now.x, aim) &&
+      t.indexOf('v' + SUBS[d - 1] + ' = z' + SUBS[d - 1] + ' − u' + SUBS[d - 1] + ' = ' + pr3(aim)) >= 0 && t.indexOf('F' + SUBS[d] + '(x) = f(x) + ρ/2·|x − v' + SUBS[d - 1] + '|²') >= 0 &&
+      t.indexOf('x' + SUBS[d] + ' = the lowest point of F' + SUBS[d] + ' = ' + pr3(now.x)) >= 0 && t.indexOf('z' + SUBS[d] + ' = Π(x' + SUBS[d] + ' + u' + SUBS[d - 1] + ') = ' + pr3(now.z)) >= 0 &&
+      t.indexOf('u' + SUBS[d] + ' = u' + SUBS[d - 1] + ' + x' + SUBS[d] + ' − z' + SUBS[d] + ' = ' + pr3(now.u)) >= 0 && t.indexOf('v' + SUBS[d] + ' = ' + pr3(aimNext)) >= 0;
+  });
+  check('days 6–8 with the book: each land is tied to the aim z − u from the day before, and tomorrow’s aim comes from today', bookDaysOk,
+    [6, 7, 8].map(function (d) { return 'v' + (d - 1) + '=' + pr3(minus(dWalk[d - 1].z, dWalk[d - 1].u)); }).join(' '));
+  check('the rope-alone page continues from day 3 and says when the gap first opens', /For 3 days the twins end together\. From day 4 the Wanderer’s lowest point lies past the wall/.test(plainOf(dPage('without-ledger'))));
+  check('after the day pages, the fast page replays days 4 to 12 and says so', /Here are days 4 to 12 at speed, including the days just shown one at a time\./.test(plainOf(dPage('again'))));
+  var dayIds = ['rope-day-1', 'rope-day-2', 'rope-day-3', 'without-ledger', 'book-day-1', 'book-day-2', 'book-day-3', 'again'], dayDraws = 0, phoneSb = courseSandbox(390, 488);
+  dayIds.forEach(function (id) {
+    [0, 0.1, 0.2, 0.35, 0.5, 0.62, 0.8, 0.92, 1].forEach(function (pp) { dsb.Board.debug({ step: 'wall-tw-' + id, p: pp }); dayDraws++; });
+    [0.3, 1].forEach(function (pp) { phoneSb.Board.debug({ step: 'wall-tw-' + id, p: pp }); dayDraws++; });
+  });
+  check('the day pages draw at nine desktop moments and two phone moments without an error', dayDraws === 88 &&
+    (dsb.kingsLandErrors || []).length === 0 && (phoneSb.kingsLandErrors || []).length === 0, (dsb.kingsLandErrors || []).concat(phoneSb.kingsLandErrors || []).slice(0, 3).join(' | '));
+} catch (e) {
+  check('day-by-day pages', false, e && e.stack || e);
 }
 
 // The Wanderer's step is told as gradient descent on land plus rope, then as the balance of two pulls.  Its pages must

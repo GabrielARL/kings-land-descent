@@ -312,7 +312,7 @@ canvas.chart { display: block; width: 100%; height: 190px; }
 .board-ctrl #board-next, .board-ctrl #board-play[aria-pressed="true"] { background: #ffd27a; color: #1b1406; border-color: #ffd27a; font-weight: 700; }
 .board-list { list-style: none; margin: 0; padding: 0; overflow: auto; flex: 1; min-height: 60px; font-size: 13px; border-top: 1px solid rgba(255, 255, 255, 0.12); }
 .board-list .bl-chap { color: #a9cdf6; font-size: 11.5px; letter-spacing: 0.08em; text-transform: uppercase; padding: 6px 4px 2px; }
-.board-list .bl-step { padding: 3px 6px; border-radius: 5px; cursor: pointer; display: flex; gap: 8px; color: #d4dce5; }
+.board-list .bl-step { width: 100%; padding: 3px 6px; border: 0; border-radius: 5px; cursor: pointer; display: flex; gap: 8px; color: #d4dce5; background: transparent; font: inherit; text-align: left; }
 .board-list .bl-step span { min-width: 1.6em; color: #8fa0b2; font-family: var(--mono); }
 .board-list .bl-step:hover { background: rgba(255, 255, 255, 0.06); }
 .board-list .bl-step.done { color: #9fb0c0; }
@@ -1443,16 +1443,20 @@ var Board = (function () {
     o = o || {};
     var R = this.mapR, v = this.vis, cell = o.cell || 4, nx = Math.max(40, Math.round(R[2] / cell)), ny = Math.max(30, Math.round(R[3] / cell));
     var key = (o.id || 'J') + '|' + v.map(function (a) { return a.toPrecision(7); }).join(',') + '|' + nx + 'x' + ny;
-    var g = this.grid && this.grid.key === key ? this.grid : null;
+    // the last few grids are kept, so a page may draw two lands in one frame (one fading into the other) without
+    // recomputing either; each grid keeps its own rings and level lines
+    var g = this.grid && this.grid.key === key ? this.grid : (this.grids && this.grids[key]) || null;
     if (!g) {
       var vals = new Float64Array((nx + 1) * (ny + 1)), lo = Infinity, hi = -Infinity;
       for (var j = 0; j <= ny; j++) for (var i = 0; i <= nx; i++) {
         var z = fn([v[0] + (v[1] - v[0]) * i / nx, v[2] + (v[3] - v[2]) * j / ny]); vals[j * (nx + 1) + i] = z;
         if (isFinite(z)) { if (z < lo) lo = z; if (z > hi) hi = z; }
       }
-      g = this.grid = { key: key, vals: vals, nx: nx, ny: ny, lo: lo, hi: hi, img: null, imgKey: '', rings: null, ringKey: '' };
-      this.lines = {};
+      g = { key: key, vals: vals, nx: nx, ny: ny, lo: lo, hi: hi, img: null, imgKey: '', rings: null, ringKey: '', lines: {} };
+      if (!this.grids) { this.grids = {}; this.gridOrder = []; }
+      this.grids[key] = g; this.gridOrder.push(key); if (this.gridOrder.length > 4) delete this.grids[this.gridOrder.shift()];
     }
+    this.grid = g; this.lines = g.lines;
     var lo = o.lo != null ? o.lo : g.lo, hi = o.hi != null ? o.hi : g.hi; if (!(hi > lo)) hi = lo + 1;
     var c = this.ctx;
     if (g.imgKey !== lo + '|' + hi + '|' + !!o.pits) {
@@ -1512,8 +1516,8 @@ var Board = (function () {
     c.font = '11px ' + this.mono; c.fillStyle = C.dim; c.strokeStyle = C.faint; c.lineWidth = 1;
     c.textAlign = 'center'; c.textBaseline = 'bottom';
     for (var t = Math.ceil(v[0] / step) * step; t <= v[1]; t += step) { var a = this.P([t, v[2]]); if (a[0] < R[0] + 18 || a[0] > R[0] + R[2] - 24 || a[0] + c.measureText(num(t, d)).width / 2 > R[0] + R[2] - 12 - nameW) continue; c.beginPath(); c.moveTo(a[0], R[1] + R[3]); c.lineTo(a[0], R[1] + R[3] - 5); c.stroke(); c.fillText(num(t, d), a[0], R[1] + R[3] - 6); }
-    c.textAlign = 'left'; c.textBaseline = 'middle';
-    for (t = Math.ceil(v[2] / step) * step; t <= v[3]; t += step) { var b = this.P([v[0], t]); if (b[1] < R[1] + 22 || b[1] > R[1] + R[3] - 30) continue; c.beginPath(); c.moveTo(R[0], b[1]); c.lineTo(R[0] + 5, b[1]); c.stroke(); c.fillText(num(t, d), R[0] + 7, b[1]); }
+    c.textAlign = 'left'; c.textBaseline = 'middle';   // the top 46 px stay clear of '↑ x₂' and of a counter at the top-left
+    for (t = Math.ceil(v[2] / step) * step; t <= v[3]; t += step) { var b = this.P([v[0], t]); if (b[1] < R[1] + 46 || b[1] > R[1] + R[3] - 30) continue; c.beginPath(); c.moveTo(R[0], b[1]); c.lineTo(R[0] + 5, b[1]); c.stroke(); c.fillText(num(t, d), R[0] + 7, b[1]); }
     c.font = '600 12px ' + this.sans; c.fillStyle = C.ink; c.textAlign = 'right'; c.textBaseline = 'bottom'; c.fillText('x₁ →', R[0] + R[2] - 6, R[1] + R[3] - 4);
     c.textAlign = 'left'; c.textBaseline = 'top'; c.fillText('↑ x₂', R[0] + 6, R[1] + 5);
   };
@@ -1780,6 +1784,7 @@ var Board = (function () {
     watchers.forEach(function (f) { try { f(i, steps[i], !!road); } catch (e) { (window.kingsLandErrors = window.kingsLandErrors || []).push('watcher: ' + (e && e.stack || e)); } });
     Array.prototype.forEach.call($('board-list').querySelectorAll('[data-i]'), function (li) {
       var j = +li.getAttribute('data-i'); li.classList.toggle('on', j === i); li.classList.toggle('done', j < i);
+      if (j === i) li.setAttribute('aria-current', 'step'); else li.removeAttribute('aria-current');
       if (j === i && li.scrollIntoView) { var box = $('board-list'); if (li.offsetTop < box.scrollTop || li.offsetTop + li.offsetHeight > box.scrollTop + box.clientHeight) box.scrollTop = li.offsetTop - box.clientHeight / 2; }
     });
     tick();
@@ -1788,7 +1793,7 @@ var Board = (function () {
     var html = '', chap = null;
     steps.forEach(function (s, j) {
       if (s.chapter !== chap) { chap = s.chapter; html += '<li class="bl-chap">' + chap + '</li>'; }
-      html += '<li class="bl-step" data-i="' + j + '"><span>' + (j + 1) + '</span>' + s.title + '</li>';
+      html += '<li><button type="button" class="bl-step" data-i="' + j + '"><span>' + (j + 1) + '</span>' + s.title + '</button></li>';
     });
     $('board-list').innerHTML = html;
   }
@@ -2768,6 +2773,103 @@ var Board = (function () {
         if (reachFree > 0) g.halo(freeZ, reachFree * g.s, C.ink, seg(p, 0.7, 0.9), 1.2, [5, 4]);
       } });
 
+
+    // ---- one day at a time (tutorial only). Each day the Wanderer faces a new land: the valley plus the rope's bowl
+    // around a spot made from yesterday's numbers, the Warden's spot z with the rope alone, the aim v = z − u with the
+    // book. A day page fades yesterday's land into today's, marks its lowest point, walks the Wanderer there, moves the
+    // Warden, writes the book (if there is one), and ends on the spot that tomorrow's rope is tied to.
+    function dayPage(o) {
+      var d = o.d, sd = subscript(d), sp = subscript(d - 1), sn = subscript(d + 1), book = !!o.book;
+      var a = sub(o.prev.z, o.prev.u), aNext = sub(o.now.z, o.now.u), xuD = add(o.now.x, o.prev.u), hasU = len(o.prev.u) > 1e-9;
+      var Fd = function (q) { var dq = sub(q, a); return f(q) + rho / 2 * dot(dq, dq); };
+      var Fp = o.aPrev ? function (q) { var dq = sub(q, o.aPrev); return f(q) + rho / 2 * dot(dq, dq); } : null;
+      var gapV = sub(o.now.x, o.now.z), gapL = len(gapV), lawful = len(sub(o.now.z, xuD)) < 1e-9, uNow = o.now.u;
+      var aName = book ? 'v' + sp : 'z' + sp, aNameN = book ? 'v' + sd : 'z' + sd, idOf = function (q) { return 'dayland' + q[0].toFixed(6) + ',' + q[1].toFixed(6); };
+      var math = 'F' + sd + '(x) = f(x) + ρ/2·|x − ' + aName + '|²,  ' + aName + ' = ' + (book ? 'z' + sp + ' − u' + sp + ' = ' : '') + pair(a) +
+        at(0.3, '<br>x' + sd + ' = the lowest point of F' + sd + ' = ' + pair(o.now.x)) +
+        at(0.56, '<br>z' + sd + ' = Π(x' + sd + (book ? ' + u' + sp : '') + ') = ' + pair(o.now.z)) +
+        (book ? at(0.74, '<br>u' + sd + ' = u' + sp + ' + x' + sd + ' − z' + sd + ' = ' + pair(uNow)) : '') +
+        at(0.88, '<br>tomorrow: F' + sn + '(x) = f(x) + ρ/2·|x − ' + aNameN + '|²,  ' + aNameN + ' = ' + pair(aNext));
+      var rows = book ? [
+        { t: 'yesterday:  z' + sp + ' = ' + pair(o.prev.z), col: C.blue, mono: true, at: 0.03 },
+        { t: '            u' + sp + ' = ' + pair(o.prev.u), col: C.orange, mono: true, at: 0.03 },
+        { t: 'today’s aim  v' + sp + ' = z' + sp + ' − u' + sp + ' = ' + pair(a), col: C.violet, mono: true, at: 0.08 },
+        { t: 'F' + sd + '(x) = f(x) + ρ/2·|x − v' + sp + '|²', col: C.gold, mono: true, at: 0.14 },
+        { t: 'the Wanderer walks to its lowest point:', col: '#e6e9ee', at: 0.3 },
+        { t: 'x' + sd + ' = ' + pair(o.now.x), col: '#e6e9ee', mono: true, at: 0.3 },
+        { t: 'the Warden: z' + sd + ' = Π(x' + sd + ' + u' + sp + ') = ' + pair(o.now.z), col: C.blue, mono: true, at: 0.56 },
+        { t: 'the book: u' + sd + ' = u' + sp + ' + x' + sd + ' − z' + sd + ' = ' + pair(uNow), col: C.orange, mono: true, at: 0.74 },
+        { t: 'tomorrow’s aim: v' + sd + ' = z' + sd + ' − u' + sd + ' = ' + pair(aNext), col: C.violet, mono: true, at: 0.88 },
+        { t: 'F' + sn + '(x) = f(x) + ρ/2·|x − v' + sd + '|²', col: C.gold, mono: true, at: 0.9 }] : [
+        { t: 'yesterday’s Warden:  z' + sp + ' = ' + pair(o.prev.z), col: C.blue, mono: true, at: 0.03 },
+        { t: 'today’s land, the rope tied to z' + sp + ':', col: C.gold, at: 0.08 },
+        { t: 'F' + sd + '(x) = f(x) + ρ/2·|x − z' + sp + '|²', col: C.gold, mono: true, at: 0.08 },
+        { t: 'the Wanderer walks to its lowest point:', col: '#e6e9ee', at: 0.3 },
+        { t: 'x' + sd + ' = ' + pair(o.now.x), col: '#e6e9ee', mono: true, at: 0.3 },
+        { t: 'the Warden steps to the nearest lawful spot:', col: C.blue, at: 0.56 },
+        { t: 'z' + sd + ' = Π(x' + sd + ') = ' + pair(o.now.z), col: C.blue, mono: true, at: 0.56 },
+        { t: 'the gap  x' + sd + ' − z' + sd + ' = ' + pair(gapV), col: C.violet, mono: true, at: 0.74 },
+        { t: 'tomorrow’s land, the rope tied to z' + sd + ':', col: C.gold, at: 0.88 },
+        { t: 'F' + sn + '(x) = f(x) + ρ/2·|x − z' + sd + '|²', col: C.gold, mono: true, at: 0.88 }];
+      return { id: o.id, chapter: 'The Twins', title: 'Day ' + d + ': today’s land is built from ' + (book ? 'z' + sp + ' and u' + sp : 'z' + sp), layout: 'map+side', view: o.view, dur: 9,
+        text: o.text, math: math,
+        draw: function (g, p) {
+          var q1 = seg(p, 0.04, 0.24), qW = seg(p, 0.28, 0.5), qZ = seg(p, 0.54, 0.7), qU = seg(p, 0.72, 0.86), qN = seg(p, 0.88, 0.98);
+          // yesterday's land fades into today's: the rope's bowl has moved
+          if (Fp) g.land(Fp, { id: idOf(o.aPrev), rings: 10 }); else g.land(cx.J, cx.shade);
+          g.land(Fd, { id: idOf(a), rings: 10, alpha: q1 });
+          g.axes(); law(g, 1); star(g, T, 1);
+          if (o.showC && free) { g.dot(free, 4, C.ink, 1); g.label(free, 'c, the valley floor', C.ink, { dx: 10, dy: -12, size: 11.5, inside: true }); }
+          if (o.trail && o.trail.length) { if (o.trail.length > 1) g.path(o.trail, 'rgba(242,245,248,0.35)', 1.5, 1, [3, 3]); o.trail.forEach(function (q) { g.dot(q, 2.5, 'rgba(242,245,248,0.6)', 1); }); }
+          // where today's rope is tied: the Warden's spot (rope alone), or the aim, the Warden's spot moved back by the book
+          if (book) {
+            if (hasU) g.arrow(o.prev.z, a, C.violet, 2.6, q1);
+            g.dot(o.aPrev ? lerp2(o.aPrev, a, ease(q1)) : a, 5.5, C.violet, o.aPrev ? 1 : q1);
+          } else g.halo(o.prev.z, 13, C.violet, q1 * (1 - seg(p, 0.5, 0.56)), 2);
+          // the lowest point of today's land, which the Wanderer will walk to
+          var qT = seg(p, 0.18, 0.26) * (1 - seg(p, 0.5, 0.56)); g.halo(o.now.x, 10, C.gold, qT, 1.8, [3, 2]);
+          // the Wanderer's walk, then the Warden's step
+          var hx = lerp2(o.prev.x, o.now.x, ease(qW)), hz = lerp2(o.prev.z, o.now.z, ease(qZ));
+          if (qW > 0) g.path([o.prev.x, hx], 'rgba(242,245,248,0.85)', 2, 1);
+          spring(g, hx, book ? a : hz, 0.5 * (1 - qN));
+          if (book && hasU && qZ > 0) { g.dot(xuD, 4, C.ink, 1); g.line(xuD, o.now.z, C.blue, 1.5, qZ, [4, 3]); }
+          if (!lawful) rightAngle(g, o.now.z, xuD, seg(p, 0.66, 0.72));
+          // the gap, and the book's new entry drawn a little below it
+          if (gapL > 1e-9) g.arrow(o.now.z, o.now.x, C.violet, 2.2, qU);
+          if (book && len(uNow) > 1e-9 && qU > 0) {
+            var A0 = g.P(o.now.z), B0 = g.P(add(o.now.z, uNow)), off = 38, a0 = [A0[0], A0[1] + off], b0 = [B0[0], B0[1] + off];
+            g.ctx.save(); g.clip(g.mapR); g.ctx.globalAlpha = clamp(qU, 0, 1); g.arrowPx(a0, [a0[0] + (b0[0] - a0[0]) * qU, a0[1] + (b0[1] - a0[1]) * qU], C.orange, 3); g.ctx.restore(); g.ctx.globalAlpha = 1;
+          }
+          // tomorrow's aim, or tomorrow's Warden spot
+          if (book) g.halo(aNext, 9, C.violet, qN, 1.8, [3, 3]); else g.halo(o.now.z, 13, C.violet, qN, 2, [4, 3]);
+          warden(g, hz, 1); g.hero(hx, 'tw', 1);
+          // the map's labels, one or two at a time
+          var L = function (q, text, col, dx, dy, align, pp) { g.label(q, text, col, { dx: dx, dy: dy, align: align, size: 12, p: pp, inside: true }); };
+          if (book) {
+            L(a, 'today’s aim ' + aName + ' = z' + sp + ' − u' + sp, C.violet, 0, 24, 'center', q1 * (1 - seg(p, 0.5, 0.56)));
+            L(o.prev.z, 'z' + sp, C.blue, -10, -18, 'right', q1 * (1 - seg(p, 0.54, 0.58)));
+            if (hasU) L(lerp2(o.prev.z, a, 0.5), '−u' + sp, C.violet, 0, -16, 'center', q1 * (1 - seg(p, 0.5, 0.56)));
+            L(o.now.x, 'lowest point of F' + sd, C.gold, 4, -26, 'left', qT);
+            L(o.now.x, 'x' + sd, '#e6e9ee', 12, -18, 'left', seg(p, 0.5, 0.56));
+            if (hasU) L(xuD, 'x' + sd + ' + u' + sp, C.ink, 0, -18, 'center', qZ * (1 - seg(p, 0.86, 0.9)));
+            L(o.now.z, 'z' + sd, C.blue, -10, -18, 'right', seg(p, 0.66, 0.72));
+            if (len(uNow) > 1e-9) g.labelPx(g.P(add(o.now.z, scale(uNow, 0.5)))[0], g.P(o.now.z)[1] + 58, 'the book u' + sd + ' = ' + pair(uNow), C.orange, { align: 'center', size: 12, p: seg(p, 0.8, 0.86) });
+            L(aNext, 'tomorrow’s aim ' + aNameN, C.violet, 0, 24, 'center', qN);
+          } else {
+            L(o.prev.z, 'the rope is tied here: z' + sp, C.violet, 0, 26, 'center', q1 * (1 - seg(p, 0.5, 0.56)));
+            L(o.now.x, 'lowest point of F' + sd, C.gold, 0, -24, 'center', qT);
+            L(o.now.x, lawful ? 'x' + sd + ' is lawful: z' + sd + ' = x' + sd : 'x' + sd, '#e6e9ee', 0, -24, 'center', seg(p, 0.66, 0.72) * (1 - seg(p, 0.86, 0.9)));
+            if (!lawful) L(o.now.z, 'z' + sd, C.blue, -10, -18, 'right', seg(p, 0.66, 0.72));
+            L(o.now.z, 'tomorrow the rope is tied here: z' + sd, C.violet, 0, 28, 'center', qN);
+          }
+          g.labelPx(g.mapR[0] + 12, g.mapR[1] + 30, 'day ' + d + ': ' + (p < 0.27 ? 'today’s land' : p < 0.53 ? 'the Wanderer moves' : p < 0.71 ? 'the Warden moves' : p < 0.87 ? (book ? 'the book' : 'the gap') : 'tomorrow'), C.gold, { size: 13 });
+          // the side panel: the day's recipe, in step with the drawing
+          var R = g.sideR, rh = Math.min(28, (R[3] - 50) / rows.length);
+          g.panel(R, 'Day ' + d + (book ? ', with the book' : ', the rope alone'));
+          rows.forEach(function (r, i) { g.labelPx(R[0] + 14, R[1] + 44 + rh * i, r.t, r.col, { plain: true, mono: !!r.mono, size: 12, p: seg(p, r.at, r.at + 0.06) }); });
+        } };
+    }
+
     var noLedgerZ = [], noLedgerX = [], noLedgerDays = 10;
     if (wall && land.exactStep && w[0] && w[0].z) {
       var nlz = w[0].z.slice(), nlX = w[0].x.slice(); noLedgerZ.push(nlz.slice()); noLedgerX.push(nlX.slice());
@@ -2777,17 +2879,41 @@ var Board = (function () {
       var nlEndZ = noLedgerZ[noLedgerDays], nlEndX = noLedgerX[noLedgerDays], nlGap = len(sub(nlEndX, nlEndZ));
       var nlGaps = noLedgerX.map(function (q, i) { return len(sub(q, noLedgerZ[i])); }), admmGaps = []; for (var ai = 0; ai <= noLedgerDays; ai++) admmGaps.push(w[Math.min(ai, w.length - 1)].gap || 0);
       var nlView = around(noLedgerX.concat(noLedgerZ).concat([T]), 0.4, 0.3 * cx.span);
+      // the first three days, one move at a time (tutorial only); the summary page below then continues from day 3
+      var ropeDays = 3, ropeFirstGap = null, rg;
+      for (rg = 1; rg <= noLedgerDays; rg++) if (len(sub(noLedgerX[rg], noLedgerZ[rg])) > 1e-9) { ropeFirstGap = rg; break; }
+      var ropeDayText = function (d) {
+        var sd = subscript(d), sp = subscript(d - 1), xd = noLedgerX[d], zd = noLedgerZ[d], zp = noLedgerZ[d - 1], together = len(sub(xd, zd)) < 1e-9;
+        var wardenS = together ? 'The Wanderer’s spot x' + sd + ' is inside the wall, so the nearest lawful spot is x' + sd + ' itself: the Warden steps onto it, z' + sd + ' = x' + sd + ', and the gap is 0.' :
+          'The Wanderer’s spot x' + sd + ' is outside the wall, so the Warden stops at the wall, z' + sd + ' = ' + pair(zd) + ', and a gap of ' + num(len(sub(xd, zd))) + ' opens.';
+        if (d === 1) return 'Here are the first ' + ropeDays + ' days, one move at a time. Each day is built from the day before. On day 1 the rope is tied to the Warden’s spot at the start, z₀ = ' + pair(zp) + '. ' +
+          'So the Wanderer’s land today is the valley plus a bowl around z₀: F₁(x) = f(x) + ρ/2·|x − z₀|². ' +
+          'Its lowest point is x₁ = ' + pair(xd) + ': the valley pulls the Wanderer toward its floor c, and the rope holds it back. The Wanderer walks there. Then the Warden moves. ' + wardenS + ' Tomorrow the rope is tied to z₁.';
+        if (d === 2) return 'Day 2 starts from day 1’s result. The rope is re-tied to z₁ = ' + pair(zp) + ', so the bowl moves with it. ' +
+          'Today’s land, F₂(x) = f(x) + ρ/2·|x − z₁|², is a different function from yesterday’s. Its lowest point is x₂ = ' + pair(xd) + ', another step toward the valley floor. ' + wardenS;
+        return 'Day ' + d + ' repeats the recipe with z' + sp + ' = ' + pair(zp) + ': F' + sd + '(x) = f(x) + ρ/2·|x − z' + sp + '|². The Wanderer reaches x' + sd + ' = ' + pair(xd) + '. ' + wardenS +
+          (ropeFirstGap == null || ropeFirstGap > d ? ' So far the twins have ended every day together.' : '') +
+          (ropeFirstGap === d + 1 ? ' Tomorrow’s lowest point lies past the wall; the next page follows the twins from there.' : '');
+      };
+      if (cx.tutorial) {
+        var ropeDayView = around(noLedgerX.slice(0, ropeDays + 2).concat(free ? [free] : []).concat([T]), 0.15, 0.3 * cx.span);
+        for (var rd = 1; rd <= ropeDays; rd++) out.push(dayPage({ id: 'rope-day-' + rd, d: rd, view: ropeDayView, showC: true, text: ropeDayText(rd),
+          prev: { x: noLedgerX[rd - 1], z: noLedgerZ[rd - 1], u: [0, 0] }, now: { x: noLedgerX[rd], z: noLedgerZ[rd], u: [0, 0] },
+          aPrev: rd > 1 ? noLedgerZ[rd - 2] : null, trail: noLedgerX.slice(0, rd) }));
+      }
       out.push({ id: 'without-ledger', chapter: 'The Twins', title: 'The rope pulls, but does not remember', layout: 'map+side', view: nlView, dur: 6.6,
-        text: 'Let them go with the rope alone, each day forgetting yesterday: the Wanderer to the lowest point of land plus rope, the Warden to the nearest lawful spot, and again. The Wanderer always stops a little downhill of the Warden, the rope stretched by the slope, and the Warden stands on the wall. They settle a fixed gap apart. After ' + noLedgerDays + ' circuits the Warden is at z = ' + pair(nlEndZ) + ', on the wall but above the spot to dig, ' + pair(T) + ', and the gap is still ' + num(nlGap) + '. The rope pulls; it does not remember. This rope-only run is a counterfactual, not ADMM: it omits the scaled-dual update that remembers disagreement.',
+        text: 'Let them go on with the rope alone, each day remembering only where the Warden stood yesterday. The Wanderer goes to the lowest point of land plus rope, the Warden to the nearest lawful spot, and again. ' +
+          (ropeFirstGap ? 'For ' + (ropeFirstGap - 1) + (ropeFirstGap === 2 ? ' day' : ' days') + ' the twins end together. From day ' + ropeFirstGap + ' the Wanderer’s lowest point lies past the wall, so the Warden stops at the wall and a gap opens. ' : '') +
+          'The Wanderer always stops a little downhill of the Warden, the rope stretched by the slope, and the Warden stands on the wall. They settle a fixed gap apart. After ' + noLedgerDays + ' circuits the Warden is at z = ' + pair(nlEndZ) + ', on the wall but above the spot to dig, ' + pair(T) + ', and the gap is still ' + num(nlGap) + '. The rope pulls; it does not remember. This rope-only run is a counterfactual, not ADMM: it omits the scaled-dual update that remembers disagreement.',
         math: 'rope alone: x ← argmin f + ρ/2·|x − z|²,  z ← Π_C(x)' + at(0.55, '<br>after ' + noLedgerDays + ' circuits: z = ' + pair(nlEndZ) + ', gap ' + num(nlGap) + ';  the spot to dig ' + pair(T)),
         draw: function (g, p) {
           base(g); star(g, T, 1);
-          var s = seg(p, 0, 0.8) * noLedgerDays, kk = Math.floor(s), fr = s - kk;   // each circuit: the Wanderer hops, then the Warden
+          var s = ropeDays + seg(p, 0, 0.8) * (noLedgerDays - ropeDays), kk = Math.floor(s), fr = s - kk;   // from day 3 on; each day: the Wanderer hops, then the Warden
           for (var i = 1; i <= Math.min(kk, noLedgerDays); i++) { g.dot(noLedgerX[i], 3, 'rgba(230,233,238,0.7)', 1); g.dot(noLedgerZ[i], 3, C.red, 1); }
           var hx = kk >= noLedgerDays ? noLedgerX[noLedgerDays] : lerp2(noLedgerX[kk], noLedgerX[kk + 1], ease(Math.min(1, fr * 2)));
           var hz = kk >= noLedgerDays ? noLedgerZ[noLedgerDays] : fr < 0.5 ? noLedgerZ[kk] : lerp2(noLedgerZ[kk], noLedgerZ[kk + 1], ease((fr - 0.5) * 2));
           spring(g, hx, hz, 1, C.red); g.hero(hx, 'tw', 1); warden(g, hz, 1);
-          g.labelPx(g.mapR[0] + 12, g.mapR[1] + 30, 'circuit ' + Math.min(kk, noLedgerDays) + ', rope alone', C.red, { size: 13 });
+          g.labelPx(g.mapR[0] + 12, g.mapR[1] + 30, 'day ' + Math.min(kk, noLedgerDays) + ', rope alone', C.red, { size: 13 });
           if (p > 0.85) {
             var narrow = g.W < g.H;
             g.label(nlEndZ, (narrow ? 'fixed gap = ' : 'a fixed gap of ') + num(nlGap), C.red,
@@ -2795,11 +2921,12 @@ var Board = (function () {
             g.label(nlEndZ, narrow ? 'z = ' + pair(nlEndZ) + ' ≠ x*' : 'z = ' + pair(nlEndZ) + ', above the spot to dig', C.red,
               narrow ? { dx: -12, dy: 20, align: 'right', size: 11.5 } : { dx: -14, dy: 20, align: 'right', size: 12 });
           }
-          var R = g.sideR, hi = Math.max.apply(null, nlGaps.concat(admmGaps)) * 1.15 || 1, pl = g.plot(R, [0, noLedgerDays], [0, hi], { title: 'the gap between the twins, circuit by circuit' }); pl.frame('circuit', 'gap |x − z|');
+          var R = g.sideR, hi = Math.max.apply(null, nlGaps.concat(admmGaps)) * 1.6 || 1, pl = g.plot(R, [0, noLedgerDays], [0, hi], { title: 'the gap between the twins, circuit by circuit' }); pl.frame('circuit', 'gap |x − z|');
           pl.curve(function (t) { var i = Math.floor(t), fq = t - i; return nlGaps[Math.min(i, noLedgerDays)] * (1 - fq) + nlGaps[Math.min(i + 1, noLedgerDays)] * fq; }, C.red, 2.2, clamp(s / noLedgerDays, 0, 1));
           pl.curve(function (t) { var i = Math.floor(t), fq = t - i; return admmGaps[Math.min(i, noLedgerDays)] * (1 - fq) + admmGaps[Math.min(i + 1, noLedgerDays)] * fq; }, C.blue, 2.2, seg(p, 0.85, 1));
-          g.labelPx(pl.X(noLedgerDays) - 4, pl.Y(nlGaps[noLedgerDays]) - 12, 'rope alone: the gap stays', C.red, { align: 'right', size: 11.5, plain: true, p: seg(p, 0.8, 0.9) });
-          g.labelPx(pl.X(noLedgerDays) - 4, pl.Y(nlGaps[noLedgerDays]) + 16, 'with the book (next): the gap closes', C.blue, { align: 'right', size: 11.5, plain: true, p: seg(p, 0.9, 1) });
+          // both labels sit above the rope-alone plateau, where no curve passes
+          g.labelPx(pl.X(noLedgerDays) - 4, pl.Y(nlGaps[noLedgerDays]) - 34, 'rope alone: the gap stays', C.red, { align: 'right', size: 11.5, plain: true, p: seg(p, 0.8, 0.9) });
+          g.labelPx(pl.X(noLedgerDays) - 4, pl.Y(nlGaps[noLedgerDays]) - 15, 'with the book (next): the gap closes', C.blue, { align: 'right', size: 11.5, plain: true, p: seg(p, 0.9, 1) });
         } });
     }
 
@@ -2860,7 +2987,7 @@ var Board = (function () {
           (firstWallContact === k ?
             'On day ' + k + ' the Wanderer ended at x' + kk + ' = ' + pair(x) + ', ' + outsideWord + ', while the Warden stood ' + onWord + ' at z' + kk + ' = ' + pair(z) + '. The gap x' + kk + ' − z' + kk + ' = ' + pair(gapNow) + ' became the first entry, so the book reads u' + kk + ' = ' + pair(u) + '. ' :
             'On day ' + firstWallContact + ' the Wanderer first ended ' + outsideWord + ', and the book got its first entry, ' + pair(firstGap) + '. Today the Wanderer is at x' + kk + ' = ' + pair(x) + ' and the Warden at z' + kk + ' = ' + pair(z) + ', and the book reads u' + kk + ' = ' + pair(u) + '. ') +
-          'Tomorrow the Warden will use it.'),
+          'Tomorrow the Warden will use it.' + (cx.tutorial && w[k + 4] ? ' The next pages follow day ' + (k + 1) + ' move by move, then days ' + (k + 2) + ' to ' + (k + 4) + ' one at a time, each with a land made from the day before.' : '')),
       math: 'x = (x₁, x₂): the Wanderer;  z = (z₁, z₂): the Warden' + at(0.3, '<br>x' + kk + ' = ' + pair(x) + ',  z' + kk + ' = ' + pair(z) + ',  x' + kk + ' − z' + kk + ' = ' + pair(gapNow)) +
         at(0.72, '<br>u<sub>k</sub> = u<sub>k−1</sub> + (x<sub>k</sub> − z<sub>k</sub>);  u' + kk + ' = ' + (k > 0 ? (function () { var nz = entries.filter(function (e) { return len(e.gap) > 1e-9; }).map(function (e) { return pair(e.gap); }); return nz.length ? (nz.length > 3 ? '… + ' : '') + nz.slice(-3).join(' + ') + ' = ' : ''; })() : '') + pair(u)),
       draw: function (g, p) {
@@ -3098,12 +3225,42 @@ var Board = (function () {
         else g.label(zn, 'no gap: the book is unchanged', C.dim, { dx: 12, dy: -20, p: seg(p, 0.4, 0.7), size: 12 });
       } });
 
-    var ahead = w.slice(k, Math.min(w.length, k + 9)), xs = ahead.map(function (d) { return d.x; }), zs = ahead.map(function (d) { return d.z; });
+    // the next three days with the book, one move at a time (tutorial only)
+    var bookDays = [];
+    var bookDayText = function (d, i) {
+      var sd = subscript(d), sp = subscript(d - 1), now = w[d], pr = w[d - 1], aD = now.v, aN = sub(now.z, now.u), gapD = len(sub(now.x, now.z)), gapP = len(sub(pr.x, pr.z));
+      var grew = len(pr.u) > len(w[d - 2].u) + 1e-9, settling = len(now.u) - len(pr.u) < 0.02 * len(now.u);
+      if (i === 1) return 'The same recipe runs every day, now with the book. Day ' + d + ' starts from yesterday’s numbers: the Warden at z' + sp + ' = ' + pair(pr.z) + ' and the book u' + sp + ' = ' + pair(pr.u) + '. ' +
+        'The rope is tied to today’s aim, v' + sp + ' = z' + sp + ' − u' + sp + ' = ' + pair(aD) + '. So today’s land, F' + sd + '(x) = f(x) + ρ/2·|x − v' + sp + '|², is a new function made from yesterday’s z and u. ' +
+        'Its lowest point is x' + sd + ' = ' + pair(now.x) + '. The Warden steps to the lawful spot nearest x' + sd + ' + u' + sp + ': z' + sd + ' = ' + pair(now.z) + '. ' +
+        'The book adds today’s gap: u' + sd + ' = ' + pair(now.u) + '. That sets tomorrow’s aim, v' + sd + ' = ' + pair(aN) + ', and with it tomorrow’s land.';
+      if (i === 2) return 'Day ' + d + ' is built from day ' + (d - 1) + ': the aim is v' + sp + ' = z' + sp + ' − u' + sp + ' = ' + pair(aD) + '. ' +
+        (grew ? 'The book has grown, so the aim sits further from the Warden and the rope pulls the Wanderer further back. ' : '') +
+        'Today’s lowest point is x' + sd + ' = ' + pair(now.x) + ', and the Warden steps to z' + sd + ' = ' + pair(now.z) + '. ' +
+        'The gap ' + (gapD < gapP ? 'shrinks to ' : 'is ') + num(gapD) + ', and the book reads u' + sd + ' = ' + pair(now.u) + '.';
+      return 'Day ' + d + ' once more: the aim v' + sp + ' = ' + pair(aD) + ', the lowest point x' + sd + ' = ' + pair(now.x) + ', the Warden z' + sd + ' = ' + pair(now.z) + '. ' +
+        'The gap is now ' + num(gapD, 4) + ', and the book ' + (settling ? 'has nearly stopped growing, at' : 'reads') + ' u' + sd + ' = ' + pair(now.u) + '. ' +
+        'Each day the Wanderer solved a different land, and each land was made from the day before.';
+    };
+    if (cx.tutorial && !noLaw && w[k + 4] && k >= 1) {
+      var bdPts = [T];
+      for (var bq = k + 1; bq <= k + 4; bq++) bdPts = bdPts.concat([w[bq].x, w[bq].z, w[bq].v, add(w[bq].x, w[bq].uFrom), sub(w[bq].z, w[bq].u)]);
+      var bdView = around(bdPts, 0.2, 0.1 * cx.span);
+      for (var bj = 2; bj <= 4; bj++) {
+        var dd = k + bj;
+        bookDays.push(dayPage({ id: 'book-day-' + (bj - 1), d: dd, book: true, view: bdView, text: bookDayText(dd, bj - 1),
+          prev: { x: w[dd - 1].x, z: w[dd - 1].z, u: w[dd - 1].u }, now: { x: w[dd].x, z: w[dd].z, u: w[dd].u },
+          aPrev: w[dd - 1].v, trail: w.slice(k, dd).map(function (q) { return q.x; }) }));
+      }
+      bookDays.forEach(function (pg) { out.push(pg); });
+    }
+    var againFrom = k;
+    var ahead = w.slice(againFrom, Math.min(w.length, againFrom + 9)), xs = ahead.map(function (d) { return d.x; }), zs = ahead.map(function (d) { return d.z; });
     if (ahead.length > 2) {
       var prim = ahead.map(function (d) { return d.gap != null ? d.gap : len(sub(d.x, d.z)); }), dual = ahead.map(function (d, i) { return i ? rho * len(sub(d.z, ahead[i - 1].z)) : 0; });
       var primal = prim[1], dualNow = dual[1], n = ahead.length - 1;
       out.push({ id: 'again', chapter: 'The Twins', title: 'Day after day, until they stand together', layout: 'map+side', view: around(xs.concat(zs), 0.4, 10 * cx.h), dur: 6,
-        text: 'Each circuit repeats the four moves: the aim, the Wanderer’s step, the Warden’s step, the book. Here are the next ' + n + ' circuits. The twins stop only when both tests are small: the gap between them, the primal residual, and the Warden’s move since yesterday times ρ, the dual residual. Today they are ' + num(primal, 4) + ' and ' + num(dualNow, 4) + '. Agreement alone is not enough: a Warden still on the move has not found the spot to dig.',
+        text: 'Each circuit repeats the four moves: the aim, the Wanderer’s step, the Warden’s step, the book. ' + (bookDays.length ? 'Here are days ' + k + ' to ' + (k + n) + ' at speed, including the days just shown one at a time. ' : 'Here are the next ' + n + ' circuits. ') + 'The twins stop only when both tests are small: the gap between them, the primal residual, and the Warden’s move since yesterday times ρ, the dual residual. Today they are ' + num(primal, 4) + ' and ' + num(dualNow, 4) + '. Agreement alone is not enough: a Warden still on the move has not found the spot to dig.',
         math: 'stop when |x − z| and ρ·|z<sub>new</sub> − z<sub>old</sub>| are both small' + at(0.6, ';  today ' + num(primal, 4) + ' and ' + num(dualNow, 4)),
         draw: function (g, p) {
           base(g); star(g, T, 1); var s = seg(p, 0.05, 0.85) * n, kk = Math.floor(s), f2 = s - kk;
@@ -3111,7 +3268,7 @@ var Board = (function () {
           g.path(zs.slice(0, kk + 1).concat(kk < n ? [lerp2(zs[kk], zs[kk + 1], ease(f2))] : []), C.blue, 2, 1);
           for (var m = 1; m <= Math.min(kk, n); m++) { g.dot(xs[m], 3, '#e6e9ee', 1); g.dot(zs[m], 3, C.blue, 1); }
           var hx = kk < n ? lerp2(xs[kk], xs[kk + 1], ease(f2)) : xs[n], hz = kk < n ? lerp2(zs[kk], zs[kk + 1], ease(f2)) : zs[n];
-          spring(g, hx, hz, 1); warden(g, hz, 1); g.halo(hz, 13, C.blue, 1, 2); g.hero(hx, 'tw', 1); g.labelPx(g.mapR[0] + 12, g.mapR[1] + 30, 'circuit ' + (k + Math.min(kk, n)), C.gold, { size: 13 });
+          spring(g, hx, hz, 1); warden(g, hz, 1); g.halo(hz, 13, C.blue, 1, 2); g.hero(hx, 'tw', 1); g.labelPx(g.mapR[0] + 12, g.mapR[1] + 30, 'circuit ' + (againFrom + Math.min(kk, n)), C.gold, { size: 13 });
           var R = g.sideR, lo = -5, hi = Math.log(Math.max(Math.max.apply(null, prim.concat(dual)) * 1.5, 1e-4)) / Math.LN10, pl = g.plot(R, [0, n], [lo, hi], { title: 'the two tests, circuit by circuit (log scale)' }); pl.frame('circuits from today', 'log₁₀');
           function lg(a) { return function (t) { var i = Math.floor(t), fq = t - i; return Math.max(lo, Math.log(Math.max(a[Math.min(i, n)] * (1 - fq) + a[Math.min(i + 1, n)] * fq, 1e-9)) / Math.LN10); }; }
           pl.curve(lg(prim), C.violet, 2.2, clamp(s / n, 0, 1)); pl.curve(lg(dual), C.blue, 2.2, clamp(s / n, 0, 1));
@@ -6065,7 +6222,7 @@ var Realm = (function () {
   var H = B.H, C = H.C, seg = H.seg, ease = H.ease, clamp = H.clamp, mix = H.mix, lerp2 = H.lerp2, add = H.add, sub = H.sub, len = H.len, scale = H.scale, backOut = H.backOut, num = H.num;
   var TAU = 2 * Math.PI, JADE = '#7fd6b4', PALE = '#e6e9ee', SANDY = 'rgba(244,226,190,0.72)';
 
-  // ------------------------------------------------------------ the six places
+  // ------------------------------------------------------------ the places
   var PLACES = {
     game:     { file: 'index.html', name: 'King’s Land Descent', bar: 'The game', sub: 'walk the land yourself', q: [1.7, 3.95], icon: 'flag' },
     tutorial: { file: 'tutorial.html', name: 'Three heroes downhill', bar: 'Three heroes downhill', sub: 'gradient descent, L-BFGS, ADMM', q: [3.6, 6.15], icon: 'castle' },
@@ -6073,9 +6230,10 @@ var Realm = (function () {
     keep:     { file: 'jade_keep_tutorial.html', name: 'CAJODE', bar: 'CAJODE receiver', sub: 'joint OFDM demodulation and decoding', q: [9.55, 6.3], icon: 'keep' },
     coach:    { file: 'the_coach_and_the_physio.html', name: 'The Coach and the Physio', bar: 'Coach and Physio', sub: 'a training plan', q: [4.75, 2.15], icon: 'track' },
     dive:     { file: 'localization_is_decoding.html', name: 'The inspection dive', bar: 'Inspection dive', sub: 'localization at a monopile', q: [7.55, 3.15], icon: 'pile' },
-    net:      { file: 'finding_the_tear.html', name: 'Finding the tear', bar: 'Finding the tear', sub: 'a fish-farm net', q: [10.45, 1.95], icon: 'pen' }
+    net:      { file: 'finding_the_tear.html', name: 'Finding the tear', bar: 'Finding the tear', sub: 'a fish-farm net', q: [10.45, 1.95], icon: 'pen' },
+    red:      { file: 'five_receivers_on_red.html', name: 'The Red recordings', bar: 'Red BER table', sub: 'five receivers, measured bit errors', q: [11.15, 4.3], icon: 'buoy' }
   };
-  var ORDER = ['game', 'tutorial', 'soldiers', 'keep', 'coach', 'dive', 'net'];
+  var ORDER = ['game', 'tutorial', 'soldiers', 'keep', 'coach', 'dive', 'net', 'red'];
 
   // ------------------------------------------------------------ the map of the King’s land, world box [0, 12] × [0, 8]
   var MAP = [0, 12, 0, 8], LO = -0.6, HI = 1.9;
@@ -6093,7 +6251,7 @@ var Realm = (function () {
     for (var j = 0; j <= 48; j++) { var t = j / 48, u = 1 - t; pts.push([u * u * A[0] + 2 * u * t * ctrl[0] + t * t * Bq[0], u * u * A[1] + 2 * u * t * ctrl[1] + t * t * Bq[1]]); }
     return flip ? pts.reverse() : pts;
   }
-  function atSea(a, b) { return ['keep', 'dive', 'net'].indexOf(a) >= 0 || ['keep', 'dive', 'net'].indexOf(b) >= 0; }
+  function atSea(a, b) { return ['keep', 'dive', 'net', 'red'].indexOf(a) >= 0 || ['keep', 'dive', 'net', 'red'].indexOf(b) >= 0; }
   function along(pts, f) {
     var L = 0, segL = [], j; for (j = 1; j < pts.length; j++) { segL.push(len(sub(pts[j], pts[j - 1]))); L += segL[j - 1]; }
     var goal = L * clamp(f, 0, 1); for (j = 1; j < pts.length; j++) { if (goal <= segL[j - 1]) return lerp2(pts[j - 1], pts[j], segL[j - 1] ? goal / segL[j - 1] : 1); goal -= segL[j - 1]; }
@@ -6149,6 +6307,16 @@ var Realm = (function () {
       [[-0.62, 0.2], [0, 0.55], [0.62, 0.2]].forEach(function (d) { c.beginPath(); c.moveTo(x, y - 0.42 * s); c.lineTo(x + d[0] * s, y + d[1] * s - 0.1 * s); c.stroke(); });
       junctionBox(c, x, y - 0.5 * s, 0.42 * s);
       [[-0.62, 0.32], [0, 0.66], [0.62, 0.32]].forEach(function (d, j) { trooper(c, x + d[0] * s, y + d[1] * s, 0.3 * s, j === 1 ? '#ff9a8a' : '#cfd8e2'); });
+    } else if (kind === 'buoy') {
+      // a buoy on the swell, its line down to a hydrophone that hears a ping
+      c.strokeStyle = 'rgba(169,205,246,0.9)'; c.lineWidth = 1.5;
+      [0.0, 0.24].forEach(function (dy) { c.beginPath(); for (var kb = 0; kb <= 16; kb++) { var xb = x - 0.85 * s + 1.7 * s * kb / 16, yb = y + dy * s + 0.07 * s * Math.sin(kb * 1.4 + (t || 0) * 6); if (kb) c.lineTo(xb, yb); else c.moveTo(xb, yb); } c.stroke(); });
+      c.strokeStyle = 'rgba(242,245,248,0.7)'; c.lineWidth = 1; c.beginPath(); c.moveTo(x, y - 0.1 * s); c.lineTo(x + 0.12 * s, y + 0.62 * s); c.stroke();
+      c.fillStyle = '#ff9a8a'; c.strokeStyle = '#3b1f1a'; c.lineWidth = 1.2; c.beginPath(); c.arc(x, y - 0.12 * s, 0.3 * s, Math.PI, TAU); c.closePath(); c.fill(); c.stroke();
+      c.strokeStyle = '#f2f5f8'; c.lineWidth = 1.6; c.beginPath(); c.moveTo(x, y - 0.42 * s); c.lineTo(x, y - 0.85 * s); c.stroke(); disc(c, x, y - 0.88 * s, 0.09 * s, C.gold);
+      c.fillStyle = '#cfd8e2'; c.strokeStyle = '#2b3a4a'; c.beginPath(); c.rect(x + 0.04 * s, y + 0.6 * s, 0.18 * s, 0.32 * s); c.fill(); c.stroke();
+      var ph = ((t || 0) * 2) % 1; c.strokeStyle = 'rgba(255,210,122,' + (0.8 * (1 - ph)).toFixed(2) + ')'; c.lineWidth = 1.2;
+      c.beginPath(); c.arc(x + 0.13 * s, y + 0.76 * s, (0.3 + 0.35 * ph) * s, 0.75 * Math.PI, 1.25 * Math.PI); c.stroke();
     } else if (kind === 'pen') {
       c.save(); c.beginPath(); c.arc(x, y, 0.75 * s, 0, TAU); c.clip();
       c.strokeStyle = 'rgba(230,233,238,0.5)'; c.lineWidth = 1;
@@ -6901,6 +7069,29 @@ var Realm = (function () {
         K('What the training plan becomes', 'The moves are the same; the set is a junction’s valid patterns.',
           [[['coach', 'the plan x'], ['soldier', 'a card per soldier']], [['physio', 'the Physio’s copy z'], ['junction', 'a record per junction']], [['book', 'the planning log u'], ['book', 'a note per edge']], [['polygon', 'four safety rules'], ['check', 'a junction’s valid patterns']]],
           'New here: the BP soldier, which decodes the same bits by replies alone.')] },
+    // ---- the Red recordings: five receivers counted on recorded frames
+    { id: 'keep-red', from: 'keep', at: ['full-frame'], to: 'red', land: 'question', who: 'you', carry: ['CAJODE’s update'],
+      scenes: [M('From the receiver to the Red recordings', 'The CAJODE tutorial followed one frame through its updates. The Red table counts the payload bits that five receivers, CAJODE among them, get wrong on recorded frames.'),
+        K('What the receiver becomes', 'One decoded frame becomes one of the 47 frames behind each point of the table.',
+          [[['bit', 'the accepted hard word'], ['key:E', 'bit errors, counted']], [['carrier', 'one received frame'], ['key:47', 'forty-seven frames per point']], [['key:C', 'CAJODE alone'], ['key:5', 'five receivers side by side']]],
+          'New here: the bit error rate (BER), measured on recorded frames.')] },
+    { id: 'red-keep', from: 'red', at: ['cajode'], to: 'keep', land: 'separate-chain', who: 'you', carry: ['the BER table'],
+      scenes: [M('From the Red recordings to the receiver', 'The table counts the bits CAJODE gets wrong but does not show how it decodes. The CAJODE tutorial opens one frame and follows each update, from the received carriers to an accepted word.'),
+        S('receiverMini', {}, 'The receiver in miniature', MINI),
+        K('What the table becomes', 'One point of the table becomes one frame, decoded step by step.',
+          [[['key:47', 'forty-seven frames per point'], ['carrier', 'one received frame']], [['key:E', 'bit errors, counted'], ['bit', 'the shared bits b']], [['key:50', 'at most 50 updates'], ['book', 'one update after another']]],
+          'New here: the channel response, estimated inside every update.')] },
+    { id: 'soldiers-red', from: 'soldiers', at: ['officer'], to: 'red', land: 'question', who: 'you', carry: ['the BP soldier', 'the note-taking soldier'],
+      scenes: [M('From the soldiers to the Red recordings', 'The soldiers decoded six bits with the channel known. The Red table counts the bits that JADE and CAJODE get wrong on recorded frames, beside three other receivers.'),
+        K('What the soldiers become', 'Six soldiers become thousands of bits in each recorded frame, and the channel must be estimated.',
+          [[['soldier', 'six soldiers'], ['key:E', 'bit errors in 47 frames']], [['officer', 'the officer’s map, held still'], ['key:dB', 'a recorded channel and an SNR']], [['junction', 'a junction’s checks'], ['key:¼', 'a code of rate one quarter']]],
+          'New here: measured bit error rate (BER) curves for five receivers.')] },
+    { id: 'red-soldiers', from: 'red', at: ['jade'], to: 'soldiers', land: 'count', who: 'you', carry: ['JADE’s BP decoder'],
+      scenes: [M('From the Red recordings to the soldiers', 'JADE’s decoder passes belief-propagation (BP) messages, and CAJODE projects onto parity checks. The soldier slides show both on six soldiers, with the channel held still.'),
+        S('soldierTree', {}, 'Six bits, three connected checks', 'Bits 2 and 4 join neighbouring checks into one open chain. Bit 0 has the only wrong channel decision, so c₂ is violated. The tutorial decodes this tree first with BP, then with the CAJODE constraint circuit.'),
+        K('What the receivers become', 'Thousands of bits become six soldiers, so every message can be drawn.',
+          [[['key:BP', 'JADE’s BP decoder'], ['soldier', 'the BP soldier']], [['key:C', 'CAJODE’s update'], ['junction', 'the note-taking soldier']], [['key:E', 'bit errors in 47 frames'], ['bit', 'six bits, one wrong']]],
+          'New here: messages that leave their recipient out.')] },
     // ---- from the dive
     { id: 'dive-light', from: 'dive', at: ['analogy'], to: 'tutorial', land: 'light-patterns', sign: 'The exact rule behind the likeness', hook: 'A light board shows a parity check pruning patterns, then grows it into a code.', who: 'you', carry: ['four headings'],
       scenes: [M('From the monopile to the light board', 'The range band resembles a parity check. Three heroes downhill shows the exact rule with lamps: two lamps, four patterns, two that pass. Its next pages grow the check into nine lamps and connect it to CAJODE.'),
@@ -6993,16 +7184,16 @@ var Realm = (function () {
     continue: { label: 'Continue', head: 'Continue the lesson', cta: 'Continue the lesson →' },
     chooser:  { label: 'Where next', head: 'Choose what to learn next', cta: 'Open the next lesson →' }
   };
-  var PRIMARY_ROADS = ['tale-staff', 'tale-misty-game', 'game-canyon', 'game-wall', 'game-fort', 'game-misty', 'twins-coach', 'light-keep', 'tale-done', 'tale-dive', 'tale-net', 'keep-light-shared', 'keep-twins', 'keep-coach', 'keep-dive', 'keep-net', 'coach-twins', 'coach-dive', 'dive-light', 'dive-net-aliases', 'dive-keep', 'dive-net-next', 'net-misty-game', 'net-keep-copies', 'net-keep-circuit', 'light-soldiers', 'soldiers-light', 'soldiers-twins', 'keep-soldiers', 'soldiers-keep', 'soldiers-coach'];
-  var SECONDARY_ROADS = ['coach-soldiers', 'misty-net', 'keep-light', 'keep-net-robust', 'keep-net-blocks', 'keep-net-done', 'keep-fort-game', 'coach-wall-game', 'dive-twins', 'net-misty', 'net-twins'];
+  var PRIMARY_ROADS = ['tale-staff', 'tale-misty-game', 'game-canyon', 'game-wall', 'game-fort', 'game-misty', 'twins-coach', 'light-keep', 'tale-done', 'tale-dive', 'tale-net', 'keep-light-shared', 'keep-twins', 'keep-coach', 'keep-dive', 'keep-net', 'coach-twins', 'coach-dive', 'dive-light', 'dive-net-aliases', 'dive-keep', 'dive-net-next', 'net-misty-game', 'net-keep-copies', 'net-keep-circuit', 'red-keep', 'red-soldiers', 'light-soldiers', 'soldiers-light', 'soldiers-twins', 'keep-soldiers', 'soldiers-keep', 'soldiers-coach'];
+  var SECONDARY_ROADS = ['coach-soldiers', 'misty-net', 'keep-light', 'keep-net-robust', 'keep-net-blocks', 'keep-net-done', 'keep-fort-game', 'coach-wall-game', 'dive-twins', 'net-misty', 'net-twins', 'keep-red', 'soldiers-red'];
   var MAP_ROADS = ['tale-twins-game', 'game-ridge', 'coach-keep', 'dive-coach', 'net-keep-robust', 'net-keep-blocks', 'net-keep-done', 'net-dive-aliases'];
 
   var ROAD_ROLES = {
     practice: ['tale-staff', 'tale-misty-game', 'keep-fort-game', 'coach-wall-game', 'net-misty-game', 'tale-twins-game'],
-    explain: ['game-canyon', 'game-wall', 'game-fort', 'game-misty', 'coach-twins', 'game-ridge'],
-    simplify: ['soldiers-twins', 'keep-light-shared', 'keep-twins', 'keep-light', 'dive-twins', 'net-misty', 'net-twins', 'dive-coach'],
+    explain: ['game-canyon', 'game-wall', 'game-fort', 'game-misty', 'coach-twins', 'game-ridge', 'red-keep'],
+    simplify: ['soldiers-twins', 'keep-light-shared', 'keep-twins', 'keep-light', 'dive-twins', 'net-misty', 'net-twins', 'dive-coach', 'red-soldiers'],
     apply: ['twins-coach', 'light-keep', 'dive-keep', 'coach-keep', 'soldiers-keep', 'soldiers-light'],
-    compare: ['light-soldiers', 'keep-soldiers', 'coach-soldiers', 'tale-done', 'coach-dive', 'dive-light', 'dive-net-aliases', 'net-keep-copies', 'net-keep-circuit', 'misty-net', 'keep-net-robust', 'keep-net-blocks', 'keep-net-done', 'net-keep-robust', 'net-keep-blocks', 'net-keep-done', 'net-dive-aliases'],
+    compare: ['keep-red', 'soldiers-red', 'light-soldiers', 'keep-soldiers', 'coach-soldiers', 'tale-done', 'coach-dive', 'dive-light', 'dive-net-aliases', 'net-keep-copies', 'net-keep-circuit', 'misty-net', 'keep-net-robust', 'keep-net-blocks', 'keep-net-done', 'net-keep-robust', 'net-keep-blocks', 'net-keep-done', 'net-dive-aliases'],
     chooser: ['tale-dive', 'tale-net', 'keep-coach', 'keep-dive', 'keep-net', 'dive-net-next', 'soldiers-coach']
   };
 
@@ -7011,6 +7202,22 @@ var Realm = (function () {
   function roleOf(id) { var keys = Object.keys(ROAD_ROLES); for (var j = 0; j < keys.length; j++) if (listed(ROAD_ROLES[keys[j]], id)) return keys[j]; return 'compare'; }
 
   var ROAD_COPY = {
+    'keep-red': {
+      sign: 'See CAJODE’s measured bit error rate', hook: 'A results table counts what CAJODE and four other receivers get wrong on recorded frames.', cta: 'Read the Red BER table →',
+      same: 'CAJODE runs the same updates on every recorded frame.', different: 'One frame becomes 47 frames per point, at five pilot ratios and sixteen SNR values.'
+    },
+    'red-keep': {
+      sign: 'Open one CAJODE decode', hook: 'Follow one frame from the received carriers to an accepted word, update by update.', cta: 'Follow one CAJODE decode →',
+      same: 'The same receiver that the table counts.', different: 'One frame, seen from inside, instead of error counts over many.'
+    },
+    'soldiers-red': {
+      sign: 'See JADE and CAJODE on recorded frames', hook: 'A results table counts their bit errors, beside three other receivers.', cta: 'Read the Red BER table →',
+      same: 'JADE’s decoder passes BP messages; CAJODE keeps records and notes.', different: 'The channel is unknown and estimated, and errors are counted over thousands of bits.'
+    },
+    'red-soldiers': {
+      sign: 'See BP messages on six soldiers', hook: 'The soldier slides show JADE’s kind of decoder and CAJODE’s circuit on one small tree.', cta: 'Watch the BP soldier →',
+      same: 'A parity code and its checks.', different: 'Six bits and a known channel replace thousands of bits and an estimated one.'
+    },
     'light-soldiers': {
       sign: 'Compare BP replies with check replicas', hook: 'Six soldiers decode one tree twice: once by BP replies from the other soldiers, once by records and notes.', cta: 'Compare the two soldiers →',
       same: 'Each check still keeps its own view of the bits it touches.', different: 'A BP reply leaves its recipient out; a record takes in every card, and a note keeps the disagreement.'
@@ -7172,7 +7379,7 @@ var Realm = (function () {
   // the whole map, from wherever the reader stands
   function mapStep(here, onPage) {
     var lit = ROADS.filter(function (r) { return r.from === here || r.to === here; }).map(function (r) { return ORDER.indexOf(r.from) < ORDER.indexOf(r.to) ? r.from + '|' + r.to : r.to + '|' + r.from; });
-    var mine = ROADS.filter(function (r) { return r.from === here; }), html = 'Seven places teach one set of moves. Three heroes find the lowest spot of a land in fog; the Twins add a law with two copies, a rope and a book. Counting soldiers set those copies beside belief propagation. The same copies decode bits in CAJODE, plan a training session, tag photos at a monopile and find a tear in a net.<br><br>';
+    var mine = ROADS.filter(function (r) { return r.from === here; }), html = 'Eight places teach one set of moves. Three heroes find the lowest spot of a land in fog; the Twins add a law with two copies, a rope and a book. Counting soldiers set those copies beside belief propagation. The same copies decode bits in CAJODE, plan a training session, tag photos at a monopile and find a tear in a net. The Red recordings count the bits that five receivers get wrong on recorded frames.<br><br>';
     html += ORDER.map(function (k) { var P0 = PLACES[k]; return (k === here ? '<b>' + P0.name + '</b> (you are here)' : '<a href="' + P0.file + '" data-realm-go="1">' + P0.name + '</a>') + ', ' + P0.sub; }).join('<br>');
     if (mine.length) {
       function roadLine(r) {
@@ -7184,7 +7391,7 @@ var Realm = (function () {
       html += '<br><br><b>Concept roads from this page</b><br>' + main.map(roadLine).join('<br>');
       if (more.length) html += '<details class="realm-map-more"><summary>More comparisons</summary>' + more.map(roadLine).join('<br>') + '</details>';
     }
-    return { id: 'realm-map', chapter: 'The map of the King’s land', title: 'Seven places, one set of moves', layout: 'map', view: MAP, dur: 4.4, text: html, math: '',
+    return { id: 'realm-map', chapter: 'The map of the King’s land', title: 'Eight places, one set of moves', layout: 'map', view: MAP, dur: 4.4, text: html, math: '',
              draw: function (g, p) { realmMap(g, { here: here, lit: lit, t: p, p: 1 }); } };
   }
 
@@ -7389,7 +7596,7 @@ var Realm = (function () {
     '.realm-landroads{flex-basis:100%;display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:8px}',
     '.realm-landroads .realm-fork-head{grid-column:1/-1;color:var(--orange,#c45100)}',
     '.realm-landroads .realm-road{background:var(--sheet,#f4f7fb)}.realm-landroads>.realm-more{grid-column:1/-1}',
-    '@media(max-width:680px){.realm-bar .realm-lead{display:none}.realm-actions{display:grid;grid-template-columns:1fr}.realm-actions a{justify-content:center;min-height:40px}.realm-transfer{gap:6px}.realm-predict-actions{display:grid}.realm-predict-actions button{margin:0;min-height:42px}}'
+    '@media(max-width:680px){.realm-bar .realm-lead{display:none}.realm-bar:after{content:"more →";position:sticky;right:0;flex:none;padding:3px 5px;color:var(--muted,var(--ink-2,#546273));background:var(--bg,#edf1f5);font-size:11px}.realm-actions{display:grid;grid-template-columns:1fr}.realm-actions a{justify-content:center;min-height:40px}.realm-transfer{gap:6px}.realm-predict-actions{display:grid}.realm-predict-actions button{margin:0;min-height:42px}}'
   ].join('\n');
 
   function here() { var m = document.querySelector ? document.querySelector('meta[name="kings-land-page"]') : null; return (m && m.getAttribute('content')) || window.REALM_PAGE || null; }
@@ -7397,7 +7604,7 @@ var Realm = (function () {
     page = here(); if (!page || !PLACES[page] || !document.createElement) return;
     var h = parse(window.kingsLandHash != null ? window.kingsLandHash : window.location && window.location.hash); shot = 'step' in h || 'shot' in h || 'map' in h;
     try { var st = document.createElement('style'); st.textContent = CSS; (document.head || document.body).appendChild(st); } catch (e) { /* no styles in a test */ }
-    barEl = document.createElement('nav'); barEl.className = 'realm-bar'; barEl.setAttribute('aria-label', 'The six pages of King’s Land Descent');
+    barEl = document.createElement('nav'); barEl.className = 'realm-bar'; barEl.setAttribute('aria-label', 'King’s Land Descent pages; scroll horizontally for more');
     var host = page === 'game' ? document.querySelector('.wrap') : document.querySelector('main.course');
     if (host && host.insertBefore) host.insertBefore(barEl, host.firstChild);
     forkEl = document.createElement('aside'); forkEl.className = 'realm-fork'; forkEl.hidden = true; forkEl.setAttribute('aria-label', 'Roads to other pages');

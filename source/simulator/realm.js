@@ -16,7 +16,7 @@ var Realm = (function () {
   var H = B.H, C = H.C, seg = H.seg, ease = H.ease, clamp = H.clamp, mix = H.mix, lerp2 = H.lerp2, add = H.add, sub = H.sub, len = H.len, scale = H.scale, backOut = H.backOut, num = H.num;
   var TAU = 2 * Math.PI, JADE = '#7fd6b4', PALE = '#e6e9ee', SANDY = 'rgba(244,226,190,0.72)';
 
-  // ------------------------------------------------------------ the six places
+  // ------------------------------------------------------------ the places
   var PLACES = {
     game:     { file: 'index.html', name: 'King’s Land Descent', bar: 'The game', sub: 'walk the land yourself', q: [1.7, 3.95], icon: 'flag' },
     tutorial: { file: 'tutorial.html', name: 'Three heroes downhill', bar: 'Three heroes downhill', sub: 'gradient descent, L-BFGS, ADMM', q: [3.6, 6.15], icon: 'castle' },
@@ -24,9 +24,10 @@ var Realm = (function () {
     keep:     { file: 'jade_keep_tutorial.html', name: 'CAJODE', bar: 'CAJODE receiver', sub: 'joint OFDM demodulation and decoding', q: [9.55, 6.3], icon: 'keep' },
     coach:    { file: 'the_coach_and_the_physio.html', name: 'The Coach and the Physio', bar: 'Coach and Physio', sub: 'a training plan', q: [4.75, 2.15], icon: 'track' },
     dive:     { file: 'localization_is_decoding.html', name: 'The inspection dive', bar: 'Inspection dive', sub: 'localization at a monopile', q: [7.55, 3.15], icon: 'pile' },
-    net:      { file: 'finding_the_tear.html', name: 'Finding the tear', bar: 'Finding the tear', sub: 'a fish-farm net', q: [10.45, 1.95], icon: 'pen' }
+    net:      { file: 'finding_the_tear.html', name: 'Finding the tear', bar: 'Finding the tear', sub: 'a fish-farm net', q: [10.45, 1.95], icon: 'pen' },
+    red:      { file: 'five_receivers_on_red.html', name: 'The Red recordings', bar: 'Red BER table', sub: 'five receivers, measured bit errors', q: [11.15, 4.3], icon: 'buoy' }
   };
-  var ORDER = ['game', 'tutorial', 'soldiers', 'keep', 'coach', 'dive', 'net'];
+  var ORDER = ['game', 'tutorial', 'soldiers', 'keep', 'coach', 'dive', 'net', 'red'];
 
   // ------------------------------------------------------------ the map of the King’s land, world box [0, 12] × [0, 8]
   var MAP = [0, 12, 0, 8], LO = -0.6, HI = 1.9;
@@ -44,7 +45,7 @@ var Realm = (function () {
     for (var j = 0; j <= 48; j++) { var t = j / 48, u = 1 - t; pts.push([u * u * A[0] + 2 * u * t * ctrl[0] + t * t * Bq[0], u * u * A[1] + 2 * u * t * ctrl[1] + t * t * Bq[1]]); }
     return flip ? pts.reverse() : pts;
   }
-  function atSea(a, b) { return ['keep', 'dive', 'net'].indexOf(a) >= 0 || ['keep', 'dive', 'net'].indexOf(b) >= 0; }
+  function atSea(a, b) { return ['keep', 'dive', 'net', 'red'].indexOf(a) >= 0 || ['keep', 'dive', 'net', 'red'].indexOf(b) >= 0; }
   function along(pts, f) {
     var L = 0, segL = [], j; for (j = 1; j < pts.length; j++) { segL.push(len(sub(pts[j], pts[j - 1]))); L += segL[j - 1]; }
     var goal = L * clamp(f, 0, 1); for (j = 1; j < pts.length; j++) { if (goal <= segL[j - 1]) return lerp2(pts[j - 1], pts[j], segL[j - 1] ? goal / segL[j - 1] : 1); goal -= segL[j - 1]; }
@@ -100,6 +101,16 @@ var Realm = (function () {
       [[-0.62, 0.2], [0, 0.55], [0.62, 0.2]].forEach(function (d) { c.beginPath(); c.moveTo(x, y - 0.42 * s); c.lineTo(x + d[0] * s, y + d[1] * s - 0.1 * s); c.stroke(); });
       junctionBox(c, x, y - 0.5 * s, 0.42 * s);
       [[-0.62, 0.32], [0, 0.66], [0.62, 0.32]].forEach(function (d, j) { trooper(c, x + d[0] * s, y + d[1] * s, 0.3 * s, j === 1 ? '#ff9a8a' : '#cfd8e2'); });
+    } else if (kind === 'buoy') {
+      // a buoy on the swell, its line down to a hydrophone that hears a ping
+      c.strokeStyle = 'rgba(169,205,246,0.9)'; c.lineWidth = 1.5;
+      [0.0, 0.24].forEach(function (dy) { c.beginPath(); for (var kb = 0; kb <= 16; kb++) { var xb = x - 0.85 * s + 1.7 * s * kb / 16, yb = y + dy * s + 0.07 * s * Math.sin(kb * 1.4 + (t || 0) * 6); if (kb) c.lineTo(xb, yb); else c.moveTo(xb, yb); } c.stroke(); });
+      c.strokeStyle = 'rgba(242,245,248,0.7)'; c.lineWidth = 1; c.beginPath(); c.moveTo(x, y - 0.1 * s); c.lineTo(x + 0.12 * s, y + 0.62 * s); c.stroke();
+      c.fillStyle = '#ff9a8a'; c.strokeStyle = '#3b1f1a'; c.lineWidth = 1.2; c.beginPath(); c.arc(x, y - 0.12 * s, 0.3 * s, Math.PI, TAU); c.closePath(); c.fill(); c.stroke();
+      c.strokeStyle = '#f2f5f8'; c.lineWidth = 1.6; c.beginPath(); c.moveTo(x, y - 0.42 * s); c.lineTo(x, y - 0.85 * s); c.stroke(); disc(c, x, y - 0.88 * s, 0.09 * s, C.gold);
+      c.fillStyle = '#cfd8e2'; c.strokeStyle = '#2b3a4a'; c.beginPath(); c.rect(x + 0.04 * s, y + 0.6 * s, 0.18 * s, 0.32 * s); c.fill(); c.stroke();
+      var ph = ((t || 0) * 2) % 1; c.strokeStyle = 'rgba(255,210,122,' + (0.8 * (1 - ph)).toFixed(2) + ')'; c.lineWidth = 1.2;
+      c.beginPath(); c.arc(x + 0.13 * s, y + 0.76 * s, (0.3 + 0.35 * ph) * s, 0.75 * Math.PI, 1.25 * Math.PI); c.stroke();
     } else if (kind === 'pen') {
       c.save(); c.beginPath(); c.arc(x, y, 0.75 * s, 0, TAU); c.clip();
       c.strokeStyle = 'rgba(230,233,238,0.5)'; c.lineWidth = 1;
@@ -852,6 +863,29 @@ var Realm = (function () {
         K('What the training plan becomes', 'The moves are the same; the set is a junction’s valid patterns.',
           [[['coach', 'the plan x'], ['soldier', 'a card per soldier']], [['physio', 'the Physio’s copy z'], ['junction', 'a record per junction']], [['book', 'the planning log u'], ['book', 'a note per edge']], [['polygon', 'four safety rules'], ['check', 'a junction’s valid patterns']]],
           'New here: the BP soldier, which decodes the same bits by replies alone.')] },
+    // ---- the Red recordings: five receivers counted on recorded frames
+    { id: 'keep-red', from: 'keep', at: ['full-frame'], to: 'red', land: 'question', who: 'you', carry: ['CAJODE’s update'],
+      scenes: [M('From the receiver to the Red recordings', 'The CAJODE tutorial followed one frame through its updates. The Red table counts the payload bits that five receivers, CAJODE among them, get wrong on recorded frames.'),
+        K('What the receiver becomes', 'One decoded frame becomes one of the 47 frames behind each point of the table.',
+          [[['bit', 'the accepted hard word'], ['key:E', 'bit errors, counted']], [['carrier', 'one received frame'], ['key:47', 'forty-seven frames per point']], [['key:C', 'CAJODE alone'], ['key:5', 'five receivers side by side']]],
+          'New here: the bit error rate (BER), measured on recorded frames.')] },
+    { id: 'red-keep', from: 'red', at: ['cajode'], to: 'keep', land: 'separate-chain', who: 'you', carry: ['the BER table'],
+      scenes: [M('From the Red recordings to the receiver', 'The table counts the bits CAJODE gets wrong but does not show how it decodes. The CAJODE tutorial opens one frame and follows each update, from the received carriers to an accepted word.'),
+        S('receiverMini', {}, 'The receiver in miniature', MINI),
+        K('What the table becomes', 'One point of the table becomes one frame, decoded step by step.',
+          [[['key:47', 'forty-seven frames per point'], ['carrier', 'one received frame']], [['key:E', 'bit errors, counted'], ['bit', 'the shared bits b']], [['key:50', 'at most 50 updates'], ['book', 'one update after another']]],
+          'New here: the channel response, estimated inside every update.')] },
+    { id: 'soldiers-red', from: 'soldiers', at: ['officer'], to: 'red', land: 'question', who: 'you', carry: ['the BP soldier', 'the note-taking soldier'],
+      scenes: [M('From the soldiers to the Red recordings', 'The soldiers decoded six bits with the channel known. The Red table counts the bits that JADE and CAJODE get wrong on recorded frames, beside three other receivers.'),
+        K('What the soldiers become', 'Six soldiers become thousands of bits in each recorded frame, and the channel must be estimated.',
+          [[['soldier', 'six soldiers'], ['key:E', 'bit errors in 47 frames']], [['officer', 'the officer’s map, held still'], ['key:dB', 'a recorded channel and an SNR']], [['junction', 'a junction’s checks'], ['key:¼', 'a code of rate one quarter']]],
+          'New here: measured bit error rate (BER) curves for five receivers.')] },
+    { id: 'red-soldiers', from: 'red', at: ['jade'], to: 'soldiers', land: 'count', who: 'you', carry: ['JADE’s BP decoder'],
+      scenes: [M('From the Red recordings to the soldiers', 'JADE’s decoder passes belief-propagation (BP) messages, and CAJODE projects onto parity checks. The soldier slides show both on six soldiers, with the channel held still.'),
+        S('soldierTree', {}, 'Six bits, three connected checks', 'Bits 2 and 4 join neighbouring checks into one open chain. Bit 0 has the only wrong channel decision, so c₂ is violated. The tutorial decodes this tree first with BP, then with the CAJODE constraint circuit.'),
+        K('What the receivers become', 'Thousands of bits become six soldiers, so every message can be drawn.',
+          [[['key:BP', 'JADE’s BP decoder'], ['soldier', 'the BP soldier']], [['key:C', 'CAJODE’s update'], ['junction', 'the note-taking soldier']], [['key:E', 'bit errors in 47 frames'], ['bit', 'six bits, one wrong']]],
+          'New here: messages that leave their recipient out.')] },
     // ---- from the dive
     { id: 'dive-light', from: 'dive', at: ['analogy'], to: 'tutorial', land: 'light-patterns', sign: 'The exact rule behind the likeness', hook: 'A light board shows a parity check pruning patterns, then grows it into a code.', who: 'you', carry: ['four headings'],
       scenes: [M('From the monopile to the light board', 'The range band resembles a parity check. Three heroes downhill shows the exact rule with lamps: two lamps, four patterns, two that pass. Its next pages grow the check into nine lamps and connect it to CAJODE.'),
@@ -944,16 +978,16 @@ var Realm = (function () {
     continue: { label: 'Continue', head: 'Continue the lesson', cta: 'Continue the lesson →' },
     chooser:  { label: 'Where next', head: 'Choose what to learn next', cta: 'Open the next lesson →' }
   };
-  var PRIMARY_ROADS = ['tale-staff', 'tale-misty-game', 'game-canyon', 'game-wall', 'game-fort', 'game-misty', 'twins-coach', 'light-keep', 'tale-done', 'tale-dive', 'tale-net', 'keep-light-shared', 'keep-twins', 'keep-coach', 'keep-dive', 'keep-net', 'coach-twins', 'coach-dive', 'dive-light', 'dive-net-aliases', 'dive-keep', 'dive-net-next', 'net-misty-game', 'net-keep-copies', 'net-keep-circuit', 'light-soldiers', 'soldiers-light', 'soldiers-twins', 'keep-soldiers', 'soldiers-keep', 'soldiers-coach'];
-  var SECONDARY_ROADS = ['coach-soldiers', 'misty-net', 'keep-light', 'keep-net-robust', 'keep-net-blocks', 'keep-net-done', 'keep-fort-game', 'coach-wall-game', 'dive-twins', 'net-misty', 'net-twins'];
+  var PRIMARY_ROADS = ['tale-staff', 'tale-misty-game', 'game-canyon', 'game-wall', 'game-fort', 'game-misty', 'twins-coach', 'light-keep', 'tale-done', 'tale-dive', 'tale-net', 'keep-light-shared', 'keep-twins', 'keep-coach', 'keep-dive', 'keep-net', 'coach-twins', 'coach-dive', 'dive-light', 'dive-net-aliases', 'dive-keep', 'dive-net-next', 'net-misty-game', 'net-keep-copies', 'net-keep-circuit', 'red-keep', 'red-soldiers', 'light-soldiers', 'soldiers-light', 'soldiers-twins', 'keep-soldiers', 'soldiers-keep', 'soldiers-coach'];
+  var SECONDARY_ROADS = ['coach-soldiers', 'misty-net', 'keep-light', 'keep-net-robust', 'keep-net-blocks', 'keep-net-done', 'keep-fort-game', 'coach-wall-game', 'dive-twins', 'net-misty', 'net-twins', 'keep-red', 'soldiers-red'];
   var MAP_ROADS = ['tale-twins-game', 'game-ridge', 'coach-keep', 'dive-coach', 'net-keep-robust', 'net-keep-blocks', 'net-keep-done', 'net-dive-aliases'];
 
   var ROAD_ROLES = {
     practice: ['tale-staff', 'tale-misty-game', 'keep-fort-game', 'coach-wall-game', 'net-misty-game', 'tale-twins-game'],
-    explain: ['game-canyon', 'game-wall', 'game-fort', 'game-misty', 'coach-twins', 'game-ridge'],
-    simplify: ['soldiers-twins', 'keep-light-shared', 'keep-twins', 'keep-light', 'dive-twins', 'net-misty', 'net-twins', 'dive-coach'],
+    explain: ['game-canyon', 'game-wall', 'game-fort', 'game-misty', 'coach-twins', 'game-ridge', 'red-keep'],
+    simplify: ['soldiers-twins', 'keep-light-shared', 'keep-twins', 'keep-light', 'dive-twins', 'net-misty', 'net-twins', 'dive-coach', 'red-soldiers'],
     apply: ['twins-coach', 'light-keep', 'dive-keep', 'coach-keep', 'soldiers-keep', 'soldiers-light'],
-    compare: ['light-soldiers', 'keep-soldiers', 'coach-soldiers', 'tale-done', 'coach-dive', 'dive-light', 'dive-net-aliases', 'net-keep-copies', 'net-keep-circuit', 'misty-net', 'keep-net-robust', 'keep-net-blocks', 'keep-net-done', 'net-keep-robust', 'net-keep-blocks', 'net-keep-done', 'net-dive-aliases'],
+    compare: ['keep-red', 'soldiers-red', 'light-soldiers', 'keep-soldiers', 'coach-soldiers', 'tale-done', 'coach-dive', 'dive-light', 'dive-net-aliases', 'net-keep-copies', 'net-keep-circuit', 'misty-net', 'keep-net-robust', 'keep-net-blocks', 'keep-net-done', 'net-keep-robust', 'net-keep-blocks', 'net-keep-done', 'net-dive-aliases'],
     chooser: ['tale-dive', 'tale-net', 'keep-coach', 'keep-dive', 'keep-net', 'dive-net-next', 'soldiers-coach']
   };
 
@@ -962,6 +996,22 @@ var Realm = (function () {
   function roleOf(id) { var keys = Object.keys(ROAD_ROLES); for (var j = 0; j < keys.length; j++) if (listed(ROAD_ROLES[keys[j]], id)) return keys[j]; return 'compare'; }
 
   var ROAD_COPY = {
+    'keep-red': {
+      sign: 'See CAJODE’s measured bit error rate', hook: 'A results table counts what CAJODE and four other receivers get wrong on recorded frames.', cta: 'Read the Red BER table →',
+      same: 'CAJODE runs the same updates on every recorded frame.', different: 'One frame becomes 47 frames per point, at five pilot ratios and sixteen SNR values.'
+    },
+    'red-keep': {
+      sign: 'Open one CAJODE decode', hook: 'Follow one frame from the received carriers to an accepted word, update by update.', cta: 'Follow one CAJODE decode →',
+      same: 'The same receiver that the table counts.', different: 'One frame, seen from inside, instead of error counts over many.'
+    },
+    'soldiers-red': {
+      sign: 'See JADE and CAJODE on recorded frames', hook: 'A results table counts their bit errors, beside three other receivers.', cta: 'Read the Red BER table →',
+      same: 'JADE’s decoder passes BP messages; CAJODE keeps records and notes.', different: 'The channel is unknown and estimated, and errors are counted over thousands of bits.'
+    },
+    'red-soldiers': {
+      sign: 'See BP messages on six soldiers', hook: 'The soldier slides show JADE’s kind of decoder and CAJODE’s circuit on one small tree.', cta: 'Watch the BP soldier →',
+      same: 'A parity code and its checks.', different: 'Six bits and a known channel replace thousands of bits and an estimated one.'
+    },
     'light-soldiers': {
       sign: 'Compare BP replies with check replicas', hook: 'Six soldiers decode one tree twice: once by BP replies from the other soldiers, once by records and notes.', cta: 'Compare the two soldiers →',
       same: 'Each check still keeps its own view of the bits it touches.', different: 'A BP reply leaves its recipient out; a record takes in every card, and a note keeps the disagreement.'
@@ -1123,7 +1173,7 @@ var Realm = (function () {
   // the whole map, from wherever the reader stands
   function mapStep(here, onPage) {
     var lit = ROADS.filter(function (r) { return r.from === here || r.to === here; }).map(function (r) { return ORDER.indexOf(r.from) < ORDER.indexOf(r.to) ? r.from + '|' + r.to : r.to + '|' + r.from; });
-    var mine = ROADS.filter(function (r) { return r.from === here; }), html = 'Seven places teach one set of moves. Three heroes find the lowest spot of a land in fog; the Twins add a law with two copies, a rope and a book. Counting soldiers set those copies beside belief propagation. The same copies decode bits in CAJODE, plan a training session, tag photos at a monopile and find a tear in a net.<br><br>';
+    var mine = ROADS.filter(function (r) { return r.from === here; }), html = 'Eight places teach one set of moves. Three heroes find the lowest spot of a land in fog; the Twins add a law with two copies, a rope and a book. Counting soldiers set those copies beside belief propagation. The same copies decode bits in CAJODE, plan a training session, tag photos at a monopile and find a tear in a net. The Red recordings count the bits that five receivers get wrong on recorded frames.<br><br>';
     html += ORDER.map(function (k) { var P0 = PLACES[k]; return (k === here ? '<b>' + P0.name + '</b> (you are here)' : '<a href="' + P0.file + '" data-realm-go="1">' + P0.name + '</a>') + ', ' + P0.sub; }).join('<br>');
     if (mine.length) {
       function roadLine(r) {
@@ -1135,7 +1185,7 @@ var Realm = (function () {
       html += '<br><br><b>Concept roads from this page</b><br>' + main.map(roadLine).join('<br>');
       if (more.length) html += '<details class="realm-map-more"><summary>More comparisons</summary>' + more.map(roadLine).join('<br>') + '</details>';
     }
-    return { id: 'realm-map', chapter: 'The map of the King’s land', title: 'Seven places, one set of moves', layout: 'map', view: MAP, dur: 4.4, text: html, math: '',
+    return { id: 'realm-map', chapter: 'The map of the King’s land', title: 'Eight places, one set of moves', layout: 'map', view: MAP, dur: 4.4, text: html, math: '',
              draw: function (g, p) { realmMap(g, { here: here, lit: lit, t: p, p: 1 }); } };
   }
 
@@ -1340,7 +1390,7 @@ var Realm = (function () {
     '.realm-landroads{flex-basis:100%;display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:8px}',
     '.realm-landroads .realm-fork-head{grid-column:1/-1;color:var(--orange,#c45100)}',
     '.realm-landroads .realm-road{background:var(--sheet,#f4f7fb)}.realm-landroads>.realm-more{grid-column:1/-1}',
-    '@media(max-width:680px){.realm-bar .realm-lead{display:none}.realm-actions{display:grid;grid-template-columns:1fr}.realm-actions a{justify-content:center;min-height:40px}.realm-transfer{gap:6px}.realm-predict-actions{display:grid}.realm-predict-actions button{margin:0;min-height:42px}}'
+    '@media(max-width:680px){.realm-bar .realm-lead{display:none}.realm-bar:after{content:"more →";position:sticky;right:0;flex:none;padding:3px 5px;color:var(--muted,var(--ink-2,#546273));background:var(--bg,#edf1f5);font-size:11px}.realm-actions{display:grid;grid-template-columns:1fr}.realm-actions a{justify-content:center;min-height:40px}.realm-transfer{gap:6px}.realm-predict-actions{display:grid}.realm-predict-actions button{margin:0;min-height:42px}}'
   ].join('\n');
 
   function here() { var m = document.querySelector ? document.querySelector('meta[name="kings-land-page"]') : null; return (m && m.getAttribute('content')) || window.REALM_PAGE || null; }
@@ -1348,7 +1398,7 @@ var Realm = (function () {
     page = here(); if (!page || !PLACES[page] || !document.createElement) return;
     var h = parse(window.kingsLandHash != null ? window.kingsLandHash : window.location && window.location.hash); shot = 'step' in h || 'shot' in h || 'map' in h;
     try { var st = document.createElement('style'); st.textContent = CSS; (document.head || document.body).appendChild(st); } catch (e) { /* no styles in a test */ }
-    barEl = document.createElement('nav'); barEl.className = 'realm-bar'; barEl.setAttribute('aria-label', 'The six pages of King’s Land Descent');
+    barEl = document.createElement('nav'); barEl.className = 'realm-bar'; barEl.setAttribute('aria-label', 'King’s Land Descent pages; scroll horizontally for more');
     var host = page === 'game' ? document.querySelector('.wrap') : document.querySelector('main.course');
     if (host && host.insertBefore) host.insertBefore(barEl, host.firstChild);
     forkEl = document.createElement('aside'); forkEl.className = 'realm-fork'; forkEl.hidden = true; forkEl.setAttribute('aria-label', 'Roads to other pages');

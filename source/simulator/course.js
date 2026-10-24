@@ -315,7 +315,8 @@
   // The Twins' tale, from the King's request to one full circuit, told on day 4 to day 5: day 4 created the first
   // nonzero ledger entry, so the next aim visibly differs from the Warden's point.  Earlier versions used day 3, where u = 0 and v = z hid the mechanism.
   out = out.concat(pick(Ww, 'tw', 4,
-    ['twins', 'wanderer-role', 'warden-role', 'rope', 'without-ledger', 'ledger-role', 'aim', 'wander', 'wander-balance', 'warden', 'ledger', 'again'], CH.tw));
+    ['twins', 'wanderer-role', 'warden-role', 'rope', 'rope-day-1', 'rope-day-2', 'rope-day-3', 'without-ledger', 'ledger-role', 'aim', 'wander', 'wander-balance', 'warden', 'ledger',
+      'book-day-1', 'book-day-2', 'book-day-3', 'again'], CH.tw));
   var Dw = Math.max(dPg, dLb, dTw) + 1;
   out.push({ id: 'race2', chapter: CH.tw, title: 'Three heroes at the wall', layout: 'map+side', view: [0.0, 1.6, -0.2, 1.4], dur: 6,
     text: 'At the wall the Cartographer is within 0.001 of the treasure on day ' + dLb + ', the Twins’ Warden on day ' + dTw + ' and the Pilgrim on day ' + dPg + '. At the Twins’ settled endpoint both tests are small: the gap is ' + num(primalEnd, 5) + ' and ρ times the Warden’s move is ' + num(dualEnd, 5) + '. The Warden’s book settles at u = ' + pair(uEnd) + ': the wall’s toll, −∇J(x*)/ρ = ' + pair(uTheory) + ', the slope of the land at the spot to dig divided by the rope’s stiffness.',
