@@ -252,7 +252,20 @@
     } });
 
   // ------------------------------------------------------------ 3. reading the table
-  var REASON = { run_in_progress_no_complete_aggregate: 'run in progress', run_not_started: 'not started', no_compatible_modern_result: 'no compatible modern result' };
+  var REASON = {
+    run_in_progress_no_complete_aggregate: 'run in progress',
+    run_not_started: 'not started',
+    no_compatible_modern_result: 'no compatible modern result',
+    controller_terminal_failure_before_science: 'controller stopped before science',
+    blocked_by_predecessor_terminal_failure: 'blocked by predecessor failure'
+  };
+  function missingTag(why) {
+    if (why === 'run_in_progress_no_complete_aggregate') return 'run';
+    if (why === 'run_not_started') return 'not yet';
+    if (why === 'controller_terminal_failure_before_science') return 'stopped';
+    if (why === 'blocked_by_predecessor_terminal_failure') return 'blocked';
+    return 'none';
+  }
   var missJ = D.missing.filter(function (m) { return m.receiver === 'jade'; }), missC = D.missing.filter(function (m) { return m.receiver === 'cajode'; });
   function missText(ms) {
     var by = {}; ms.forEach(function (m) { (by[m.reason] = by[m.reason] || []).push(m); });
@@ -265,22 +278,22 @@
   out.push({ id: 'missing', chapter: CH.read, title: 'Missing is not zero', layout: 'side', dur: 6.5,
     text: 'Of the ' + group(D.rows) + ' rows, ' + group(miss) + ' have no result yet. They stay in the table, marked missing, with blank BER fields and a reason. ' +
       'JADE has no result for ' + list(missText(missJ)) + '. CAJODE has none for ' + list(missText(missC)) + '. ' +
-      'The completed results of a run still in progress are not reported before the run produces its authenticated aggregate. A missing result is never drawn as zero.',
+      'A receiver run is not reported before it produces its authenticated aggregate. A missing result is never drawn as zero.',
     math: 'available ' + group(avail) + ' + missing ' + group(miss) + ' = ' + group(D.rows) + ' rows',
-    a11y: 'Coverage table across twelve recording–hydrophone cases. OFDM plus FEC, Partial FFT plus FEC and CORAL have 960 of 960 receiver results. JADE and CAJODE each have 720 of 960. JADE lacks all three Red 4 cases. CAJODE lacks Red 4 hydrophones 1, 2 and 3. Missing entries are blank, never zero.',
+    a11y: 'Coverage table across twelve recording–hydrophone cases. OFDM plus FEC, Partial FFT plus FEC and CORAL have 960 of 960 receiver results. JADE and CAJODE each have 800 of 960. Both lack Red 4 hydrophones 2 and 3. Missing entries are blank, never zero.',
     draw: function (g, p) {
       var R = g.sideR, narrow = R[2] < 560; g.panel(R, 'which receiver has results in which case');
       var cols = M.CHANNELS.map(function (ch) { return ch.key; });
       var res = P.matrix(g, [R[0], R[1], R[2] - (narrow ? 0 : 92), narrow ? R[3] * 0.62 : R[3] - 40], { rows: ORDER, cols: cols, labelW: narrow ? 104 : 150, top: 56, maxH: narrow ? 30 : 40, headSize: narrow ? 8.5 : 10.5, p: seg(p, 0, 0.6),
         cell: function (id, k) { var ch = M.CHANNELS[k]; if (M.has(id, ch)) return { fill: RX[id].col.replace(')', ',0.35)').replace('rgb(', 'rgba(').replace(/^#(..)(..)(..)$/, function (m, a, b, c2) { return 'rgba(' + parseInt(a, 16) + ',' + parseInt(b, 16) + ',' + parseInt(c2, 16) + ',0.35)'; }) };
-          var why = M.missingOf(id, ch); return { hatch: true, text: narrow ? '' : (why === 'run_in_progress_no_complete_aggregate' ? 'run' : why === 'run_not_started' ? 'not yet' : 'none'), textCol: C.dim }; } });
+          var why = M.missingOf(id, ch); return { hatch: true, text: narrow ? '' : missingTag(why), textCol: C.dim }; } });
       cov.forEach(function (q, r) {
         var y = res.top + r * (res.ch + 4) + res.ch / 2, qq = seg(p, 0.6 + 0.06 * r, 0.75 + 0.06 * r);
         if (!narrow) g.labelPx(R[0] + R[2] - 12, y, group(q.available) + ' / ' + group(q.available + q.missing), q.missing ? C.gold : C.ink, { plain: true, mono: true, size: 11, align: 'right', p: qq });
       });
       var yk = res.bottom + 26, qk = seg(p, 0.8, 1);
       if (narrow) cov.forEach(function (q, r) { g.labelPx(R[0] + 16 + (r % 2) * (R[2] / 2), yk + Math.floor(r / 2) * 20, RX[q.id].name + ': ' + group(q.available) + ' / ' + group(q.available + q.missing), RX[q.id].col, { plain: true, size: 10.5, p: qk }); });
-      else g.labelPx(R[0] + 16, yk, 'hatched: missing (run = in progress, not yet = not started, none = no compatible modern result)', C.dim, { plain: true, size: 11, p: qk });
+      else g.labelPx(R[0] + 16, yk, 'hatched: missing (stopped = controller stopped before science; blocked = predecessor failure)', C.dim, { plain: true, size: 11, p: qk });
     } });
 
   var notCommon = M.CHANNELS.filter(function (ch) { return M.COMMON.indexOf(ch) < 0; });
@@ -289,12 +302,12 @@
       list(D.recordings.map(function (r) { var hs = M.COMMON.filter(function (c) { return c.red === r; }).map(function (c) { return c.hyd; }); return hs.length === D.hydrophones.length ? 'Red ' + r + ' on all three hydrophones' : hs.length ? 'Red ' + r + ' on hydrophone ' + hs.join(' and ') : ''; }).filter(Boolean)) + '. ' +
       'Pooling adds their errors and bits before dividing. One resulting value is a pooled curve point. Common labels make coverage comparable, but they do not make the two cohorts a paired experiment or establish why curves differ.',
     math: 'pooled curve point = Σ errors / Σ bits over the ' + M.COMMON.length + ' cases where all five have results',
-    a11y: 'Nine of twelve recording–hydrophone cases have results for all five receivers: every hydrophone in Red 1, Red 2 and Red 3. Red 4 is excluded. Every pooled curve point adds errors and bits over those same nine case labels before dividing. This is common coverage, not proof of paired runs across the two cohorts.',
+    a11y: 'Ten of twelve recording–hydrophone cases have results for all five receivers: every hydrophone in Red 1, Red 2 and Red 3, plus Red 4 hydrophone 1. Red 4 hydrophones 2 and 3 are excluded. Every pooled curve point adds errors and bits over those same ten case labels before dividing. This is common coverage, not proof of paired runs across the two cohorts.',
     draw: function (g, p) {
-      var R = g.sideR; g.panel(R, M.COMMON.length + ' of ' + NCH + ' cases have all five receivers');
+      var R = g.sideR, narrow = R[2] < 560; g.panel(R, M.COMMON.length + ' of ' + NCH + ' cases have all five receivers');
       P.tiles(g, [R[0] + 8, R[1] + 30, R[2] - 16, R[3] - 40], M.CHANNELS, { top: 26, maxH: R[2] < 560 ? 70 : 84, cell: function (ch, i) {
         var common = M.COMMON.indexOf(ch) >= 0, q = seg(p, 0.05 + 0.04 * i, 0.2 + 0.04 * i), lacking = ORDER.filter(function (k) { return !M.has(k, ch); }).map(function (k) { return M.NAME[k]; });
-        return common ? { p: q, col: C.gold, lw: 2, fill: 'rgba(255,210,122,0.12)', text: ch.key, sub: 'all five', subCol: C.gold } : { p: q, alpha: 0.6, hatch: true, text: ch.key, textCol: C.dim, sub: 'no ' + lacking.join(', '), subSize: 10 };
+        return common ? { p: q, col: C.gold, lw: 2, fill: 'rgba(255,210,122,0.12)', text: ch.key, sub: 'all five', subCol: C.gold } : { p: q, alpha: 0.6, hatch: true, text: ch.key, textCol: C.dim, sub: narrow ? 'missing' : 'no ' + lacking.join(', '), subSize: narrow ? 9 : 10 };
       } });
     } });
 
@@ -346,7 +359,7 @@
       'OFDM + FEC and Partial FFT + FEC first do so at ' + dB(FIRST['ofdm+fec'][i75]) + ' and ' + dB(FIRST['pfft+fec'][i75]) + '. CORAL’s lowest sampled pooled BER is ' + sci(LOWEST.coral[i75], 1) + ', so it does not reach 10⁻³ on this grid. ' +
       'The dashed line is only a reading aid; the table sets no target BER. This observation does not by itself identify which receiver mechanism caused a difference.',
     math: 'pooled over ' + M.COMMON.length + ' cases;  first sampled SNR with BER ≤ 10⁻³:  ' + ORDER.map(function (k) { return M.NAME[k] + ' ' + dB(FIRST[k][i75]); }).join(',  '),
-    a11y: 'Five pooled BER curves at 7.5 percent pilots over nine common cases. First sampled SNR at or below 10 to the minus 3: ' + firstSentence(i75) + '. CORAL never reaches that line; its lowest sampled pooled BER is ' + sci(LOWEST.coral[i75], 1) + '. The threshold is a reading aid, not a configured receiver target.',
+    a11y: 'Five pooled BER curves at 7.5 percent pilots over ' + M.COMMON.length + ' common cases. First sampled SNR at or below 10 to the minus 3: ' + firstSentence(i75) + '. CORAL never reaches that line; its lowest sampled pooled BER is ' + sci(LOWEST.coral[i75], 1) + '. The threshold is a reading aid, not a configured receiver target.',
     draw: function (g, p) {
       var R = g.sideR, narrow = R[2] < 560, lh = narrow ? 64 : 34;
       P.berPlot(g, [R[0], R[1], R[2], R[3] - lh], { title: 'pooled over ' + M.COMMON.length + ' cases, ' + pct(7.5) + ' pilots', decades: [-7, 0], ref: 1e-3, refP: seg(p, 0.75, 0.9), curves: curvesAt(i75, p) });
@@ -413,14 +426,13 @@
   var iC = pi(5), sC = 20, perChan = {}; ORDER.forEach(function (k) { perChan[k] = M.CHANNELS.map(function (ch) { return M.point(k, ch, iC, si(sC)); }); });
   var hardest = M.CHANNELS.reduce(function (a, ch, k) { return perChan['ofdm+fec'][k].ber > perChan['ofdm+fec'][a].ber ? k : a; }, 0);
   var h3Lowest = D.recordings.every(function (r) { var ks = M.CHANNELS.map(function (ch, k) { return ch.red === r ? k : -1; }).filter(function (k) { return k >= 0; }), best = ks.reduce(function (a, k) { return perChan['ofdm+fec'][k].ber <= perChan['ofdm+fec'][a].ber ? k : a; }, ks[0]); return M.CHANNELS[best].hyd === 3; });
-  var red4 = ORDER.filter(function (k) { return M.CHANNELS.filter(function (ch) { return ch.red === 4; }).every(function (ch) { return M.has(k, ch); }); });
   out.push({ id: 'channels', chapter: CH.shows, title: 'Case by case before pooling', layout: 'side', dur: 6.5,
     text: 'Pooling hides how much the recording–hydrophone cases differ. This map shows every case at one test condition: ' + pct(5) + ' pilots and ' + sC + ' dB. ' +
       chanText(M.CHANNELS[hardest]) + ' is the hardest there: OFDM + FEC leaves ' + sci(perChan['ofdm+fec'][hardest].ber, 1) + ', JADE ' + sci(perChan.jade[hardest].ber, 1) + ' and CAJODE ' + sci(perChan.cajode[hardest].ber, 1) + '. ' +
       (h3Lowest ? 'On every recording, hydrophone 3 gives OFDM + FEC its lowest BER at this point. ' : '') +
-      'Red 4 has results for only ' + red4.length + ' receivers, ' + list(red4.map(function (k) { return M.NAME[k]; })) + ', so no five-way comparison is possible there.',
+      'Red 4 has a five-way result on hydrophone 1. Hydrophones 2 and 3 still lack JADE and CAJODE results.',
     math: 'one test condition: ' + pct(5) + ' pilots, ' + sC + ' dB, every recording–hydrophone case, ' + D.frames + ' frames each',
-    a11y: 'Case-by-case information BER at 5 percent pilots and 20 dB. ' + chanText(M.CHANNELS[hardest]) + ' has the largest OFDM plus FEC BER, ' + sci(perChan['ofdm+fec'][hardest].ber, 1) + '; JADE is ' + sci(perChan.jade[hardest].ber, 1) + ' and CAJODE is ' + sci(perChan.cajode[hardest].ber, 1) + ' there. Hydrophone 3 has the lowest OFDM plus FEC BER within every recording at this condition. Red 4 lacks JADE and CAJODE coverage, so it has no five-way result.',
+    a11y: 'Case-by-case information BER at 5 percent pilots and 20 dB. ' + chanText(M.CHANNELS[hardest]) + ' has the largest OFDM plus FEC BER, ' + sci(perChan['ofdm+fec'][hardest].ber, 1) + '; JADE is ' + sci(perChan.jade[hardest].ber, 1) + ' and CAJODE is ' + sci(perChan.cajode[hardest].ber, 1) + ' there. Hydrophone 3 has the lowest OFDM plus FEC BER within every recording at this condition. Red 4 hydrophone 1 has all five receiver results; hydrophones 2 and 3 lack JADE and CAJODE results.',
     draw: function (g, p) {
       var R = g.sideR, narrow = R[2] < 560; g.panel(R, narrow ? 'BER by case: ' + pct(5) + ' pilots, ' + sC + ' dB' : 'information BER per case at ' + pct(5) + ' pilots, ' + sC + ' dB');
       var res = P.matrix(g, [R[0], R[1], R[2], R[3] - 40], { rows: ORDER, cols: M.CHANNELS.map(function (ch) { return ch.key; }), labelW: narrow ? 104 : 150, top: 56, maxH: narrow ? 34 : 50, headSize: narrow ? 8.5 : 10.5, size: narrow ? 8.5 : 10.5, p: p,
@@ -442,7 +454,7 @@
     'At 12% and 15% pilots, JADE and CAJODE show runs with no error seen.'
   ].filter(Boolean);
   var NOT = [
-    'A ranking on Red 4: JADE and CAJODE results are still missing there.',
+    'A five-receiver comparison on Red 4 hydrophones 2 and 3: JADE and CAJODE results are missing there.',
     'A measured BER of 0.5/N: that value only places a zero-observation marker on a logarithmic plot.',
     'Anything about speed: the table holds no timing.',
     'A causal explanation: the table compares outcomes but does not isolate which mechanism caused a difference.',
@@ -495,10 +507,10 @@
 
   out.push({ id: 'synthesis', chapter: CH.claims, title: 'Five routes, one bounded conclusion', layout: 'side', dur: 6.5,
     text: 'The first two routes estimate from pilots and decode once. JADE supplies extrinsic information from the decoder to the next pass that estimates the channel response and variables representing the coded bits. CORAL estimates those variables together, with code constraints represented by penalty terms and no BP decoder. CAJODE projects a local copy of the bit variables for each parity check onto its parity polytope and updates scaled dual variables. ' +
-      'On the nine common case labels and this table’s settings, JADE and CAJODE first sample 10⁻³ at lower SNR values than the other three from 5% through 15% pilots. ' +
+      'On the ' + M.COMMON.length + ' common case labels and this table’s settings, JADE and CAJODE first sample 10⁻³ at lower SNR values than the other three from 5% through 15% pilots. ' +
       'That sentence reports an observed pattern, not its cause and not a promise for another channel, code, pilot ratio, update budget, or cohort. When reading another comparison, ask where the code enters, what returns between updates, and whether received-sample and noise identities were checked.',
     math: 'mechanism map + coverage boundary + counted errors = an interpretable descriptive result',
-    a11y: 'Final synthesis. OFDM plus FEC and Partial FFT plus FEC use pilot-assisted channel estimation, decode once, and provide no feedback. JADE adds extrinsic information from the decoder to the next estimation pass. CORAL estimates the channel response and variables representing the coded bits with penalty terms and no BP decoder. CAJODE projects a local copy of the bit variables for each parity check onto its parity polytope and updates scaled dual variables. The lower sampled thresholds of JADE and CAJODE in this table are descriptive observations over nine common case labels, not causal or universal conclusions.',
+    a11y: 'Final synthesis. OFDM plus FEC and Partial FFT plus FEC use pilot-assisted channel estimation, decode once, and provide no feedback. JADE adds extrinsic information from the decoder to the next estimation pass. CORAL estimates the channel response and variables representing the coded bits with penalty terms and no BP decoder. CAJODE projects a local copy of the bit variables for each parity check onto its parity polytope and updates scaled dual variables. The lower sampled thresholds of JADE and CAJODE in this table are descriptive observations over ' + M.COMMON.length + ' common case labels, not causal or universal conclusions.',
     draw: function (g, p) {
       var R = g.sideR, c = g.ctx, narrow = R[2] < 560; g.panel(R, narrow ? 'three questions for the next table' : 'carry three questions to the next result table');
       var cards = [

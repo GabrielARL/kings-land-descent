@@ -14,18 +14,18 @@ The table contains 4,800 rows:
 
 Here, “all pilot ratios” means the five ratios in the current comparison. Older 20% pilot results exist but are outside this table. The common configuration is FFT length 1024, code rate 1/4, and 47 one-second frames per point.
 
-The current CSV snapshot is `2026-10-24T01:02:51Z`. Its coverage is:
+The current CSV snapshot is `2026-10-24T07:43:03Z`. Its coverage is:
 
 | Receiver | Available | Missing | Coverage |
 |---|---:|---:|---:|
 | OFDM + FEC | 960 | 0 | 100.0% |
 | Partial FFT + FEC | 960 | 0 | 100.0% |
-| JADE | 720 | 240 | 75.0% |
+| JADE | 800 | 160 | 83.3% |
 | CORAL | 960 | 0 | 100.0% |
-| CAJODE | 720 | 240 | 75.0% |
-| **Total** | **4,320** | **480** | **90.0%** |
+| CAJODE | 800 | 160 | 83.3% |
+| **Total** | **4,480** | **320** | **93.3%** |
 
-JADE is missing all three Red 4 channels because those receiver runs have not started. CAJODE is missing Red 4/hydrophone 1 because the run is in progress without a complete authenticated aggregate, and Red 4/hydrophones 2 and 3 because those runs have not started. The completed cells for a run in progress are not reported as a curve before the run produces its authenticated aggregate.
+JADE and CAJODE are each missing Red 4/hydrophone 2 because the H2 controller stopped during source finalization before science began. They are also missing Red 4/hydrophone 3 because H2's authenticated failure blocked H3. No incomplete run is reported as a curve before an authenticated aggregate is present.
 
 ## Receiver mapping and source cohorts
 

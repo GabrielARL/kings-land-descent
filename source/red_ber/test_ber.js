@@ -23,11 +23,11 @@ if (fs.existsSync(CSV)) {
 
 // ---------------------------------------------------------------- 2. the model
 var cov = M.coverage();
-check('coverage: 4,320 available and 480 missing rows, as in the table’s README',
-  cov.reduce(function (s, q) { return s + q.available; }, 0) === 4320 && cov.reduce(function (s, q) { return s + q.missing; }, 0) === 480 &&
-  cov.map(function (q) { return q.available; }).join(',') === '960,960,720,960,720');
-check('nine channels have all five receivers: Red 1 through Red 3 on every hydrophone',
-  M.COMMON.map(function (c) { return c.key; }).join(' ') === 'R1h1 R1h2 R1h3 R2h1 R2h2 R2h3 R3h1 R3h2 R3h3');
+check('coverage: 4,480 available and 320 missing rows, as in the table’s README',
+  cov.reduce(function (s, q) { return s + q.available; }, 0) === 4480 && cov.reduce(function (s, q) { return s + q.missing; }, 0) === 320 &&
+  cov.map(function (q) { return q.available; }).join(',') === '960,960,800,960,800');
+check('ten cases have all five receivers: Red 1 through Red 3 on every hydrophone, plus Red 4 hydrophone 1',
+  M.COMMON.map(function (c) { return c.key; }).join(' ') === 'R1h1 R1h2 R1h3 R2h1 R2h2 R2h3 R3h1 R3h2 R3h3 R4h1');
 // pooled BER is the sum of errors over the sum of bits, read here straight from the CSV rows
 function pooledFromRows(rec, ratio, snr) {
   var E = 0, N = 0; rows.forEach(function (r) { if (r.receiver === rec && +r.pilot_ratio_percent === ratio && +r.snr_db === snr && M.COMMON.some(function (c) { return c.red === +r.red && c.hyd === +r.hydrophone; })) { E += +r.total_bit_errors; N += +r.total_payload_bits; } });
@@ -36,7 +36,7 @@ function pooledFromRows(rec, ratio, snr) {
 if (rows) {
   var okPool = true;
   M.IDS.forEach(function (k) { [2.5, 7.5, 15].forEach(function (ratio) { [0, 12, 30].forEach(function (snr) { var a = pooledFromRows(k, ratio, snr), b = M.pooled(k, M.pilotIndex(ratio), M.snrIndex(snr)); if (!b || a.E !== b.errors || a.N !== b.bits) okPool = false; }); }); });
-  check('pooled points add errors and bits over the nine channels before dividing', okPool);
+  check('pooled points add errors and bits over the ten common cases before dividing', okPool);
 }
 var z = M.point('jade', M.COMMON[0], M.pilotIndex(15), M.snrIndex(30));
 check('a point with no error seen keeps BER 0 and is plotted at 0.5 / bits', z.zero && z.ber === 0 && Math.abs(z.plot - 0.5 / z.bits) < 1e-18);
@@ -114,8 +114,8 @@ if (course) {
     var ex = rows.filter(function (r) { return r.receiver === 'ofdm+fec' && r.red === '1' && r.hydrophone === '1' && r.pilot_ratio_percent === '7.5' && r.snr_db === '10'; })[0];
     check('the one-point page quotes that point’s integers', text('pooled').indexOf(ex.total_bit_errors.replace(/\B(?=(\d{3})+(?!\d))/g, ',') + ' of ' + ex.total_payload_bits.replace(/\B(?=(\d{3})+(?!\d))/g, ',')) >= 0, ex.total_bit_errors + '/' + ex.total_payload_bits);
     var reasons = {}; rows.forEach(function (r) { if (r.status === 'missing') reasons[r.receiver + ' R' + r.red + 'h' + r.hydrophone] = r.missing_reason; });
-    check('the missing page names every missing channel with its reason', /JADE has no result for all of Red 4 \(not started\)/.test(text('missing')) &&
-      /CAJODE has none for Red 4, hydrophone 1 \(run in progress\) and Red 4, hydrophone 2 and 3 \(not started\)/.test(text('missing')) && Object.keys(reasons).length === 6, Object.keys(reasons).join(' '));
+    check('the missing page names every missing case with its reason', /JADE has no result for Red 4, hydrophone 2 \(controller stopped before science\) and Red 4, hydrophone 3 \(blocked by predecessor failure\)/.test(text('missing')) &&
+      /CAJODE has none for Red 4, hydrophone 2 \(controller stopped before science\) and Red 4, hydrophone 3 \(blocked by predecessor failure\)/.test(text('missing')) && Object.keys(reasons).length === 4, Object.keys(reasons).join(' '));
   }
   check('the mechanism map distinguishes complete receiver routes from decoder components', /Belief propagation is a decoder component/.test(text('routes')) && /estimate from pilots and then decode once/.test(text('routes')) && /scaled dual variables/.test(text('routes')));
   check('the receivers are described in the series’ sourced wording', /one-tap equalizer/.test(text('pilot-only')) && /partial FFT outputs/.test(text('pilot-only')) && /nothing flows back from the decoder/.test(text('pilot-only')) &&

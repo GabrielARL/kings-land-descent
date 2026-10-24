@@ -228,6 +228,8 @@ try {
 var guidedLists = [], idsRe = /boardIds\s*:\s*\[([^\]]+)\]/g, idsMatch;
 while ((idsMatch = idsRe.exec(game))) guidedLists.push((idsMatch[1].match(/['"]([^'"]+)['"]/g) || []).map(function (s) { return s.slice(1, -1); }));
 var expectedIntro = ['twins', 'wanderer-role', 'warden-role'];
+// the tutorial meets the Warden in three pages: who it is, its own problem for c, and why nearest is not lowest
+var expectedCourseIntro = ['wanderer-role', 'warden-role', 'warden-steps', 'warden-not-lowest'];
 var expectedCircuit = ['rope', 'without-ledger', 'ledger-role', 'aim', 'wander', 'wander-balance', 'warden', 'ledger', 'again'];
 // the tutorial adds day-by-day pages: the first three days with the rope alone, and three days with the book after the detailed circuit
 var expectedCourseCircuit = ['rope', 'rope-day-1', 'rope-day-2', 'rope-day-3', 'without-ledger', 'ledger-role', 'aim', 'wander', 'wander-balance', 'warden', 'ledger',
@@ -270,9 +272,9 @@ var admmAt = course.indexOf("pick(Ww, 'tw', 4"), admmPick = admmAt < 0 ? '' : co
 check('standalone ADMM lesson uses the first nonzero-ledger circuit',
   admmAt >= 0 && /Earlier versions used day 3, where u = 0 and v = z hid the mechanism/.test(course));
 check('standalone ADMM lesson follows the expanded causal order',
-  expectedIntro.slice(1).concat(expectedCourseCircuit).every(function (id, i, ids) {
+  expectedCourseIntro.concat(expectedCourseCircuit).every(function (id, i, ids) {
     return admmPick.indexOf("'" + id + "'") >= 0 && (!i || admmPick.indexOf("'" + ids[i - 1] + "'") < admmPick.indexOf("'" + id + "'"));
-  }), expectedIntro.slice(1).concat(expectedCourseCircuit).join(', '));
+  }), expectedCourseIntro.concat(expectedCourseCircuit).join(', '));
 
 try {
   var AE = require(path.join(dir, 'engine.js')), ap = {}, ak;
@@ -401,7 +403,7 @@ try {
 try {
   var desktopCourse = courseSandbox(960, 660), desktopIds = desktopCourse.course.steps.map(function (q) { return q.id; }), desktopDraws = 0;
   lightPages.forEach(function (page) { [0, 0.25, 0.5, 0.75, 1].forEach(function (p) { desktopCourse.Board.debug({ step: page[0], p: p }); desktopDraws++; }); });
-  check('the complete 64-page course builds in the drawing sandbox', desktopCourse.course.steps.length === 64 && lightPages.every(function (q) { return desktopIds.indexOf(q[0]) >= 0; }));
+  check('the complete 66-page course builds in the drawing sandbox', desktopCourse.course.steps.length === 66 && lightPages.every(function (q) { return desktopIds.indexOf(q[0]) >= 0; }));
   check('all ten light-board pages draw at five desktop moments without an error', desktopDraws === 50 && (desktopCourse.kingsLandErrors || []).length === 0,
     (desktopCourse.kingsLandErrors || []).slice(0, 3).join(' | '));
   var mobileCourse = courseSandbox(390, 488), mobileDraws = 0;
@@ -410,6 +412,60 @@ try {
     (mobileCourse.kingsLandErrors || []).slice(0, 3).join(' | '));
 } catch (e) {
   check('light-board drawing sandbox', false, e && e.stack || e);
+}
+
+// The Warden is met in three pages on the wall: who it is, with C and Π in words; its own problem for c, solved by a
+// circle that grows from c and then one direction at a time; and why that nearest lawful spot is not the lowest one.
+try {
+  var WW = require(path.join(dir, 'engine.js')), wpp = {}, wkk; for (wkk in WW.PRESETS.wall) wpp[wkk] = WW.PRESETS.wall[wkk];
+  var wLand = WW.buildLand('wall', wpp), wc = wLand.c, wA = wLand.A, wT = wLand.treasure, wb = wLand.box, wz = wLand.project(wc), wf = wLand.f;
+  var wfmt = function (v) { var t = v.toFixed(3); if (/^-0(\.0*)?$/.test(t)) t = t.slice(1); return t.replace('-', '−'); };
+  var wpr = function (v) { return '(' + wfmt(v[0]) + ', ' + wfmt(v[1]) + ')'; }, wdist = function (a, b) { return Math.hypot(a[0] - b[0], a[1] - b[1]); };
+  var wsb = courseSandbox(960, 660), wIds = wsb.course.steps.map(function (q) { return q.id; }), wPage = function (id) { return wsb.course.steps.filter(function (q) { return q.id === 'wall-tw-' + id; })[0]; };
+  var wPlain = function (q) { return (q && q.text || '').replace(/<[^>]*>/g, ''); };
+  var wOrder = ['wanderer-role', 'warden-role', 'warden-steps', 'warden-not-lowest', 'rope'].map(function (id) { return wIds.indexOf('wall-tw-' + id); });
+  check('the course meets the Warden in three pages, after the Wanderer and before the rope',
+    wOrder.every(function (k, i) { return k >= 0 && (!i || k === wOrder[i - 1] + 1); }), wOrder.join(', '));
+  // the nearest lawful spot: each coordinate of c clipped to the wall, and no lawful spot on a fine grid is nearer
+  var clipped = [Math.min(Math.max(wc[0], wb[0]), wb[1]), Math.min(Math.max(wc[1], wb[0]), wb[1])], nearer = 0;
+  for (var gi = 0; gi <= 400; gi++) for (var gj = 0; gj <= 400; gj++) { var gq = [wb[0] + (wb[1] - wb[0]) * gi / 400, wb[0] + (wb[1] - wb[0]) * gj / 400]; if (wdist(gq, wc) < wdist(wz, wc) - 1e-12) nearer++; }
+  check('Π(c) is c with each coordinate clipped to the wall, and no lawful spot is nearer to c',
+    wdist(wz, clipped) < 1e-12 && nearer === 0 && wz[0] === wb[1] && Math.abs(wz[1] - wc[1]) < 1e-12, 'Π(c)=' + wpr(wz) + ' nearer=' + nearer);
+  // the land's ring through x* just touches the wall at x*: its westmost point is x*, on the line x₁ = 1
+  var det = wA[0][0] * wA[1][1] - wA[0][1] * wA[1][0], inv00 = wA[1][1] / det, inv10 = -wA[1][0] / det, lvl = wf(wT) - wf(wc), sR = Math.sqrt(2 * lvl / inv00);
+  var westmost = [wc[0] - sR * inv00, wc[1] - sR * inv10];
+  check('the land’s ring through x* first touches the wall at x*, while Π(c) is higher on the same wall',
+    Math.abs(westmost[0] - wb[1]) < 1e-9 && wdist(westmost, wT) < 1e-6 && wT[0] === wz[0] && wf(wz) - wf(wT) > 0.1 && wdist(wz, wT) > 0.2,
+    'westmost=' + wpr(westmost) + ' x*=' + wpr(wT) + ' J(Π(c))=' + wfmt(wf(wz)) + ' J(x*)=' + wfmt(wf(wT)));
+  var p1 = wPage('warden-role'), p2 = wPage('warden-steps'), p3 = wPage('warden-not-lowest'), t1 = wPlain(p1), t2 = wPlain(p2), t3 = wPlain(p3);
+  check('the first Warden page defines C and says in words what Π stands for',
+    /We call the set of lawful spots C, the shaded square on the map\./.test(t1) && /0 ≤ x₁ ≤ 1 and 0 ≤ x₂ ≤ 1/.test(t1) &&
+    /Π<sub>C<\/sub>\(v\), the projection of v onto C, or Π\(v\) for short/.test(p1.text) &&
+    /Π is the capital Greek letter pi\. Here Π<sub>C<\/sub>\(v\) denotes the Euclidean projection of v onto C\./.test(p1.text));
+  check('the second Warden page says what c is and solves the Warden’s problem one direction at a time, with the computed numbers',
+    t2.indexOf('c = ' + wpr(wc) + '. This c is the valley’s floor, the lowest point of the land with no wall') >= 0 &&
+    /the point z in C with the smallest distance \|z − c\|, which is an optimisation problem of its own/.test(t2) &&
+    t2.indexOf('East–west, ' + wc[0].toFixed(2) + ' lies past the wall at 1, so z₁ = 1.') >= 0 &&
+    t2.indexOf('North–south, ' + wc[1].toFixed(2) + ' is already between 0 and 1, so it stays.') >= 0 &&
+    t2.indexOf('Both ways give Π(c) = ' + wpr(wz) + ', ' + wfmt(wdist(wz, wc)) + ' from c.') >= 0, t2.slice(0, 120));
+  check('the third Warden page compares the nearest and the lowest lawful spots with the computed heights',
+    t3.indexOf('J = ' + wfmt(wf(wz)) + ' at Π(c)') >= 0 && t3.indexOf('x* = ' + wpr(wT) + ', is lower, at J = ' + wfmt(wf(wT))) >= 0 &&
+    t3.indexOf(wfmt(wdist(wz, wT)) + ' away from Π(c) along the wall') >= 0 && /an equal move raises J ten times more across the valley than along it/.test(t3) &&
+    /the first lawful spot they reach is x\*, not Π\(c\)/.test(t3) && /Every lawful spot in the gold patch is no higher than Π\(c\)/.test(t3) &&
+    /Each twin has half of the skill the job needs\./.test(t3));
+  var wSentences = [t1, t2, t3].join(' ').split(/[.?]\s+(?=[A-ZΠ])/), wLong = wSentences.filter(function (q) { return q.split(/\s+/).length > 35; });
+  var wBanned = /\b(novel|state-of-the-art|framework|paradigm|leverage|utili[sz]e|in order to|crucial|vital|clearly|obviously|natural|elegant|principled|lifting)\b|It is worth noting|n’t\b|n't\b|\b(it|that|there)’s\b|’(re|ve|ll|d)\b|!/i;
+  check('the Warden pages keep sentences within 35 words, with no contractions, exclamations or banned words',
+    wLong.length === 0 && !wBanned.test([t1, t2, t3].join(' ')), wLong.slice(0, 2).join(' | '));
+  var wDraws = 0, wPhone = courseSandbox(390, 488);
+  ['warden-role', 'warden-steps', 'warden-not-lowest'].forEach(function (id) {
+    [0, 0.1, 0.2, 0.35, 0.5, 0.62, 0.8, 0.92, 1].forEach(function (pp) { wsb.Board.debug({ step: 'wall-tw-' + id, p: pp }); wDraws++; });
+    [0.5, 0.72, 0.82, 1].forEach(function (pp) { wPhone.Board.debug({ step: 'wall-tw-' + id, p: pp }); wDraws++; });
+  });
+  check('the Warden pages draw at nine desktop moments and four phone moments without an error', wDraws === 39 &&
+    (wsb.kingsLandErrors || []).length === 0 && (wPhone.kingsLandErrors || []).length === 0, (wsb.kingsLandErrors || []).concat(wPhone.kingsLandErrors || []).slice(0, 3).join(' | '));
+} catch (e) {
+  check('the Warden’s three pages', false, e && e.stack || e);
 }
 
 // Day by day: each day the Wanderer faces a new land, the valley plus the rope's bowl around a spot made from the day

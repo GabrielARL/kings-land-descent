@@ -95,12 +95,10 @@ MODERN_RUNS = {
 # Snapshot state for known runs that have not yet produced authenticated aggregates.
 # A completed run is promoted to available by load_modern_run, which clears this reason.
 MODERN_MISSING_REASONS = {
-    (4, 1, "jade"): "run_not_started",
-    (4, 2, "jade"): "run_not_started",
-    (4, 3, "jade"): "run_not_started",
-    (4, 1, "cajode"): "run_in_progress_no_complete_aggregate",
-    (4, 2, "cajode"): "run_not_started",
-    (4, 3, "cajode"): "run_not_started",
+    (4, 2, "jade"): "controller_terminal_failure_before_science",
+    (4, 3, "jade"): "blocked_by_predecessor_terminal_failure",
+    (4, 2, "cajode"): "controller_terminal_failure_before_science",
+    (4, 3, "cajode"): "blocked_by_predecessor_terminal_failure",
 }
 
 FIELDS = (

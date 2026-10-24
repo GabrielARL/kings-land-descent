@@ -1904,22 +1904,226 @@ var Board = (function () {
         } else g.hero(x, 'tw', 1, 'the Wanderer');
       } });
 
-    var samples = [];
-    if (free) { var dir0 = sub(free, x0), perp = [-dir0[1], dir0[0]]; samples = [add(free, scale(perp, 0.35)), lerp2(x0, free, 0.45), free].map(function (q) { return { q: q, z: noLaw ? q : land.project(q) }; }); }
-    out.push({ id: 'warden-role', chapter: 'The Twins', title: 'Meet the Warden: z', layout: 'map', view: introView, dur: 5.6,
-      text: noLaw ? 'The Warden’s job: given any point, step to the nearest lawful spot. With no law every spot is lawful, so the Warden simply stands where the Wanderer stands.' :
-        'The Warden’s job: given any point, step to the nearest lawful spot, ' + (tower ? 'the nearest point of the parity-polytope line' : 'the nearest spot ' + lawWord) + '. A lawful point stays where it is; a point outside is pulled straight to the law, at a right angle. ' + (free ? 'Asked about the Wanderer’s spot c, the Warden answers Π(c) = ' + pair(freeZ) + ': lawful, but J = ' + num(f(freeZ), 3) + ' there, above the spot to dig, where J = ' + num(TJ, 3) + '. ' : '') + 'The Warden never feels the slope, so on its own it cannot find the lowest lawful spot either.',
-      math: 'the Warden: z = Π_C(any point), the nearest lawful spot' + (free && freeOut ? at(0.6, ';  Π_C(c) = ' + pair(freeZ) + ',  J = ' + num(f(freeZ), 3) + ' > ' + num(TJ, 3)) : ''),
-      draw: function (g, p) {
-        base(g); star(g, T, 1);
-        samples.forEach(function (s, i) {
-          var q = seg(p, 0.05 + 0.24 * i, 0.3 + 0.24 * i), moved = len(sub(s.q, s.z)) > 1e-9;
-          g.dot(s.q, 5, i === 2 ? '#e6e9ee' : C.ink, seg(q, 0, 0.3));
-          if (moved) { g.arrow(s.q, s.z, C.blue, 2.5, seg(q, 0.3, 0.8)); rightAngle(g, s.z, s.q, seg(q, 0.8, 1)); } else g.halo(s.q, 10, C.blue, seg(q, 0.3, 0.8), 1.5);
-          warden(g, s.z, seg(q, 0.7, 1), i === 2 ? 'Π(c): lawful, not lowest' : moved ? 'nearest lawful spot' : 'already lawful: stays');
+    // ---- the Warden. On the wall (tutorial only) it takes three pages: who it is, with C and Π in words; how it finds
+    // the lawful spot nearest to c, first as a circle growing from c, then one direction at a time; and why that
+    // nearest spot is not the lowest one. Elsewhere one page shows three spots taken to their nearest lawful spots.
+    var cFace = -1;   // the one coordinate the wall changes when the Warden is handed c (2: both, -1: none)
+    if (free && box && freeOut) for (var ci = 0; ci < 2; ci++) if (Math.abs(free[ci] - freeZ[ci]) > 1e-9) cFace = cFace < 0 ? ci : 2;
+    var wardenPages = !!(cx.tutorial && box && freeOut && land.kind === 'quad' && land.A && !land.ripples && !land.holes &&
+      (cFace === 0 || cFace === 1) && Math.abs(T[cFace] - freeZ[cFace]) < 1e-9);
+    if (wardenPages) {
+      var fi = cFace, fj = 1 - cFace, wallAt = freeZ[fi], dWall = len(sub(free, freeZ)), zJ = f(freeZ), gapTZ = len(sub(T, freeZ)), wd = box[1] - box[0];
+      var SUBN = ['₁', '₂'], DIRS = ['east–west', 'north–south'], DIRC = ['East–west', 'North–south'];
+      var faceName = (fi === 0 ? (wallAt >= box[1] ? 'east' : 'west') : (wallAt >= box[1] ? 'north' : 'south')) + ' wall';
+      var bLo = num(box[0], 0), bHi = num(box[1], 0), lawRule = bLo + ' ≤ x₁ ≤ ' + bHi + ' and ' + bLo + ' ≤ x₂ ≤ ' + bHi;
+      // the land's rings around c: on a quadratic land, ellipses whose long axis follows the valley
+      var a11 = land.A[0][0], a12 = land.A[0][1], a22 = land.A[1][1], am = (a11 + a22) / 2, ar = Math.sqrt((a11 - a22) * (a11 - a22) / 4 + a12 * a12);
+      var ev = Math.abs(a12) > 1e-12 ? [a12, am - ar - a11] : a11 <= a22 ? [1, 0] : [0, 1], evAlong = scale(ev, 1 / len(ev)), evAcross = [-evAlong[1], evAlong[0]];
+      var lamLo = am - ar, lamHi = am + ar, steeper = lamHi / lamLo, WORDS = { 2: 'two', 3: 'three', 4: 'four', 5: 'five', 6: 'six', 7: 'seven', 8: 'eight', 9: 'nine', 10: 'ten' };
+      var steeperS = Math.abs(steeper - Math.round(steeper)) < 1e-6 && WORDS[Math.round(steeper)] ? WORDS[Math.round(steeper)] : num(steeper, 1);
+      var landRing = function (h) {
+        var pts = [], d = Math.max(h - freeJ, 0), ra = Math.sqrt(2 * d / lamLo), rc = Math.sqrt(2 * d / lamHi);
+        for (var i = 0; i <= 120; i++) { var t = TAU * i / 120; pts.push(add(add(free, scale(evAlong, ra * Math.cos(t))), scale(evAcross, rc * Math.sin(t)))); }
+        return pts;
+      };
+      // the lawful set C, lightly filled; and the lawful spots inside one of the land's rings
+      var lawFill = function (g, p) {
+        if (!(p > 0)) return; var c = g.ctx, A0 = g.P([box[0], box[1]]), B0 = g.P([box[1], box[0]]);
+        g.clip(g.mapR); c.globalAlpha = 0.16 * clamp(p, 0, 1); c.fillStyle = C.blue; c.fillRect(A0[0], A0[1], B0[0] - A0[0], B0[1] - A0[1]); c.globalAlpha = 1; c.restore();
+      };
+      var lowerInside = function (g, h, p) {
+        if (!(p > 0)) return; var c = g.ctx, A0 = g.P([box[0], box[1]]), B0 = g.P([box[1], box[0]]);
+        g.clip(g.mapR); c.beginPath(); c.rect(A0[0], A0[1], B0[0] - A0[0], B0[1] - A0[1]); c.clip();
+        c.beginPath(); landRing(h).forEach(function (q, i) { var a = g.P(q); if (i) c.lineTo(a[0], a[1]); else c.moveTo(a[0], a[1]); }); c.closePath();
+        c.globalAlpha = 0.34 * clamp(p, 0, 1); c.fillStyle = C.gold; c.fill(); c.globalAlpha = 1; c.restore();
+      };
+      // spots one distance r from c: a circle, drawn as far round as p
+      var circle = function (g, r, col, w, p, dash) {
+        if (!(p > 0) || !(r > 0)) return; var pts = []; for (var i = 0; i <= 96; i++) { var t = Math.PI + TAU * i / 96; pts.push(add(free, [r * Math.cos(t), r * Math.sin(t)])); }
+        g.path(pts, col, w, p, dash);
+      };
+
+      // page 1: who the Warden is, the lawful set C, and the symbol Π
+      var lawSamples = [
+        { v: [box[0] + 0.24 * wd, box[0] + 0.42 * wd], text: 'inside: Π(v) = v', dx: 14, dy: 0, align: 'left' },
+        { v: [box[0] + 0.45 * wd, box[1] + 0.24 * wd], text: 'outside: Π(v) on the wall', dx: -12, dy: 20, align: 'right', face: true },
+        { v: [box[1] + 0.3 * wd, box[1] + 0.22 * wd], text: 'past a corner: the corner', dx: 12, dy: 20, align: 'left' }
+      ].map(function (s) { s.z = land.project(s.v); return s; });
+      out.push({ id: 'warden-role', chapter: 'The Twins', title: 'Meet the Warden: z', layout: 'map', view: introView, dur: 6.4,
+        text: 'The Warden is the Wanderer’s twin, with the opposite skill. It knows the King’s law by heart and never looks at the land. ' +
+          'The law is the wall: a spot x is lawful when ' + lawRule + '. We call the set of lawful spots C, the shaded square on the map. ' +
+          'Hand the Warden any spot v, and it answers with the lawful spot nearest to v. A spot inside the wall is lawful already, so it stays. ' +
+          'A spot outside is pulled straight back to the wall, meeting it at a right angle; a spot past a corner goes to the corner. ' +
+          'We write the Warden’s answer as Π<sub>C</sub>(v), the projection of v onto C, or Π(v) for short. Π is the capital Greek letter pi. Here Π<sub>C</sub>(v) denotes the Euclidean projection of v onto C.',
+        math: 'C = {x : ' + lawRule + '}' + at(0.3, '<br>z = Π<sub>C</sub>(v), the spot of C nearest to v') +
+          at(0.55, '<br>inside C: Π<sub>C</sub>(v) = v;  outside: on the wall'),
+        draw: function (g, p) {
+          base(g); lawFill(g, seg(p, 0, 0.14)); star(g, T, 1); var phone = g.mapR[2] < 430;
+          g.label([box[0] + 0.5 * wd, box[0] + 0.1 * wd], 'C: the lawful spots, inside the wall', C.blue, { align: 'center', size: 12, p: seg(p, 0.04, 0.16), inside: true });
+          lawSamples.forEach(function (s, i) {
+            var q = seg(p, 0.2 + 0.26 * i, 0.44 + 0.26 * i), moved = len(sub(s.v, s.z)) > 1e-9;
+            var label = phone ? ['inside: Π(v) = v', 'outside → wall', 'past corner → corner'][i] : s.text;
+            var dx = phone && i > 0 ? (i === 1 ? -10 : 10) : s.dx, dy = phone && i > 0 ? (i === 1 ? 20 : -20) : s.dy;
+            var align = phone && i > 0 ? (i === 1 ? 'right' : 'left') : s.align;
+            g.dot(s.v, 5, C.ink, seg(q, 0, 0.25)); g.label(s.v, 'v', C.ink, { dx: 9, dy: -12, size: 12, p: seg(q, 0.05, 0.3) });
+            if (moved) { g.arrow(s.v, s.z, C.blue, 2.5, seg(q, 0.25, 0.7)); if (s.face) rightAngle(g, s.z, s.v, seg(q, 0.7, 0.9)); } else g.halo(s.v, 11, C.blue, seg(q, 0.25, 0.7), 1.8);
+            warden(g, s.z, seg(q, 0.6, 0.9));
+            g.label(s.z, label, C.blue, { dx: dx, dy: dy, align: align, size: 12, p: seg(q, 0.7, 1), inside: true });
+          });
+        } });
+
+      // page 2: the Warden's own problem for c, as a growing circle and then one direction at a time
+      var inPt = add(freeZ, fi === 0 ? [wallAt >= box[1] ? -0.55 * wd : 0.55 * wd, 0] : [0, wallAt >= box[1] ? -0.55 * wd : 0.55 * wd]);
+      var stepView = around([add(free, [dWall, dWall]), add(free, [-dWall, -dWall]), inPt], 0.3, 0.3 * cx.span);
+      var nlLo = Math.min(box[0], free[0], free[1]) - 0.2 * wd, nlHi = Math.max(box[1], free[0], free[1]) + 0.2 * wd;
+      // one coordinate on a number line: the lawful stretch in blue, c's value in white, and where the Warden puts it
+      var coordLine = function (g, x, y, w, val, to, p, q) {
+        if (!(p > 0)) return; var c = g.ctx, X = function (t) { return x + (t - nlLo) / (nlHi - nlLo) * w; }, moved = Math.abs(val - to) > 1e-9;
+        c.globalAlpha = clamp(p, 0, 1); c.lineCap = 'round';
+        c.strokeStyle = C.faint; c.lineWidth = 1.5; c.beginPath(); c.moveTo(x, y); c.lineTo(x + w, y); c.stroke();
+        c.strokeStyle = C.blue; c.lineWidth = 5; c.beginPath(); c.moveTo(X(box[0]), y); c.lineTo(X(box[1]), y); c.stroke();
+        c.font = '11px ' + g.mono; c.fillStyle = C.dim; c.textAlign = 'center'; c.textBaseline = 'top';
+        c.fillText(bLo, X(box[0]), y + 7); c.fillText(bHi, X(box[1]), y + 7);
+        c.beginPath(); c.arc(X(val), y, 5.5, 0, TAU); c.fillStyle = '#e6e9ee'; c.fill(); c.lineWidth = 2; c.strokeStyle = C.bg; c.stroke(); c.globalAlpha = 1;
+        if (!(q > 0)) return;
+        if (moved) {
+          g.arrowPx([X(val), y - 10], [mix(X(val), X(to), q), y - 10], C.blue, 2);
+          if (q >= 1) { c.beginPath(); c.arc(X(to), y, 5.5, 0, TAU); c.fillStyle = C.blue; c.fill(); c.lineWidth = 2; c.strokeStyle = C.bg; c.stroke(); }
+        } else { c.globalAlpha = clamp(q, 0, 1); c.strokeStyle = C.blue; c.lineWidth = 2; c.beginPath(); c.arc(X(val), y, 10, 0, TAU); c.stroke(); c.globalAlpha = 1; }
+      };
+      var lineText = function (k) {
+        return Math.abs(free[k] - freeZ[k]) > 1e-9 ? num(free[k], 2) + ' is past the wall at ' + num(freeZ[k], 0) + ', so z' + SUBN[k] + ' = ' + num(freeZ[k], 0) :
+          num(free[k], 2) + ' is inside, so z' + SUBN[k] + ' = ' + num(freeZ[k], 2);
+      };
+      out.push({ id: 'warden-steps', chapter: 'The Twins', title: 'The Warden’s problem, step by step', layout: 'map+side', view: stepView, dur: 8,
+        text: 'Now hand the Warden the spot that matters most, c = ' + pair(free) + '. This c is the valley’s floor, the lowest point of the land with no wall; the Wanderer walked there on its own. ' +
+          'The Warden must find the point z in C with the smallest distance |z − c|, which is an optimisation problem of its own. ' +
+          'Spots at one distance from c lie on a circle, so let a circle grow from c. The first lawful spot it reaches is the answer. ' +
+          'For a square wall there is a shortcut, because |z − c|² = (z₁ − c₁)² + (z₂ − c₂)² and the wall limits z₁ and z₂ separately. Hence the Warden settles one direction at a time. ' +
+          DIRC[fi] + ', ' + num(free[fi], 2) + ' lies past the wall at ' + num(wallAt, 0) + ', so z' + SUBN[fi] + ' = ' + num(wallAt, 0) + '. ' +
+          DIRC[fj] + ', ' + num(free[fj], 2) + ' is already between ' + bLo + ' and ' + bHi + ', so it stays. ' +
+          'Both ways give Π(c) = ' + pair(freeZ) + ', ' + num(dWall) + ' from c.',
+        math: 'Π<sub>C</sub>(c) = the point z in C nearest to c' + at(0.5, '<br>|z − c|² = (z₁ − c₁)² + (z₂ − c₂)²') +
+          at(0.62, '<br>z' + SUBN[fi] + ': ' + num(free[fi], 2) + ' → ' + num(wallAt, 0)) + at(0.78, ';  z' + SUBN[fj] + ': ' + num(free[fj], 2) + ' stays') +
+          at(0.88, '<br>Π<sub>C</sub>(c) = ' + pair(freeZ) + ', ' + num(dWall) + ' from c'),
+        draw: function (g, p) {
+          base(g); lawFill(g, 1); star(g, T, 1);
+          var qC = seg(p, 0, 0.1), grow = seg(p, 0.12, 0.46), r = dWall * grow, touched = p >= 0.46, A0 = g.P(free), phoneMap = g.mapR[2] < 430;
+          // the circle grows; the rings it passes stay behind, dashed
+          [1 / 3, 2 / 3].forEach(function (k) { if (grow >= k) circle(g, k * dWall, 'rgba(169,205,246,0.6)', 1.3, 1, [4, 4]); });
+          if (r > 0) circle(g, r, C.blue, 2, 1);
+          if (grow > 0.25 && p < 0.56) g.labelPx(A0[0], A0[1] - r * g.s - 14, '|z − c| = ' + num(r, 2), C.blue, { align: 'center', size: 11.5, p: seg(p, 0.14, 0.2) * (1 - seg(p, 0.5, 0.56)) });
+          if (touched) g.halo(freeZ, 10, C.blue, seg(p, 0.46, 0.5) * (1 - seg(p, 0.8, 0.86)), 2.2);
+          g.label(freeZ, 'the first lawful spot it reaches', C.blue, { dx: -12, dy: -24, align: 'right', size: 11.5, p: seg(p, 0.46, 0.52) * (1 - seg(p, 0.56, 0.6)), inside: true });
+          // then one direction at a time: c's coordinate across the wall moves onto it, the other stays
+          var qE = seg(p, 0.6, 0.72), qN = seg(p, 0.74, 0.82), qZ = seg(p, 0.84, 0.94);
+          var qELabel = qE * (1 - seg(p, 0.74, 0.8)), qNLabel = qN * (1 - seg(p, 0.84, 0.9));
+          g.arrow(free, freeZ, C.blue, 2.6, qE);
+          g.label(lerp2(free, freeZ, 0.5), 'z' + SUBN[fi] + ': ' + num(free[fi], 2) + ' → ' + num(wallAt, 0), C.blue, { dx: 0, dy: fi === 0 ? -20 : 0, align: 'center', size: 12, p: phoneMap ? 0 : qELabel, inside: true });
+          g.label(freeZ, 'z' + SUBN[fj] + ': ' + num(free[fj], 2) + ' stays', C.blue, { dx: -12, dy: 20, align: 'right', size: 12, p: phoneMap ? 0 : qNLabel, inside: true });
+          warden(g, freeZ, qZ); rightAngle(g, freeZ, free, qZ);
+          g.label(freeZ, 'Π(c) = ' + pair(freeZ), C.blue, { dx: -12, dy: -32, align: 'right', size: 12, p: qZ, inside: true });
+          g.hero(free, 'tw', qC); g.label(free, 'c, the valley’s floor', C.ink, { dx: phoneMap ? 12 : 0, dy: 24, align: phoneMap ? 'left' : 'center', size: 12, p: qC, inside: true });
+          // the side panel: the same problem, one coordinate at a time
+          var R = g.sideR, compact = R[3] < 330, x = R[0] + 14, w = R[2] - 28, y = R[1] + (compact ? 36 : 40), bh = compact ? 62 : 92;
+          g.panel(R, 'The Warden’s problem, step by step');
+          if (!compact) {
+            g.labelPx(x, y, 'find the point z in C nearest to c', C.ink, { plain: true, size: 12, p: seg(p, 0.04, 0.1) });
+            g.labelPx(x, y + 24, '|z − c|² = (z₁ − c₁)² + (z₂ − c₂)²', C.ink, { plain: true, mono: true, size: 12, p: seg(p, 0.5, 0.56) });
+            y += 62;
+          }
+          [fi, fj].forEach(function (k, n) {
+            var q0 = n ? seg(p, 0.72, 0.76) : seg(p, 0.56, 0.6), q1 = n ? seg(p, 0.74, 0.82) : seg(p, 0.6, 0.72), yy = y + n * bh;
+            g.labelPx(x, yy, DIRS[k] + ':  c' + SUBN[k] + ' = ' + num(free[k], 2), C.ink, { plain: true, size: 12, p: q0 });
+            coordLine(g, x + 8, yy + 24, w - 16, free[k], freeZ[k], q0, q1);
+            g.labelPx(x, yy + (compact ? 50 : 56), lineText(k), C.blue, { plain: true, mono: true, size: 12, p: q1 });
+          });
+          var yr = y + 2 * bh + (compact ? 0 : 6);
+          g.labelPx(x, yr, 'Π(c) = ' + pair(freeZ) + ', ' + num(dWall) + ' from c', C.blue, { plain: true, mono: true, size: 12, p: qZ });
+          if (!compact && yr + 22 < R[1] + R[3] - 8) g.labelPx(x, yr + 22, 'the same spot the circle reached', C.ink, { plain: true, size: 12, p: seg(p, 0.9, 0.98) });
+        } });
+
+      // page 3: the nearest lawful spot is not the lowest one
+      var ringT = landRing(TJ), ringZ = landRing(zJ), farView = around(ringT.concat([add(free, [-dWall, -dWall]), add(free, [dWall, dWall]), inPt]), 0.12, 0.3 * cx.span);
+      var alongWall = function (t) { var q = freeZ.slice(); q[fj] = t; return q; };
+      var distAlong = function (t) { return len(sub(alongWall(t), free)); }, heightAlong = function (t) { return f(alongWall(t)); };
+      var dMax = Math.max(distAlong(box[0]), distAlong(box[1])) * 1.12, hMax = Math.max(heightAlong(box[0]), heightAlong(box[1])) * 1.12;
+      // a small plot of one function along the wall, with marks at the Warden's spot and at the spot to dig
+      var wallPlot = function (g, Rr, fn, vmax, col, title, marks, p, ticks) {
+        var c = g.ctx, L = Rr[0] + 42, Rt = Rr[0] + Rr[2] - 14, Tp = Rr[1] + 28, Bt = Rr[1] + Rr[3] - (ticks ? 24 : 10);
+        var X = function (t) { return L + (t - box[0]) / wd * (Rt - L); }, Y = function (v) { return Bt - v / vmax * (Bt - Tp); };
+        g.panel(Rr); c.font = '600 12px ' + g.sans; c.fillStyle = col; c.textAlign = 'left'; c.textBaseline = 'top'; c.fillText(title, Rr[0] + 10, Rr[1] + 8);
+        c.strokeStyle = C.faint; c.lineWidth = 1; c.beginPath(); c.moveTo(L, Tp); c.lineTo(L, Bt); c.lineTo(Rt, Bt); c.stroke();
+        c.font = '11px ' + g.mono; c.fillStyle = C.dim; c.textAlign = 'right'; c.textBaseline = 'middle';
+        var vt = H.nice(vmax / 2); for (var v = 0; v <= vmax + 1e-9; v += vt) c.fillText(num(v, 1), L - 5, Y(v));
+        if (ticks) {
+          c.textAlign = 'center'; c.textBaseline = 'top'; [box[0], box[0] + wd / 2, box[1]].forEach(function (t) { c.fillText(num(t, Math.abs(t - Math.round(t)) < 1e-9 ? 0 : 1), X(t), Bt + 5); });
+          c.font = '600 12px ' + g.sans; c.fillStyle = C.ink; c.textAlign = 'left'; c.fillText('x' + SUBN[fj] + ' →', Rr[0] + 6, Bt + 9);
+        }
+        marks.forEach(function (m) { if (!(m.p > 0)) return; c.globalAlpha = 0.6 * clamp(m.p, 0, 1); c.strokeStyle = m.col; c.lineWidth = 1; c.setLineDash([3, 3]); c.beginPath(); c.moveTo(X(m.t), Tp); c.lineTo(X(m.t), Bt); c.stroke(); c.setLineDash([]); c.globalAlpha = 1; });
+        if (p > 0) {
+          c.save(); c.beginPath(); c.rect(L, Tp - 4, Rt - L, Bt - Tp + 8); c.clip(); c.strokeStyle = col; c.lineWidth = 2.2; c.lineJoin = 'round'; c.beginPath();
+          for (var i = 0, n = Math.round(80 * clamp(p, 0, 1)); i <= n; i++) { var t = box[0] + wd * i / 80; if (i) c.lineTo(X(t), Y(fn(t))); else c.moveTo(X(t), Y(fn(t))); }
+          c.stroke(); c.restore();
+        }
+        marks.forEach(function (m) {
+          if (!(m.p > 0) || !m.dot) return; var px = X(m.t), py = Y(fn(m.t));
+          c.globalAlpha = clamp(m.p, 0, 1); c.beginPath(); c.arc(px, py, 5, 0, TAU); c.fillStyle = m.col; c.fill(); c.lineWidth = 2; c.strokeStyle = C.bg; c.stroke(); c.globalAlpha = 1;
+          g.labelPx(px + (m.below ? 0 : m.left ? -10 : 10), py + (m.below ? 16 : -13), m.text, m.col, { align: m.below ? 'center' : m.left ? 'right' : 'left', size: 11.5, p: m.p });
         });
-        if (free) g.hero(free, 'tw', seg(p, 0.55, 0.65), 'c');
-      } });
+      };
+      var lowLeft = T[fj] < freeZ[fj];
+      out.push({ id: 'warden-not-lowest', chapter: 'The Twins', title: 'Nearest is not lowest', layout: 'map+side', view: farView, dur: 8,
+        text: 'Is the Warden’s answer the spot to dig? Read the height there: J = ' + num(zJ, 3) + ' at Π(c). The spot to dig, x* = ' + pair(T) + ', is lower, at J = ' + num(TJ, 3) + '. ' +
+          'It lies on the same ' + faceName + ', ' + num(gapTZ) + ' away from Π(c) along the wall; both plots follow that wall. ' +
+          'The Warden minimises distance, so its rings around c are circles. The King minimises the height J. The land’s equal-height rings around c are long, tilted ellipses: an equal move raises J ' + steeperS + ' times more across the valley than along it. ' +
+          'Grow the land’s rings from c, and the first lawful spot they reach is x*, not Π(c). Every lawful spot in the gold patch is no higher than Π(c). ' +
+          'The Warden never feels the slope, so on its own it cannot find the spot to dig. The Wanderer feels the slope but ignores the wall. Each twin has half of the skill the job needs.',
+        math: 'nearest: Π<sub>C</sub>(c) = ' + pair(freeZ) + ',  J = ' + num(zJ, 3) +
+          at(0.5, '<br>lowest: x* = ' + pair(T) + ',  J = ' + num(TJ, 3)) +
+          at(0.8, '<br>the Warden minimises |z − c|;  the King minimises J(z)'),
+        draw: function (g, p) {
+          base(g); lawFill(g, 1);
+          var qW = seg(p, 0.06, 0.28), qL = seg(p, 0.32, 0.62), qR = seg(p, 0.66, 0.8), qB = seg(p, 0.84, 0.96);
+          // the Warden's circle through Π(c), then the land's rings growing from c until one first reaches the wall
+          circle(g, dWall, C.blue, 2, qW);
+          if (qL > 0) g.path(landRing(freeJ + (TJ - freeJ) * qL), C.gold, 2.2, 1);
+          lowerInside(g, zJ, qR); g.path(ringZ, C.orange, 1.8, qR, [6, 4]);
+          // how far apart the two answers are along the wall, drawn just inside it
+          var inward = fi === 0 ? [wallAt >= box[1] ? -0.05 * wd : 0.05 * wd, 0] : [0, wallAt >= box[1] ? -0.05 * wd : 0.05 * wd];
+          g.path([freeZ, add(freeZ, inward), add(T, inward), T], C.violet, 1.6, qB);
+          g.label(add(lerp2(freeZ, T, 0.5), inward), num(gapTZ) + ' apart', C.violet, { dx: -10, dy: 0, align: 'right', size: 12, p: seg(p, 0.9, 1), inside: true });
+          warden(g, freeZ, qW); star(g, T, seg(p, 0.56, 0.66));
+          g.label(freeZ, 'nearest: Π(c), J = ' + num(zJ, 3), C.blue, { dx: -12, dy: lowLeft ? -20 : 20, align: 'right', size: 12, p: seg(p, 0.2, 0.3), inside: true });
+          g.label(T, 'lowest: x*, J = ' + num(TJ, 3), C.gold, { dx: -12, dy: lowLeft ? 22 : -22, align: 'right', size: 12, p: seg(p, 0.6, 0.68), inside: true });
+          g.labelPx(g.mapR[0] + 12, g.mapR[1] + 30, p < 0.3 ? 'the Warden’s rings: circles' : p < 0.64 ? 'the land’s equal-height rings: ellipses' : p < 0.82 ? 'gold: lawful and no higher than Π(c)' : 'two answers on one wall', p < 0.3 ? C.blue : C.gold, { size: 13 });
+          g.hero(free, 'tw', 1); g.label(free, 'c', C.ink, { dx: 12, dy: -14, size: 12, inside: true });
+          // the side panel: distance and height along the wall, each with its own lowest point
+          var R = g.sideR, h2 = (R[3] - 8) / 2, R1 = [R[0], R[1], R[2], h2], R2 = [R[0], R[1] + h2 + 8, R[2], h2];
+          wallPlot(g, R1, distAlong, dMax, C.blue, 'distance from c at each ' + faceName + ' point', [
+            { t: freeZ[fj], col: C.blue, dot: true, text: 'nearest: Π(c), ' + num(dWall), p: seg(p, 0.2, 0.3), below: true }], qW, false);
+          wallPlot(g, R2, heightAlong, hMax, C.gold, 'height J, along the ' + faceName, [
+            { t: freeZ[fj], col: C.blue, dot: true, text: 'Π(c): ' + num(zJ, 3), p: seg(p, 0.66, 0.76), left: !lowLeft },
+            { t: T[fj], col: C.gold, dot: true, text: 'x*: ' + num(TJ, 3), p: seg(p, 0.56, 0.66), left: lowLeft }], qL, true);
+        } });
+    } else {
+      var samples = [];
+      if (free) { var dir0 = sub(free, x0), perp = [-dir0[1], dir0[0]]; samples = [add(free, scale(perp, 0.35)), lerp2(x0, free, 0.45), free].map(function (q) { return { q: q, z: noLaw ? q : land.project(q) }; }); }
+      out.push({ id: 'warden-role', chapter: 'The Twins', title: 'Meet the Warden: z', layout: 'map', view: introView, dur: 5.6,
+        text: noLaw ? 'The Warden’s job: given any point, step to the nearest lawful spot. With no law every spot is lawful, so the Warden simply stands where the Wanderer stands.' :
+          'The Warden’s job: given any point, step to the nearest lawful spot, ' + (tower ? 'the nearest point of the parity-polytope line' : 'the nearest spot ' + lawWord) + '. A lawful point stays where it is; a point outside is pulled straight to the law, at a right angle. ' + (free ? 'Asked about the Wanderer’s spot c, the Warden answers Π(c) = ' + pair(freeZ) + ': lawful, but J = ' + num(f(freeZ), 3) + ' there, above the spot to dig, where J = ' + num(TJ, 3) + '. ' : '') + 'The Warden never feels the slope, so on its own it cannot find the lowest lawful spot either.',
+        math: 'the Warden: z = Π<sub>C</sub>(any point), the nearest lawful spot' + (free && freeOut ? at(0.6, ';  Π<sub>C</sub>(c) = ' + pair(freeZ) + ',  J = ' + num(f(freeZ), 3) + ' > ' + num(TJ, 3)) : ''),
+        draw: function (g, p) {
+          base(g); star(g, T, 1);
+          samples.forEach(function (s, i) {
+            var q = seg(p, 0.05 + 0.24 * i, 0.3 + 0.24 * i), moved = len(sub(s.q, s.z)) > 1e-9;
+            g.dot(s.q, 5, i === 2 ? '#e6e9ee' : C.ink, seg(q, 0, 0.3));
+            if (moved) { g.arrow(s.q, s.z, C.blue, 2.5, seg(q, 0.3, 0.8)); rightAngle(g, s.z, s.q, seg(q, 0.8, 1)); } else g.halo(s.q, 10, C.blue, seg(q, 0.3, 0.8), 1.5);
+            warden(g, s.z, seg(q, 0.7, 1), i === 2 ? 'Π(c): lawful, not lowest' : moved ? 'nearest lawful spot' : 'already lawful: stays');
+          });
+          if (free) g.hero(free, 'tw', seg(p, 0.55, 0.65), 'c');
+        } });
+    }
 
     // ---- the rope, and what the rope alone cannot do
     var ropeOk = !!(free && land.exactStep && !noLaw), xr = ropeOk ? land.wanderer(freeZ, rho) : null;
@@ -1929,7 +2133,7 @@ var Board = (function () {
     out.push({ id: 'rope', chapter: 'The Twins', title: 'Tie them with a rope', layout: 'map', view: ropeView, dur: 5.8,
       text: noLaw ? 'Tie the twins with a rope of stiffness ρ = ' + num(rho, 2) + '. With no law the Warden always stands where the Wanderer stands, so the rope hangs slack and nothing changes.' :
         'Tie the twins with a rope of stiffness ρ = ' + num(rho, 2) + '. Now the Wanderer minimises the land plus the rope’s pull toward the Warden, and the Warden steps to the nearest lawful spot to the Wanderer. Each still does only what it is good at; the rope makes them care about each other. The shading is the land as the Wanderer now feels it, with the rope tied to the Warden at z = ' + pair(freeZ) + ': the rope’s cost ρ/2·|x − z|² is added to the height. ' + (ropeOk ? 'Pulled by the rope, the Wanderer moves from c to ' + pair(xr) + '. No spot farther than r = ' + num(reachFree) + ' from the Warden can beat the Warden’s own spot: the dashed ring.' : 'On this land the Wanderer walks down that combined land in small steps.'),
-      math: 'the Wanderer now minimises f(x) + ρ/2·|x − z|²,  ρ = ' + num(rho, 2) + at(0.6, ';  the Warden takes Π_C(x)'),
+      math: 'the Wanderer now minimises f(x) + ρ/2·|x − z|²,  ρ = ' + num(rho, 2) + at(0.6, ';  the Warden takes Π<sub>C</sub>(x)'),
       draw: function (g, p) {
         if (!ropeOk) { base(g); g.hero(x, 'tw', 1, 'the Wanderer'); warden(g, z, 1, 'the Warden'); spring(g, x, z, seg(p, 0.2, 0.5)); return; }
         base(g); g.land(ropeFree, { id: 'ropeFree', rings: 10, alpha: seg(p, 0.3, 0.55) }); law(g, 1); star(g, T, 1);
@@ -2070,7 +2274,7 @@ var Board = (function () {
         text: 'Let them go on with the rope alone, each day remembering only where the Warden stood yesterday. The Wanderer goes to the lowest point of land plus rope, the Warden to the nearest lawful spot, and again. ' +
           (ropeFirstGap ? 'For ' + (ropeFirstGap - 1) + (ropeFirstGap === 2 ? ' day' : ' days') + ' the twins end together. From day ' + ropeFirstGap + ' the Wanderer’s lowest point lies past the wall, so the Warden stops at the wall and a gap opens. ' : '') +
           'The Wanderer always stops a little downhill of the Warden, the rope stretched by the slope, and the Warden stands on the wall. They settle a fixed gap apart. After ' + noLedgerDays + ' circuits the Warden is at z = ' + pair(nlEndZ) + ', on the wall but above the spot to dig, ' + pair(T) + ', and the gap is still ' + num(nlGap) + '. The rope pulls; it does not remember. This rope-only run is a counterfactual, not ADMM: it omits the scaled-dual update that remembers disagreement.',
-        math: 'rope alone: x ← argmin f + ρ/2·|x − z|²,  z ← Π_C(x)' + at(0.55, '<br>after ' + noLedgerDays + ' circuits: z = ' + pair(nlEndZ) + ', gap ' + num(nlGap) + ';  the spot to dig ' + pair(T)),
+        math: 'rope alone: x ← argmin f + ρ/2·|x − z|²,  z ← Π<sub>C</sub>(x)' + at(0.55, '<br>after ' + noLedgerDays + ' circuits: z = ' + pair(nlEndZ) + ', gap ' + num(nlGap) + ';  the spot to dig ' + pair(T)),
         draw: function (g, p) {
           base(g); star(g, T, 1);
           var s = ropeDays + seg(p, 0, 0.8) * (noLedgerDays - ropeDays), kk = Math.floor(s), fr = s - kk;   // from day 3 on; each day: the Wanderer hops, then the Warden
@@ -2762,7 +2966,7 @@ var Board = (function () {
   // The Twins' tale, from the King's request to one full circuit, told on day 4 to day 5: day 4 created the first
   // nonzero ledger entry, so the next aim visibly differs from the Warden's point.  Earlier versions used day 3, where u = 0 and v = z hid the mechanism.
   out = out.concat(pick(Ww, 'tw', 4,
-    ['twins', 'wanderer-role', 'warden-role', 'rope', 'rope-day-1', 'rope-day-2', 'rope-day-3', 'without-ledger', 'ledger-role', 'aim', 'wander', 'wander-balance', 'warden', 'ledger',
+    ['twins', 'wanderer-role', 'warden-role', 'warden-steps', 'warden-not-lowest', 'rope', 'rope-day-1', 'rope-day-2', 'rope-day-3', 'without-ledger', 'ledger-role', 'aim', 'wander', 'wander-balance', 'warden', 'ledger',
       'book-day-1', 'book-day-2', 'book-day-3', 'again'], CH.tw));
   var Dw = Math.max(dPg, dLb, dTw) + 1;
   out.push({ id: 'race2', chapter: CH.tw, title: 'Three heroes at the wall', layout: 'map+side', view: [0.0, 1.6, -0.2, 1.4], dur: 6,
