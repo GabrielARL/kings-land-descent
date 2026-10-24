@@ -188,7 +188,7 @@
 
   // ------------------------------------------------------------ the course
   var Wc = world('canyon'), Wlong = world('canyon', { alpha: 0.22 }), Ww = world('wall'), Wm = world('misty');
-  var out = [], CH = { land: 'The King’s land', feel: 'Feeling the slope', pg: 'The Pilgrim: gradient descent', lb: 'The Cartographer: L-BFGS', tw: 'The Twins: ADMM and the King’s law', light: 'The self-checking light board', cajode: 'From the light board to CAJODE', misty: 'The misty hills', end: 'What we learned' };
+  var out = [], CH = { land: 'The King’s land', feel: 'Feeling the slope', pg: 'The Pilgrim: gradient descent', lb: 'The Cartographer: L-BFGS', tw: 'The Twins: ADMM and the King’s law', light: 'The self-checking light board', cajode: 'From the light board to SAPPHIRE', misty: 'The misty hills', end: 'What we learned' };
   var T = Wc.T, x0 = Wc.x0, A = Wc.land.A, c = Wc.land.c, pc = Wc.p;
 
   // 1. the King's land
@@ -203,8 +203,8 @@
   var probe = [[-0.15, 1.1], [0.25, 0.9], [0.55, 0.62], [0.95, 0.35], [1.15, -0.1]];
   function along(pts, t) { var n = pts.length - 1, s = clamp(t, 0, 1) * n, k = Math.min(Math.floor(s), n - 1); return lerp2(pts[k], pts[k + 1], s - k); }
   out.push({ id: 'land', chapter: CH.land, title: 'The land is a formula', layout: 'map', view: Wc.view, dur: 4.6,
-    text: 'Every spot on the map is a pair of numbers, x = (x₁, x₂), and every spot has a height, J(x), given by the King’s formula. On the map, colour shows height, dark low and warm high, and each ring joins spots of the same height. Watch a probe read the height as it crosses the land.',
-    math: 'J(x) = ½(x − c)ᵀA(x − c),  c = ' + pair(c, 2),
+    text: 'Every spot on the map is a pair of numbers, x = (x₁, x₂), and every spot has a height, J(x), given by the King’s formula. In the formula, x̂ (read “x-hat”) is a fixed spot: the bottom of the valley, where J = 0. On the map, colour shows height, dark low and warm high, and each ring joins spots of the same height. Watch a probe read the height as it crosses the land.',
+    math: 'J(x) = ½(x − x̂)ᵀA(x − x̂),  x̂ = ' + pair(c, 2),
     draw: function (g, p) {
       base(g, Wc); var q = along(probe, seg(p, 0.1, 0.95));
       g.ring(Wc.land.J(q), C.gold, 2, seg(p, 0.1, 0.2)); g.dot(q, 6, C.gold, seg(p, 0.05, 0.15));
@@ -298,11 +298,12 @@
   var twEnd = wtw[wtw.length - 1], twPrev = wtw[Math.max(0, wtw.length - 2)], uEnd = twEnd.u, gStar = Ww.land.grad(Tw), uTheory = [-gStar[0] / Ww.p.rho, -gStar[1] / Ww.p.rho];
   var primalEnd = len(sub(twEnd.x, twEnd.z)), dualEnd = Ww.p.rho * len(sub(twEnd.z, twPrev.z)), wallView = [-0.3, 1.8, -0.55, 1.55];
   out.push({ id: 'wall', chapter: CH.tw, title: 'The kingdom wall', layout: 'map', view: wallView, dur: 4.6,
-    text: 'On this land the King adds a law: the treasure must lie inside the wall, the square from 0 to 1 on each side. The bottom of the valley, c = ' + pair(cw, 2) + ', lies outside it, so the lowest lawful spot is on the wall itself, at x* = ' + pair(Tw) + '. In the words of optimisation the wall is a constraint: minimise J(x) with x in the set C.',
+    text: 'On this land the King adds a law: the treasure must lie inside the wall, the square from 0 to 1 on each side. The bottom of the valley, x̂ = ' + pair(cw, 2) + ', lies outside it, so the lowest lawful spot is on the wall itself, at x* = ' + pair(Tw) + '. In the words of optimisation the wall is a constraint: minimise J(x) with x in the set C.',
     math: 'minimise J(x) subject to x ∈ C = [0, 1]²;  x* = ' + at(0.8, pair(Tw)),
     draw: function (g, p) {
-      base(g, Ww, { lawP: seg(p, 0.1, 0.45) }); g.dot(cw, 6, C.violet, seg(p, 0.45, 0.6)); g.label(cw, 'c, outside the wall', C.violet, { dx: 10, dy: 14, p: seg(p, 0.5, 0.65) });
-      g.ring(Ww.land.J(Tw), C.gold, 2, seg(p, 0.6, 0.8)); star(g, Tw, seg(p, 0.75, 0.95), 'x*, on the wall');
+      // the ring through x* is drawn first, so that it passes under the label of the valley's bottom, not over it
+      base(g, Ww, { lawP: seg(p, 0.1, 0.45) }); g.ring(Ww.land.J(Tw), C.gold, 2, seg(p, 0.6, 0.8));
+      g.dot(cw, 6, C.violet, seg(p, 0.45, 0.6)); g.label(cw, 'x̂, outside the wall', C.violet, { dx: 10, dy: 14, p: seg(p, 0.5, 0.65) }); star(g, Tw, seg(p, 0.75, 0.95), 'x*, on the wall');
     } });
   out.push({ id: 'pgwall', chapter: CH.tw, title: 'The Pilgrim at the wall', layout: 'map', view: wallView, dur: 5.4,
     text: 'The Pilgrim keeps its rule and adds one more: when a stride carries it outside the wall, it is set back to the nearest spot inside. That is projected gradient descent. It comes within 0.001 of the treasure on day ' + dPg + '; on ' + clipped + ' of those days the wall set it back.',
@@ -422,7 +423,7 @@
         'b₅ = ' + num(trace.b[4], 2) + '  ·  R2 keeps ' + num(trace.z[1][1], 2) + '  ·  C2 keeps ' + num(trace.z[4][1], 2), C.gold,
         { align: 'center', plain: true, mono: true, size: narrow ? 8.5 : 10.5, p: seg(p, 0.43, 0.54) });
 
-      // The second half zooms into one parity step. A clean q = 111 example makes the nearest fractional point visible;
+      // The second half zooms into one parity step.  A clean q = 111 example makes the nearest fractional point visible;
       // the next page then opens the full cube and the computed round-4 R2 projection.
       var change = seg(p, 0.52, 0.61);
       if (change > 0) { c.save(); c.globalAlpha = change; c.fillStyle = C.bg; c.fillRect(R[0], R[1], R[2], R[3]); c.restore(); }
@@ -442,9 +443,9 @@
       corners.forEach(function (a, ia) { corners.forEach(function (b2, ib) { if (ia < ib && Math.abs(a[0] - b2[0]) + Math.abs(a[1] - b2[1]) + Math.abs(a[2] - b2[2]) === 1) { var A = P3(a), Bq = P3(b2); c.beginPath(); c.moveTo(A[0], A[1]); c.lineTo(Bq[0], Bq[1]); c.stroke(); } }); });
       c.restore();
       var solidP = seg(p, 0.6, 0.72) * change;
-      var faces = [[0, 1, 2], [0, 1, 3], [0, 2, 3], [1, 2, 3]].map(function (face) { var pts = face.map(function (j) { return even[j]; }); return { pts: pts, depth: pts.reduce(function (sum, v) { return sum + P3(v)[2]; }, 0) }; });
+      var faces = [[0, 1, 2], [0, 1, 3], [0, 2, 3], [1, 2, 3]].map(function (f) { var pts = f.map(function (j) { return even[j]; }); return { pts: pts, depth: pts.reduce(function (sum, v) { return sum + P3(v)[2]; }, 0) }; });
       faces.sort(function (a, b2) { return b2.depth - a.depth; });
-      faces.forEach(function (face) { if (!(solidP > 0)) return; c.save(); c.globalAlpha = solidP; c.beginPath(); face.pts.forEach(function (v, j) { var A = P3(v); if (j) c.lineTo(A[0], A[1]); else c.moveTo(A[0], A[1]); }); c.closePath(); c.fillStyle = 'rgba(169,205,246,0.15)'; c.fill(); c.strokeStyle = C.blue; c.lineWidth = 1.8; c.stroke(); c.restore(); });
+      faces.forEach(function (f) { if (!(solidP > 0)) return; c.save(); c.globalAlpha = solidP; c.beginPath(); f.pts.forEach(function (v, j) { var A = P3(v); if (j) c.lineTo(A[0], A[1]); else c.moveTo(A[0], A[1]); }); c.closePath(); c.fillStyle = 'rgba(169,205,246,0.15)'; c.fill(); c.strokeStyle = C.blue; c.lineWidth = 1.8; c.stroke(); c.restore(); });
       corners.forEach(function (v) {
         var pass = (v[0] + v[1] + v[2]) % 2 === 0, A = P3(v), q = seg(p, pass ? 0.59 : 0.63, pass ? 0.69 : 0.73) * change;
         if (!(q > 0)) return; c.save(); c.globalAlpha = q; c.beginPath(); c.arc(A[0], A[1], pass ? 5.5 : 4.5, 0, TAU); c.fillStyle = pass ? C.blue : C.bg; c.fill(); c.strokeStyle = pass ? C.blue : C.red; c.lineWidth = 1.7; c.stroke(); c.restore();
@@ -653,10 +654,10 @@
       g.labelPx(GR[0] + GR[2] / 2, GR[1] + GR[3] - 9, 'circles: shared bits   squares: local checks', C.dim, { align: 'center', plain: true, size: narrow ? 9 : 10.5, p: seg(p, 0.75, 0.95) });
     } });
 
-  // The light board fixes its channel evidence.  These final pages state exactly what full CAJODE adds, and keep
+  // The light board fixes its channel evidence.  These final pages state exactly what full SAPPHIRE adds, and keep
   // acceptance of a decoded word separate from convergence of its continuous optimisation variables.
-  out.push({ id: 'cajode-circuit', chapter: CH.cajode, title: 'One full CAJODE circuit', layout: 'side', dur: 5.6,
-    text: 'The light-board trace held its channel LLRs fixed. Full CAJODE also estimates the channel that produced the bit evidence. One circuit computes one robust weight for each received sample, updates all shared bit variables, recomputes those weights, updates the channel coefficients, projects each check’s replica vector onto its parity polytope, and then updates every scaled dual variable.',
+  out.push({ id: 'cajode-circuit', chapter: CH.cajode, title: 'One full SAPPHIRE circuit', layout: 'side', dur: 5.6,
+    text: 'The light-board trace held its channel LLRs fixed. Full SAPPHIRE also estimates the channel that produced the bit evidence. One circuit computes one robust weight for each received sample, updates all shared bit variables, recomputes those weights, updates the channel coefficients, projects each check’s replica vector onto its parity polytope, and then updates every scaled dual variable.',
     math: 'weights → shared bits → weights → channel → parity-polytope projections → scaled dual variables',
     draw: function (g, p) {
       var R = g.sideR, rows = ['1  one weight per received sample', '2  all shared variables bᵢ', '3  recompute those weights', '4  all channel coefficients', '5  every check projection', '6  every scaled dual variable'];
@@ -668,7 +669,7 @@
       });
     } });
   out.push({ id: 'cajode-done', chapter: CH.cajode, title: 'Two different meanings of “done”', layout: 'side', dur: 5.2,
-    text: 'After a complete circuit, CAJODE forms a binary word. It may accept the first decoded word that satisfies every parity check and passes the CRC. Accepting that word is not proof that the continuous variables converged: the primal and dual residuals can still be nonzero, and stationarity is not established. The wall teaches the ADMM pattern; CAJODE applies it to a nonconvex optimization problem, so the wall’s standard convergence story does not transfer automatically.',
+    text: 'After a complete circuit, SAPPHIRE forms a binary word. It may accept the first decoded word that satisfies every parity check and passes the CRC. Accepting that word is not proof that the continuous variables converged: the primal and dual residuals can still be nonzero, and stationarity is not established. The wall teaches the ADMM pattern; SAPPHIRE applies it to a nonconvex optimization problem, so the wall’s standard convergence story does not transfer automatically.',
     math: 'accepted word: parity checks + CRC   ≠   continuous convergence or stationarity',
     draw: function (g, p) {
       var R = g.sideR, mid = R[0] + R[2] / 2;

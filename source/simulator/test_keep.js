@@ -1,8 +1,8 @@
 // Checks of keep.js and of the advanced tutorial (the Jade Keep), run with Node 12 or later from this folder:
 //     node test_keep.js
-// 1. The Keep with the Veil lifted reproduces CAJODE's own known-channel kernel, decode_llr: the numbers below are
+// 1. The Keep with the Veil lifted reproduces SAPPHIRE's own known-channel kernel, decode_llr: the numbers below are
 //    a trace of that Julia code (bit_update! and Parity.consensus_update!, joint_cbz_temporal_receiver.jl and
-//    joint_parity_admm.jl in GabrielARL/CAJODE) on the two-bit tower and on the row of two towers, printed by
+//    joint_parity_admm.jl in GabrielARL/SAPPHIRE) on the two-bit tower and on the row of two towers, printed by
 //    the script keep_trace.jl that produced them (CODE checks=[[1, 2]] llr=[1.0, -0.6] and llr=[16/3, -10/3];
 //    checks=[[1, 2], [2, 3]] llr=[1.2, -0.5, 0.9]; rho 3, beta 0.8).
 // 2. The Keep with the Veil down keeps the documentation's promises: the Bowl lies above the ground and touches
@@ -16,7 +16,7 @@ function check(what, ok, detail) { checks++; console.log((ok ? 'ok    ' : 'FAIL 
 function close(a, b, tol) { return Math.abs(a - b) <= (tol || 1e-12) * Math.max(1, Math.abs(b)); }
 function closeAll(a, b, tol) { return a.length === b.length && a.every(function (v, i) { return close(v, b[i], tol); }); }
 
-// ---------------------------------------------------------------- 1. the Keep against CAJODE's decode_llr
+// ---------------------------------------------------------------- 1. the Keep against SAPPHIRE's decode_llr
 var JULIA = {
   keep: [ // iter: b, z, u (the Keep's default leans 1.0 and -0.6)
     { b: [0.0, 1.0], z: [0.4999999999999999, 0.5000000000000001], u: [0.0, 0.0], hard: '01' },
@@ -151,7 +151,7 @@ if (course) {
     ['One receiver, two unknown blocks', 7, 6],
     ['ADMM for the code constraints', 13, 7],
     ['Alternating channel and bits', 20, 5],
-    ['From toy receiver to CAJODE', 25, 3]
+    ['From toy receiver to SAPPHIRE', 25, 3]
   ];
   function raw(id) { var s = steps[ids.indexOf(id)]; return s ? s.text + ' ' + s.math : ''; }
   function text(id) { var s = steps[ids.indexOf(id)]; return s ? (s.text + ' ' + s.math).replace(/<[^>]*>/g, '') : ''; }
@@ -170,17 +170,17 @@ if (course) {
   check('every step draws at five moments without an error (140 drawings) and uses neutral technical bit markers', drawn === 140 && errs.length === 0 && steps.every(function (s) { return !/g\.hero\(/.test(String(s.draw)); }), errs.slice(0, 3).join(' | '));
 
   var opening = text('received-grid');
-  check('the opening gives the exact CAJODE expansion and introduces carrier coupling before the ICI abbreviation', /CAJODE—Code-Aided Joint OFDM Demodulation and Error Correction—/.test(opening) && /frequency-domain response, including carrier coupling/.test(opening) && /response C and coded bits b/.test(opening) && opening.indexOf('ICI') < 0);
-  check('the opening says this teaches CAJODE rather than the separate JADE block-feedback schedule', /teaches that CAJODE problem/.test(opening) && /not the separate JADE block-feedback schedule/.test(opening));
+  check('the opening names SAPPHIRE and introduces carrier coupling before the ICI abbreviation', /SAPPHIRE explains those observations/.test(opening) && /frequency-domain response, including carrier coupling/.test(opening) && /response C and coded bits b/.test(opening) && opening.indexOf('ICI') < 0);
+  check('the opening says this teaches SAPPHIRE rather than the separate JADE block-feedback schedule', /teaches that SAPPHIRE problem/.test(opening) && /not the separate JADE block-feedback schedule/.test(opening));
 
   var oneTap = text('one-tap'), ici = text('ici'), isi = text('isi-boundary');
   check('the physical story orders one-tap conditions, same-symbol ICI, then the short-CP ISI boundary', ids.indexOf('one-tap') < ids.indexOf('ici') && ids.indexOf('ici') < ids.indexOf('isi-boundary'));
   check('one-tap equalization is tied to adequate CP and near time invariance', /cyclic prefix must cover the effective channel memory/.test(oneTap) && /nearly invariant over the useful OFDM interval/.test(oneTap) && /approximately diagonal/.test(oneTap));
-  check('the ICI page expands the term and labels its half-width-two drawing as generic rather than CAJODE’s band', /intercarrier interference \(ICI\)/.test(ici) && /same OFDM symbol/.test(ici) && /generic physical ICI illustration with two neighbours on either side/.test(ici) && /documented prediction later keeps half-width one/.test(ici) && /modelling approximation/.test(ici) && /not a claim that all farther coefficients are exactly zero/.test(ici));
+  check('the ICI page expands the term and labels its half-width-two drawing as generic rather than SAPPHIRE’s band', /intercarrier interference \(ICI\)/.test(ici) && /same OFDM symbol/.test(ici) && /generic physical ICI illustration with two neighbours on either side/.test(ici) && /documented prediction later keeps half-width one/.test(ici) && /modelling approximation/.test(ici) && /not a claim that all farther coefficients are exactly zero/.test(ici));
   check('the ISI page states the current-symbol scope and excludes a demonstrated short-prefix receiver', /tail from the preceding OFDM symbol/.test(isi) && /intercarrier interference within the current OFDM symbol only/.test(isi) && /do not demonstrate a short-prefix receiver/.test(isi));
 
   var partial = text('partial-fft');
-  check('Partial FFT is explicitly a supplied-deck contrast, not an input to documented CAJODE', /supplied OFDM deck/.test(partial) && /not an input to the documented CAJODE engine/.test(partial) && /CAJODE starts with one standard post-FFT observation/.test(partial));
+  check('Partial FFT is explicitly a supplied-deck contrast, not an input to documented SAPPHIRE', /supplied OFDM deck/.test(partial) && /not an input to the documented SAPPHIRE engine/.test(partial) && /SAPPHIRE starts with one standard post-FFT observation/.test(partial));
   check('Partial FFT is not credited with new information or a guaranteed gain', /creates no new information/.test(partial) && /does not prove a performance gain/.test(partial));
   check('the conventional one-way receiver appears before the joint receiver loop', ids.indexOf('separate-chain') < ids.indexOf('joint-loop') && /information normally travels only forward/.test(text('separate-chain')) && /alternates between two unknown blocks/.test(text('joint-loop')));
   check('the joint loop keeps pilot anchoring and code constraints distinct', /pilots anchor the channel\/ICI response/.test(text('joint-loop')) && /code constraints restrict the coded bits/.test(text('joint-loop')) && /neither replaces the other/.test(text('joint-loop')));
@@ -194,7 +194,8 @@ if (course) {
   check('the receiver notation defines shared b, local z_a, scaled-dual u_a, and derived v_a before ADMM', ids.indexOf('variables') < ids.indexOf('aim') && /shared bit vector/.test(notation) && /z<sub>a<\/sub>/.test(notation) && /scaled dual variable u<sub>a<\/sub>/.test(notation) && /v<sub>a<\/sub> = z<sub>a<\/sub> − u<sub>a<\/sub> is derived/.test(notation));
   check('v = z − u is neither stored state nor a physical observation', /not another stored state/.test(text('variables')) && /not independently optimized/.test(aimText) && /not a physical receiver observation/.test(aimText));
   var objective = text('robust-objective');
-  check('the objective separates response priors and distinguishes the deck’s parity penalty from CAJODE projection', /frequency smoothness of the correction Δ = C − C⁰/.test(objective) && /temporal prior on the full response C/.test(objective) && /supplied deck’s smooth parity penalty is a different formulation/.test(objective) && /CAJODE’s parity-polytope projection/.test(objective) && /Hard code feasibility is separate/.test(objective));
+  check('the objective separates response priors and distinguishes the deck’s parity penalty from SAPPHIRE projection', /frequency smoothness of the correction Δ = C − C⁰/.test(objective) && /temporal prior on the full response C/.test(objective) && /supplied deck’s smooth parity penalty is a different formulation/.test(objective) && /SAPPHIRE’s parity-polytope projection/.test(objective) && /Hard code feasibility is separate/.test(objective));
+  check('the full SAPPHIRE expansion appears only after its receiver terms have been introduced', ids.indexOf('robust-objective') > ids.indexOf('ici') && /SAPPHIRE stands for Symbol detection Aided by code through Parity constraints and Polytope projections, with Half-quadratic weighting under ICI in a joint OFDM Receiver with Error-correction decoding/.test(objective));
 
   var k3 = kw[3], iteration3 = text('aim') + ' ' + text('bit-update') + ' ' + text('projection') + ' ' + text('dual-update');
   check('the fixed-channel ADMM pages identify the frozen trace and quote iteration 3 values for v, b, z, and u', /frozen known-channel teaching trace/.test(iteration3) && /bit-zero log-likelihood-ratio \(LLR\) term/.test(iteration3) && iteration3.indexOf(shownPair(k3.v)) >= 0 && iteration3.indexOf(shownPair(k3.x)) >= 0 && iteration3.indexOf(shownPair(k3.z)) >= 0 && iteration3.indexOf(shownPair(k3.u)) >= 0, [shownPair(k3.v), shownPair(k3.x), shownPair(k3.z), shownPair(k3.u)].join(' | '));
@@ -218,7 +219,7 @@ if (course) {
   check('projection remains a feasibility operation and both standard ADMM residuals are defined', /parity projection is an exact feasibility operation/.test(updateOrder) && /not one of the objective-descent certificates/.test(updateOrder) && /primal residual/.test(dualDiagnostics) && /dual residual/.test(dualDiagnostics) && /r<sup>\(k\)<\/sup> = b<sub>N<\/sub><sup>\(k\)<\/sup> − z<sup>\(k\)<\/sup>/.test(dualDiagnostics) && /s<sup>\(k\)<\/sup> = ρ\(z<sup>\(k\)<\/sup> − z<sup>\(k−1\)<\/sup>\)/.test(dualDiagnostics));
 
   var milestones = text('milestones');
-  check('the milestone page separates toy-oracle match, consensus, and full-state threshold from CAJODE stopping', milestones.indexOf('iteration ' + vw.herald) >= 0 && milestones.indexOf('iteration ' + firstConsensus) >= 0 && milestones.indexOf('iteration ' + vw.rest) >= 0 && /hidden-truth Seal oracle/.test(milestones) && /still .* apart/.test(milestones) && /full toy state/.test(milestones) && /real candidate passes parity, configured-bit and CRC tests/.test(milestones) && /update budget is reached/.test(milestones) && /numerical certificate fails/.test(milestones) && /not when r and s cross convergence tolerances/.test(milestones));
+  check('the milestone page separates toy-oracle match, consensus, and full-state threshold from SAPPHIRE stopping', milestones.indexOf('iteration ' + vw.herald) >= 0 && milestones.indexOf('iteration ' + firstConsensus) >= 0 && milestones.indexOf('iteration ' + vw.rest) >= 0 && /hidden-truth Seal oracle/.test(milestones) && /still .* apart/.test(milestones) && /full toy state/.test(milestones) && /real candidate passes parity, configured-bit and CRC tests/.test(milestones) && /update budget is reached/.test(milestones) && /numerical certificate fails/.test(milestones) && /not when r and s cross convergence tolerances/.test(milestones));
   check('the toy endpoint is neither channel truth nor a certified global optimum', /not known channel truth/.test(milestones) && /not a certified global optimum/.test(milestones));
 
   var shared = text('shared-bits'), row2 = rw[2], row1 = rw[1];
@@ -231,7 +232,7 @@ if (course) {
   check('the takeaway makes no BER, global-optimum, physical-truth, or short-CP claim', /No page here claims BER gain, convergence to a global optimum, recovery of physical channel truth, or short-CP operation/.test(evidence));
 
   var shell = fs.readFileSync(path.join(__dirname, 'advanced.html'), 'utf8');
-  check('the shell title, H1, and summary lead with the OFDM task without unexplained ICI', /<title>Joint OFDM Demodulation and Decoding with CAJODE<\/title>/.test(shell) && /<h1 id="board-title">Joint OFDM Demodulation and Decoding with CAJODE<\/h1>/.test(shell) && /Pilots anchor the frequency-domain response, including carrier coupling; code constraints help resolve the data bits\./.test(shell));
+  check('the shell title, H1, and summary use the approved SAPPHIRE presentation', /<title>SAPPHIRE: A Joint OFDM Receiver for Data Detection and Error-Correction Decoding under Intercarrier Interference<\/title>/.test(shell) && /<h1 id="board-title">SAPPHIRE: A Joint OFDM Receiver<\/h1>/.test(shell) && /Pilots anchor the frequency-domain response, including carrier coupling; code constraints help resolve the data bits\./.test(shell));
   check('the canvas is an accessible technical diagram described by the step text and equation', /<canvas id="board-canvas" role="img"[^>]*aria-describedby="board-step board-text board-math"/.test(shell) && /Your browser does not support the tutorial diagram\.<\/canvas>/.test(shell));
   check('the shell uses legible technical display, body, and monospace fonts', /Atkinson\+Hyperlegible/.test(shell) && /IBM\+Plex\+Mono/.test(shell) && /--mono: 'IBM Plex Mono'/.test(shell));
 }

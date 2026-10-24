@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Build finding_the_tear.html, the tutorial "Finding the tear": a torn-net inspection posed as optimization with
-constraints in the manner of CAJODE, told with the player of the King's Land tutorials.
+constraints in the manner of SAPPHIRE, told with the player of the King's Land tutorials.
 
     python3 -B source/torn_net/build_net.py          (from the repository)
     node source/torn_net/test_net.js

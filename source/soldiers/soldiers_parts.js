@@ -1,4 +1,4 @@
-// The drawings of the tutorial "The BP protocol and the CAJODE constraint circuit" (soldiers_course.js): soldiers and
+// The drawings of the tutorial "The BP protocol and the SAPPHIRE constraint circuit" (soldiers_course.js): soldiers and
 // junctions in the decks' style, the comic of a tree or a loop with tags, messages that travel along its lines, the
 // zoom on one junction with its speech bubble, the parity polytope of a three-soldier junction inside its cube, and
 // small tables.  The kit g comes from board.js.
@@ -177,7 +177,7 @@ var SoldierParts = (function () {
       var cardTop = R[1] + (o.title ? 38 : 10), cardH = (R[3] - (cardTop - R[1]) - 8) / Math.max(1, rows.length), c = g.ctx;
       function shortHead(t) {
         if (/BP soldier/i.test(t)) return 'BP';
-        if (/note-taking soldier/i.test(t)) return 'CAJODE';
+        if (/note-taking soldier/i.test(t)) return 'SAPPHIRE';
         return String(t || '').replace(/\?$/, '');
       }
       function fit(text, start, least) {

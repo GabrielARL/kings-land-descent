@@ -4,15 +4,15 @@
 // Two lands.  (1) The Keep with the Veil lifted: each sentry holds a jade tile b in [0, 1]; its lantern leans it
 // with a steady push l (a bit-zero log-likelihood ratio), a ridge beta b (1 - b) tips it toward a notch, and the
 // tower's law is that the two tiles agree (the lawful corners 00 and 11, the segment between them).  The Twins'
-// circuit on it is, number for number, CAJODE's known-channel kernel decode_llr (joint_cbz_temporal_receiver.jl):
+// circuit on it is, number for number, SAPPHIRE's known-channel kernel decode_llr (joint_cbz_temporal_receiver.jl):
 // the bit update with zero curvature, the exact projection onto the check's parity polytope and the scaled dual
 // step; test_keep.js checks it against a trace of that Julia code.  (2) The Keep with the Veil down: four windows
 // in a row, a Beacon (a known tile) at each end and the two sentries between; every lantern shows its own tile
 // through the Veil's thickness c0 plus the spill c1 of its two neighbours.  The Twins learn the Veil while they
-// read the lanterns, with the moves of CAJODE's documentation: the Scales (pseudo-Huber weights), one
+// read the lanterns, with the moves of SAPPHIRE's documentation: the Scales (pseudo-Huber weights), one
 // Bowl stride for the tiles (the Gershgorin majorizer, eq. bits), the Loom (the exact channel solve) with its
 // plumb line (the normal equations' residual), the Wardens and ledgers, and the Herald (the hard word, the law
-// and the Seal).  This land is written from the documentation's equations, not from CAJODE's own code.
+// and the Seal).  This land is written from the documentation's equations, not from SAPPHIRE's own code.
 var Keep = (function () {
   function clip(v, lo, hi) { return v < lo ? lo : v > hi ? hi : v; }
   function norm(a) { var s = 0; for (var i = 0; i < a.length; i++) s += a[i] * a[i]; return Math.sqrt(s); }
@@ -21,7 +21,7 @@ var Keep = (function () {
   function copy(o, extra) { var r = {}, k; for (k in o) r[k] = o[k]; for (k in (extra || {})) r[k] = extra[k]; return r; }
   // the tower's law for two tiles: the convex hull of the even words 00 and 11, and the nearest lawful spot
   function projectPair(w) { var t = clip((w[0] + w[1]) / 2, 0, 1); return [t, t]; }
-  // the Herald's reading: a tile at or above one half is read as 1 (CAJODE's hard word)
+  // the Herald's reading: a tile at or above one half is read as 1 (SAPPHIRE's hard word)
   function hardWord(b) { return b.map(function (v) { return v >= 0.5 ? 1 : 0; }); }
   function sameWord(a, b) { for (var i = 0; i < a.length; i++) if (a[i] !== b[i]) return false; return true; }
   // one tile's track with the Veil lifted: lean l t + ridge beta t (1 - t) + rope rho/2 (t - v)^2 + a guard
@@ -36,7 +36,7 @@ var Keep = (function () {
     function f(b) { return l[0] * b[0] + l[1] * b[1] + beta * (b[0] * (1 - b[0]) + b[1] * (1 - b[1])); }
     function fgrad(b) { return [l[0] + beta * (1 - 2 * b[0]), l[1] + beta * (1 - 2 * b[1])]; }
     function wanderer(v, rho) { return [tileStep(l[0], v[0], rho, beta, 0, 0, 1), tileStep(l[1], v[1], rho, beta, 0, 0, 1)]; }
-    // where the tiles start: each the way its lantern leans (CAJODE's hard decision from the LLR)
+    // where the tiles start: each the way its lantern leans (SAPPHIRE's hard decision from the LLR)
     var start = [l[0] < 0 ? 1 : 0, l[1] < 0 ? 1 : 0];
     return { kind: 'keep', J: f, f: f, grad: fgrad, fgrad: fgrad, wanderer: wanderer, project: projectPair, box: [0, 1], wanderBox: [0, 1],
              lawSegment: [[0, 0], [1, 1]], leans: l, beta: beta, sent: sent, treasure: sent.slice(), start: start, degree: [1, 1],
@@ -68,7 +68,7 @@ var Keep = (function () {
 
   // ---------------------------------------------------------------- a row of towers (several tiles, Veil lifted)
   // The same kernel on a row of tiles where neighbouring towers share a sentry (checks of two tiles).  Every
-  // edge (tower, tile) keeps its own replica z and ledger u, as CAJODE's parity layer does.
+  // edge (tower, tile) keeps its own replica z and ledger u, as SAPPHIRE's parity layer does.
   function rowLand(p) {
     var l = p.leans.slice(), beta = p.beta, checks = p.checks.map(function (c) { return c.slice(); }), n = l.length, sent = p.sent.slice();
     var edges = [], degree = l.map(function () { return 0; }), edgesOf = l.map(function () { return []; });
@@ -109,11 +109,11 @@ var Keep = (function () {
   // ---------------------------------------------------------------- the Keep, Veil down (four windows, two tiles)
   // Windows 0 and 3 hold the Beacons (tiles known, x = +1); windows 1 and 2 the sentries.  A lantern's reading is
   // y_k = c0 x_k + c1 (x_{k-1} + x_{k+1}) + noise.  The expected energy of a window counts the variance that an
-  // unsure tile adds (CAJODE's eq. energy), and the pseudo-Huber scale delta turns it into a weight.
+  // unsure tile adds (SAPPHIRE's eq. energy), and the pseudo-Huber scale delta turns it into a weight.
   function veilLand(p) {
     var y = p.readings.slice(), kappa = p.kappa, delta = p.delta, beta = p.beta, sent = p.sent.slice(), vn = p.variance || 1;
     var c0 = [(y[0] + y[3]) / 2, 0];                      // the Beacons' reading of the Veil: no spill assumed
-    // With CAJODE's unnormalised E = (residual^2 + expected variance)/v and x = 1 - 2b,
+    // With SAPPHIRE's unnormalised E = (residual^2 + expected variance)/v and x = 1 - 2b,
     // the coefficient multiplying b at the all-zero word is 4 c0 y/v.  (The complex QPSK model carries its own 1/sqrt(2) scaling.)
     var leans = [4 * c0[0] * y[1] / vn, 4 * c0[0] * y[2] / vn];
     var start = leans.map(function (v) { return v < 0 ? 1 : 0; });
@@ -177,7 +177,7 @@ var Keep = (function () {
              lawful: function (wd) { return wd[0] === wd[1]; }, sealed: function (wd) { return sameWord(wd, sent); } };
   }
 
-  // One circuit at the Keep with the Veil down, in CAJODE's order: Scales, tiles (one Bowl stride), Scales, Loom,
+  // One circuit at the Keep with the Veil down, in SAPPHIRE's order: Scales, tiles (one Bowl stride), Scales, Loom,
   // Wardens, ledgers, then the Herald.  Each block carries its certificate: the height must not rise at the
   // tiles' stride or at the Loom, and the Loom's plumb line must hang true (residual within 1e-10).
   function veilTwins(land, p) {
@@ -213,12 +213,12 @@ var Keep = (function () {
 
   // ---------------------------------------------------------------- the lands as the tale starts them
   var PRESETS = {
-    // the Keep with the Veil lifted: the lanterns' leans (bit-zero LLRs), CAJODE's ridge and rope, the sent word
+    // the Keep with the Veil lifted: the lanterns' leans (bit-zero LLRs), SAPPHIRE's ridge and rope, the sent word
     keep: { l1: 1.0, l2: -0.6, beta: 0.8, rho: 3, days: 200, sent: [0, 0] },
     // the row of two towers sharing the middle sentry
     row: { leans: [1.2, -0.5, 0.9], beta: 0.8, rho: 3, days: 200, checks: [[0, 1], [1, 2]], sent: [0, 0, 0] },
     // the Keep with the Veil down: the four lanterns' readings (Beacon, sentry, sentry, Beacon), the anchor weight,
-    // the Scales' scale delta (CAJODE's fixed values), the ridge, the rope, the sent word
+    // the Scales' scale delta (SAPPHIRE's fixed values), the ridge, the rope, the sent word
     veil: { readings: [1.15, 1.0, -0.3, 0.85], variance: 1, kappa: 4, delta: 0.926, beta: 0.8, rho: 3, days: 200, sent: [0, 0], truth: [1.0, 0.25] }
   };
   var VIEW = [-0.22, 1.22, -0.22, 1.22];

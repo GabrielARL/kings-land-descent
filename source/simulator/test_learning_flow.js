@@ -229,7 +229,7 @@ try {
 var guidedLists = [], idsRe = /boardIds\s*:\s*\[([^\]]+)\]/g, idsMatch;
 while ((idsMatch = idsRe.exec(game))) guidedLists.push((idsMatch[1].match(/['"]([^'"]+)['"]/g) || []).map(function (s) { return s.slice(1, -1); }));
 var expectedIntro = ['twins', 'wanderer-role', 'warden-role'];
-// the tutorial meets the Warden in three pages: who it is, its own problem for c, and why nearest is not lowest
+// the tutorial meets the Warden in three pages: who it is, its own problem for x̂, and why nearest is not lowest
 var expectedCourseIntro = ['wanderer-role', 'warden-role', 'warden-steps', 'warden-not-lowest'];
 var expectedCircuit = ['rope', 'without-ledger', 'ledger-role', 'aim', 'wander', 'wander-balance', 'warden', 'ledger', 'again'];
 // the tutorial adds day-by-day pages: the first three days with the rope alone, and three days with the book after the detailed circuit
@@ -305,7 +305,7 @@ try {
   check('expanded ADMM numerical teaching contract', false, e && e.stack || e);
 }
 
-// ---------------------------------------------------------------- self-checking light board, CAJODE bridge and misty-hills synthesis
+// ---------------------------------------------------------------- self-checking light board, SAPPHIRE bridge and misty-hills synthesis
 var lightPages = [
   ['light-patterns', 'Four patterns, two pass'],
   ['light-picture', 'Build a self-checking picture'],
@@ -367,10 +367,10 @@ check('replicas are vectors, fractional values are not hard decisions and duals 
 check('product-code example is bounded before the LDPC generalization',
   /small regular product code/.test(course) && /LDPC code uses a much larger sparse graph/.test(course) &&
   /same ADMM bookkeeping remains/.test(course));
-check('light-board-to-CAJODE is its own guided lesson',
-  game.indexOf('The light board and CAJODE') >= 0 && /goLand\s*\(\s*['"]fort['"]\s*\)/.test(game) &&
+check('light-board-to-SAPPHIRE is its own guided lesson',
+  game.indexOf('The light board and SAPPHIRE') >= 0 && /goLand\s*\(\s*['"]fort['"]\s*\)/.test(game) &&
   /bridge to the light board, not a simulation of the full receiver/i.test(game));
-check('CAJODE bridge maps shared bits, replicas, checks, duals and channel update',
+check('SAPPHIRE bridge maps shared bits, replicas, checks, duals and channel update',
   /shared variable/.test(game) && /replica variables/.test(game) && /parity polytope/.test(game) &&
   /scaled dual variable/.test(game) && /updates all channel coefficients/.test(game));
 check('receiver acceptance is not presented as continuous convergence',
@@ -432,8 +432,8 @@ try {
   check('light-board drawing sandbox', false, e && e.stack || e);
 }
 
-// The Warden is met in three pages on the wall: who it is, with C and Π in words; its own problem for c, solved by a
-// circle that grows from c and then one direction at a time; and why that nearest lawful spot is not the lowest one.
+// The Warden is met in three pages on the wall: who it is, with C and Π in words; its own problem for x̂, solved by a
+// circle that grows from x̂ and then one direction at a time; and why that nearest lawful spot is not the lowest one.
 try {
   var WW = require(path.join(dir, 'engine.js')), wpp = {}, wkk; for (wkk in WW.PRESETS.wall) wpp[wkk] = WW.PRESETS.wall[wkk];
   var wLand = WW.buildLand('wall', wpp), wc = wLand.c, wA = wLand.A, wT = wLand.treasure, wb = wLand.box, wz = wLand.project(wc), wf = wLand.f;
@@ -444,39 +444,48 @@ try {
   var wOrder = ['wanderer-role', 'warden-role', 'warden-steps', 'warden-not-lowest', 'rope'].map(function (id) { return wIds.indexOf('wall-tw-' + id); });
   check('the course meets the Warden in three pages, after the Wanderer and before the rope',
     wOrder.every(function (k, i) { return k >= 0 && (!i || k === wOrder[i - 1] + 1); }), wOrder.join(', '));
-  // the nearest lawful spot: each coordinate of c clipped to the wall, and no lawful spot on a fine grid is nearer
+  // the nearest lawful spot: each coordinate of x̂ clipped to the wall, and no lawful spot on a fine grid is nearer
   var clipped = [Math.min(Math.max(wc[0], wb[0]), wb[1]), Math.min(Math.max(wc[1], wb[0]), wb[1])], nearer = 0;
   for (var gi = 0; gi <= 400; gi++) for (var gj = 0; gj <= 400; gj++) { var gq = [wb[0] + (wb[1] - wb[0]) * gi / 400, wb[0] + (wb[1] - wb[0]) * gj / 400]; if (wdist(gq, wc) < wdist(wz, wc) - 1e-12) nearer++; }
-  check('Π(c) is c with each coordinate clipped to the wall, and no lawful spot is nearer to c',
-    wdist(wz, clipped) < 1e-12 && nearer === 0 && wz[0] === wb[1] && Math.abs(wz[1] - wc[1]) < 1e-12, 'Π(c)=' + wpr(wz) + ' nearer=' + nearer);
+  check('Π(x̂) is x̂ with each coordinate clipped to the wall, and no lawful spot is nearer to x̂',
+    wdist(wz, clipped) < 1e-12 && nearer === 0 && wz[0] === wb[1] && Math.abs(wz[1] - wc[1]) < 1e-12, 'Π(x̂)=' + wpr(wz) + ' nearer=' + nearer);
   // the land's ring through x* just touches the wall at x*: its westmost point is x*, on the line x₁ = 1
   var det = wA[0][0] * wA[1][1] - wA[0][1] * wA[1][0], inv00 = wA[1][1] / det, inv10 = -wA[1][0] / det, lvl = wf(wT) - wf(wc), sR = Math.sqrt(2 * lvl / inv00);
   var westmost = [wc[0] - sR * inv00, wc[1] - sR * inv10];
-  check('the land’s ring through x* first touches the wall at x*, while Π(c) is higher on the same wall',
+  check('the land’s ring through x* first touches the wall at x*, while Π(x̂) is higher on the same wall',
     Math.abs(westmost[0] - wb[1]) < 1e-9 && wdist(westmost, wT) < 1e-6 && wT[0] === wz[0] && wf(wz) - wf(wT) > 0.1 && wdist(wz, wT) > 0.2,
-    'westmost=' + wpr(westmost) + ' x*=' + wpr(wT) + ' J(Π(c))=' + wfmt(wf(wz)) + ' J(x*)=' + wfmt(wf(wT)));
+    'westmost=' + wpr(westmost) + ' x*=' + wpr(wT) + ' J(Π(x̂))=' + wfmt(wf(wz)) + ' J(x*)=' + wfmt(wf(wT)));
   var wdPi = wdist(wz, wc), wdStar = wdist(wT, wc);
   check('distance and height rank the two lawful answers in opposite orders',
     wdPi < wdStar && wf(wT) < wf(wz),
     'distance ' + wfmt(wdPi) + ' < ' + wfmt(wdStar) + '; height ' + wfmt(wf(wT)) + ' < ' + wfmt(wf(wz)));
   var p1 = wPage('warden-role'), p2 = wPage('warden-steps'), p3 = wPage('warden-not-lowest'), t1 = wPlain(p1), t2 = wPlain(p2), t3 = wPlain(p3);
   check('the first Warden page defines C and says in words what Π stands for',
-    /We call the set of lawful spots C, the shaded square on the map\./.test(t1) && /0 ≤ x₁ ≤ 1 and 0 ≤ x₂ ≤ 1/.test(t1) &&
+    /We call the set of lawful spots C, the shaded square on the map\./.test(t1) && /0 ≤ v₁ ≤ 1 and 0 ≤ v₂ ≤ 1/.test(t1) &&
     /Π<sub>C<\/sub>\(v\), the projection of v onto C, or Π\(v\) for short/.test(p1.text) &&
     /Π is the capital Greek letter pi\. Here Π<sub>C<\/sub>\(v\) denotes the Euclidean projection of v onto C\./.test(p1.text));
-  check('the second Warden page says what c is and solves the Warden’s problem one direction at a time, with the computed numbers',
-    t2.indexOf('c = ' + wpr(wc) + '. This c is the valley’s floor, the lowest point of the land with no wall') >= 0 &&
-    /the point z in C with the smallest distance \|z − c\|, which is an optimisation problem of its own/.test(t2) &&
-    t2.indexOf('East–west, ' + wc[0].toFixed(2) + ' lies past the wall at 1, so z₁ = 1.') >= 0 &&
-    t2.indexOf('North–south, ' + wc[1].toFixed(2) + ' is already between 0 and 1, so it stays.') >= 0 &&
-    t2.indexOf('Both ways give Π(c) = ' + wpr(wz) + ', ' + wfmt(wdist(wz, wc)) + ' from c.') >= 0, t2.slice(0, 120));
+  check('the second Warden page says what x̂ is, sorts the symbols by owner, and solves the Warden’s problem one direction at a time',
+    t2.indexOf('x̂ = ' + wpr(wc) + ': the valley’s floor, where the Wanderer stopped on its own.') >= 0 &&
+    /Each symbol has one owner: x and x̂ are the Wanderer’s; z, C and Π are the Warden’s\./.test(t2) &&
+    /the point z in C with the smallest distance \|z − x̂\|, which is an optimisation problem of its own/.test(t2) &&
+    t2.indexOf('East–west, x̂₁ = ' + wc[0].toFixed(2) + ' lies past the wall at 1, so z₁ = 1.') >= 0 &&
+    t2.indexOf('North–south, x̂₂ = ' + wc[1].toFixed(2) + ' is already between 0 and 1, so z₂ = ' + wc[1].toFixed(2) + '.') >= 0 &&
+    t2.indexOf('Both ways give Π(x̂) = ' + wpr(wz) + ', ' + wfmt(wdist(wz, wc)) + ' from x̂.') >= 0, t2.slice(0, 120));
   check('the third Warden page asks two questions, then makes the reversed rankings explicit',
-    /The Warden and the King are answering different questions\./.test(t3) && /The Warden asks: “Which lawful point is closest to c\?”/.test(t3) &&
+    /The Warden and the King are answering different questions\./.test(t3) && /The Warden asks: “Which lawful point is closest to x̂\?”/.test(t3) &&
     /The King asks: “Which lawful point has the lowest height J\?”/.test(t3) && /Projection promises no more than that\./.test(t3) &&
-    t3.indexOf('x* is farther from c, ' + wfmt(wdStar) + ' instead of ' + wfmt(wdPi) + ', but lower in J, ' + wfmt(wf(wT)) + ' instead of ' + wfmt(wf(wz))) >= 0 &&
+    t3.indexOf('x* is farther from x̂, ' + wfmt(wdStar) + ' instead of ' + wfmt(wdPi) + ', but lower in J, ' + wfmt(wf(wT)) + ' instead of ' + wfmt(wf(wz))) >= 0 &&
     t3.indexOf('Both answers lie on the same east wall, ' + wfmt(wdist(wz, wT)) + ' apart.') >= 0 &&
     /The twins must combine these jobs to find one point that is both lawful and low\./.test(t3) &&
-    /Π<sub>C<\/sub>\(c\) = arg min<sub>z ∈ C<\/sub> \|z − c\|/.test(p3.math) && /x\* = arg min<sub>z ∈ C<\/sub> J\(z\)/.test(p3.math));
+    /Π<sub>C<\/sub>\(x̂\) = arg min<sub>z ∈ C<\/sub> \|z − x̂\|/.test(p3.math) && /x\* = arg min<sub>z ∈ C<\/sub> J\(z\)/.test(p3.math));
+  // the valley's floor is x̂ on every page: the Wanderer's own letter with a hat, never a lowercase c beside the Warden's C
+  var allPlain = wsb.course.steps.map(function (q) { return q.id + ': ' + (q.text + ' ' + q.math).replace(/<[^>]*>/g, ''); });
+  var bareC = allPlain.filter(function (q) { return /(^|[^A-Za-z0-9_’'\-])c(?![A-Za-z0-9_’'\-\u0302])/.test(q.slice(q.indexOf(': ') + 2)); });
+  var landPage = wsb.course.steps.filter(function (q) { return q.id === 'land'; })[0], tWand = wPlain(wPage('wanderer-role'));
+  check('the valley’s floor is x̂ on every page, said in words on the formula and Wanderer pages, never a bare c',
+    bareC.length === 0 && /x̂ \(read “x-hat”\) is a fixed spot: the bottom of the valley, where J = 0\./.test(landPage.text) && /½\(x − x̂\)ᵀA\(x − x̂\)/.test(landPage.math) &&
+    tWand.indexOf('x̂ = ' + wpr(wc) + ', where J = 0.000. The letter is the Wanderer’s own x; the hat marks where it stops when nothing else pulls on it.') >= 0,
+    bareC.slice(0, 2).join(' | ').slice(0, 200));
   var wSentences = [t1, t2, t3].join(' ').split(/[.?]\s+(?=[A-ZΠ])/), wLong = wSentences.filter(function (q) { return q.split(/\s+/).length > 35; });
   var wBanned = /\b(novel|state-of-the-art|framework|paradigm|leverage|utili[sz]e|in order to|crucial|vital|clearly|obviously|natural|elegant|principled|lifting)\b|It is worth noting|n’t\b|n't\b|\b(it|that|there)’s\b|’(re|ve|ll|d)\b|!/i;
   check('the Warden pages keep sentences within 35 words, with no contractions, exclamations or banned words',
@@ -500,7 +509,7 @@ try {
   var dLand = DE.buildLand('wall', dpp), dWalk = DE.twins(dLand, [dpp.sx, dpp.sy], dpp.rho, 12), dA = dLand.A, dc = dLand.c, drho = dpp.rho;
   var SUBS = '₀₁₂₃₄₅₆₇₈₉', fmt = function (v) { var t = v.toFixed(3); if (/^-0(\.0*)?$/.test(t)) t = t.slice(1); return t.replace('-', '−'); };
   var pr3 = function (v) { return '(' + fmt(v[0]) + ', ' + fmt(v[1]) + ')'; }, minus = function (a, b) { return [a[0] - b[0], a[1] - b[1]]; };
-  // x is the lowest point of f + ρ/2·|x − aim|² when the land's pull and the rope's pull cancel: A(x − c) + ρ(x − aim) = 0
+  // x is the lowest point of f + ρ/2·|x − aim|² when the land's pull and the rope's pull cancel: A(x − x̂) + ρ(x − aim) = 0
   var lowestOf = function (x, aim) {
     var g0 = dA[0][0] * (x[0] - dc[0]) + dA[0][1] * (x[1] - dc[1]) + drho * (x[0] - aim[0]), g1 = dA[1][0] * (x[0] - dc[0]) + dA[1][1] * (x[1] - dc[1]) + drho * (x[1] - aim[1]);
     return Math.hypot(g0, g1) < 1e-9;

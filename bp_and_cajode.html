@@ -3,10 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<!-- The tutorial page "The BP protocol and the CAJODE constraint circuit"; build_soldiers.py inlines its scripts and adds the document's html, head and
+<!-- The tutorial page "The BP protocol and the SAPPHIRE constraint circuit"; build_soldiers.py inlines its scripts and adds the document's html, head and
      body tags.  Everything above the body marker goes into the head.  The styles and the player are those of the
      King's Land tutorials (source/simulator/tutorial.html and board.js). -->
-<title>The BP protocol and the CAJODE constraint circuit</title>
+<title>The BP protocol and the SAPPHIRE constraint circuit</title>
 <meta name="kings-land-page" content="soldiers">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -91,8 +91,8 @@ button:focus-visible, summary:focus-visible { outline: 3px solid var(--accent); 
 <main class="course" id="board">
   <header class="course-head">
     <div>
-      <div class="eyebrow">Counting soldiers · belief propagation and CAJODE</div>
-      <h1 id="board-title">The BP protocol and the CAJODE constraint circuit</h1>
+      <div class="eyebrow">Counting soldiers · belief propagation and SAPPHIRE</div>
+      <h1 id="board-title">The BP protocol and the SAPPHIRE constraint circuit</h1>
     </div>
     <span class="count" id="board-count"></span>
   </header>
@@ -1048,10 +1048,10 @@ var Board = (function () {
 })();
 </script>
 <script>
-// The soldiers of the tutorial "The BP protocol and the CAJODE circuit" (bp_and_cajode.html).  The first decoding
+// The soldiers of the tutorial "The BP protocol and the SAPPHIRE circuit" (bp_and_cajode.html).  The first decoding
 // example is a connected, cycle-free six-bit Tanner chain.  The second is the retained six-bit loop from deck p5.  In
 // both examples a positive channel LLR favours binary zero.  BP passes sum-product messages, while the known-channel
-// reduction of CAJODE keeps one relaxed bit variable, one per-check replica variable per edge and one scaled dual variable per
+// reduction of SAPPHIRE keeps one relaxed bit variable, one per-check replica variable per edge and one scaled dual variable per
 // edge.  The optional loop detour also retains CORAL's gradient walk.  Plain JavaScript (Node 12 or later).
 var Soldiers = (function () {
   function clip(v, lo, hi) { return v < lo ? lo : v > hi ? hi : v; }
@@ -1106,7 +1106,7 @@ var Soldiers = (function () {
   function hardBits(llr) { return llr.map(function (v) { return v >= 0 ? 0 : 1; }); }
 
   // Flooding sum-product.  V stores variable-to-check messages and U stores check-to-variable messages.  The recipient
-  // is excluded in both directions. `bits` is the single binary convention used throughout the BP and CAJODE lesson;
+  // is excluded in both directions. `bits` is the single binary convention used throughout the BP and SAPPHIRE lesson;
   // `word` retains the equivalent bipolar form only for the optional gradient comparison.
   function bpWalk(T, rule, iterations, stopWhenValid) {
     var checks = T.checks, L = T.L, n = T.n, V = {}, trace = [];
@@ -1146,7 +1146,7 @@ var Soldiers = (function () {
              after: trace[acceptedAt - 1].bits.slice(), exact: trace[trace.length - 1].B.slice() };
   }
 
-  // ---------------------------------------------------------------- the CAJODE constraint circuit with the channel known
+  // ---------------------------------------------------------------- the SAPPHIRE constraint circuit with the channel known
   // A card is a relaxed bit variable, not a posterior probability.  bitLLR is the bit-zero channel LLR.  Start: cards
   // from hard channel decisions, per-check replica variables projected from them, scaled dual variables zero.  One circuit:
   // update every relaxed bit from the fit and its incident (z-u) terms; project every replica variable; add b-z to
@@ -1228,7 +1228,7 @@ var Soldiers = (function () {
 if (typeof module !== 'undefined') module.exports = Soldiers;
 </script>
 <script>
-// The drawings of the tutorial "The BP protocol and the CAJODE constraint circuit" (soldiers_course.js): soldiers and
+// The drawings of the tutorial "The BP protocol and the SAPPHIRE constraint circuit" (soldiers_course.js): soldiers and
 // junctions in the decks' style, the comic of a tree or a loop with tags, messages that travel along its lines, the
 // zoom on one junction with its speech bubble, the parity polytope of a three-soldier junction inside its cube, and
 // small tables.  The kit g comes from board.js.
@@ -1407,7 +1407,7 @@ var SoldierParts = (function () {
       var cardTop = R[1] + (o.title ? 38 : 10), cardH = (R[3] - (cardTop - R[1]) - 8) / Math.max(1, rows.length), c = g.ctx;
       function shortHead(t) {
         if (/BP soldier/i.test(t)) return 'BP';
-        if (/note-taking soldier/i.test(t)) return 'CAJODE';
+        if (/note-taking soldier/i.test(t)) return 'SAPPHIRE';
         return String(t || '').replace(/\?$/, '');
       }
       function fit(text, start, least) {
@@ -1447,9 +1447,9 @@ var SoldierParts = (function () {
 })();
 </script>
 <script>
-// "The BP protocol and the CAJODE constraint circuit": a mechanism-first comparison.  A receiver roadmap creates the need for
+// "The BP protocol and the SAPPHIRE constraint circuit": a mechanism-first comparison.  A receiver roadmap creates the need for
 // the comparison; the counting formation introduces recipient-excluding messages; a connected Tanner chain teaches
-// variable-to-check and check-to-variable BP; the known-channel CAJODE reduction handles the same evidence with
+// variable-to-check and check-to-variable BP; the known-channel SAPPHIRE reduction handles the same evidence with
 // relaxed bits, per-check replica variables and scaled dual variables; a loop shows what changes when information can return;
 // and the last chapter restores the full OFDM receiver.  The numerical walks come from soldiers.js.
 (function () {
@@ -1489,12 +1489,12 @@ var SoldierParts = (function () {
   function cardCols(b, sent) { return b.map(function (v, i) { return (v >= 0.5 ? 1 : 0) === sent[i] ? CARD : WRONG; }); }
   function wrongCards(b, sent) { return b.map(function (v, i) { return (v >= 0.5 ? 1 : 0) !== sent[i]; }); }
 
-  var out = [], CH = { why: 'Why compare them?', count: 'Counting messages', bp: 'BP on an open chain', nt: 'CAJODE on the same chain', cmp: 'Same decoding task, different mechanism', loop: 'A related loop', optional: 'Optional: why not one gradient?', rx: 'Back inside the receiver' };
+  var out = [], CH = { why: 'Why compare them?', count: 'Counting messages', bp: 'BP on an open chain', nt: 'SAPPHIRE on the same chain', cmp: 'Same decoding task, different mechanism', loop: 'A related loop', optional: 'Optional: why not one gradient?', rx: 'Back inside the receiver' };
 
   // ------------------------------------------------------------ 0. why the receiver needs both lessons
   out.push({ id: 'roadmap', chapter: CH.why, title: 'One received OFDM frame, two ways to use the code', layout: 'side', dur: 6.2,
-    text: 'An orthogonal frequency-division multiplexing (OFDM) receiver must infer the channel before it can form reliable bit evidence. In JADE, a channel estimate forms one channel log-likelihood ratio (LLR) for each coded bit, and belief propagation (BP) produces a posteriori information. The receiver subtracts the applied channel LLR from the a posteriori LLR to obtain extrinsic information. It adds α times that extrinsic term to the channel LLR and applies a tanh map to initialize joint channel estimation and decoding on the next pass. Here x = 1−2b, so x near +1 represents bit 0, and T is the initialization temperature. The channel evidence therefore remains in the initialization. CAJODE instead keeps the relaxed bits, channel, replica variables and scaled dual variables inside one alternating circuit. We first freeze the channel. Here, a constraint circuit means one pass through CAJODE’s resulting known-channel alternating direction method of multipliers (ADMM) updates; CAJODE does not call BP.',
-    math: 'JADE: Lext = Lpost − Lch;  x₀ = tanh[(Lch + α Lext)/(2T)];  x = 1−2b;  x ≈ +1 ↔ bit 0;  T is the initialization temperature' + at(0.55, '<br>CAJODE: weights → relaxed bits → weights → channel → replica variables → scaled dual variables'),
+    text: 'An orthogonal frequency-division multiplexing (OFDM) receiver must infer the channel before it can form reliable bit evidence. In JADE, a channel estimate forms one channel log-likelihood ratio (LLR) for each coded bit, and belief propagation (BP) produces a posteriori information. The receiver subtracts the applied channel LLR from the a posteriori LLR to obtain extrinsic information. It adds α times that extrinsic term to the channel LLR and applies a tanh map to initialize joint channel estimation and decoding on the next pass. Here x = 1−2b, so x near +1 represents bit 0, and T is the initialization temperature. The channel evidence therefore remains in the initialization. SAPPHIRE instead keeps the relaxed bits, channel, replica variables and scaled dual variables inside one alternating circuit. We first freeze the channel. Here, a constraint circuit means one pass through SAPPHIRE’s resulting known-channel alternating direction method of multipliers (ADMM) updates; SAPPHIRE does not call BP.',
+    math: 'JADE: Lext = Lpost − Lch;  x₀ = tanh[(Lch + α Lext)/(2T)];  x = 1−2b;  x ≈ +1 ↔ bit 0;  T is the initialization temperature' + at(0.55, '<br>SAPPHIRE: weights → relaxed bits → weights → channel → replica variables → scaled dual variables'),
     draw: function (g, p) {
       var R = g.sideR, c = g.ctx, mobile = R[2] < 520;
       g.panel(R, 'The destination of the lesson');
@@ -1511,7 +1511,7 @@ var SoldierParts = (function () {
         });
       }
       lane(R[1] + 46, 'JADE: modules exchange soft information', ['channel LLR Lch', 'BP posterior Lpost', 'Lext = Lpost − Lch', 'Lch + α Lext', 'tanh map', 'next joint step'], BPC, seg(p, 0.05, 0.55));
-      lane(R[1] + (mobile ? 258 : 160), 'CAJODE: variables share one constrained objective', ['weights', 'relaxed bits', 'weights', 'channel', 'replica variables', 'scaled dual variables'], NOTE, seg(p, 0.45, 0.95));
+      lane(R[1] + (mobile ? 258 : 160), 'SAPPHIRE: variables share one constrained problem', ['weights', 'relaxed bits', 'weights', 'channel', 'replica variables', 'scaled dual variables'], NOTE, seg(p, 0.45, 0.95));
     } });
 
   // ------------------------------------------------------------ 1. counting soldiers
@@ -1619,19 +1619,19 @@ var SoldierParts = (function () {
       P.table(g, g.sideR, rows.slice(0, s + 1), { head: ['stage', 'hard word', 'syndrome'], cols: [0, 0.44, 0.74], title: 'Hard decisions and parity checks', p: 1, lit: s, mono: false, colours: function (i, j) { return j === 1 && rows[i][1] === bits(T.sent) ? C.gold : j === 2 ? C.dim : C.ink; } });
     } });
 
-  // ------------------------------------------------------------ 3. CAJODE's constraint circuit on the same chain
+  // ------------------------------------------------------------ 3. SAPPHIRE's constraint circuit on the same chain
   var H0 = NH[0], H1 = NH[1], H2 = NH[2], H3 = NH[3];
   // markers on the comic: a per-check replica variable beside each check and a scaled-dual dot on every edge
   function recordTag(g, k, z, p) { g.label(TJ[k], 'replica z', RECORD, { dy: k === 1 ? -34 : 34, align: 'center', size: 11.5, p: p }); }
   function noteTags(g, u, p) { T.checks.forEach(function (c, k) { c.forEach(function (i, j) { g.dot(lerp2(TJ[k], TP[i], 0.55), 3.5 + 4 * Math.min(1, Math.abs(u[k][j]) / 0.4), P.NOTE, p); }); }); }
   out.push({ id: 'cast', chapter: CH.nt, title: 'Three kinds of optimization variable, with clear owners', layout: 'map+side', view: TREEV, dur: 6,
-    text: 'CAJODE, the project’s code-aided joint OFDM demodulation and error-correction receiver, uses the alternating direction method of multipliers (ADMM). Here the channel is frozen, leaving the part we call its constraint circuit. Each bit owns one relaxed bit variable b(i) between 0 and 1. Each check owns one replica variable z(a,i) for every incident bit and keeps that vector inside its parity polytope. Each check–bit edge owns one scaled dual variable u(a,i), which accumulates continuous disagreement b(i)−z(a,i). The drawings call z a record and u a note. These are optimization variables, not BP beliefs or BP messages.',
+    text: 'SAPPHIRE is the project’s joint OFDM data-detection and error-correction receiver. It uses the alternating direction method of multipliers (ADMM) to solve one constrained optimization problem, rather than exchanging feedback between separate detector and decoder modules. Here the channel is frozen, leaving the part we call its constraint circuit. Each bit owns one relaxed bit variable b(i) between 0 and 1. Each check owns one replica variable z(a,i) for every incident bit and keeps that vector inside its parity polytope. Each check–bit edge owns one scaled dual variable u(a,i), which accumulates continuous disagreement b(i)−z(a,i). The drawings call z a record and u a note. These are optimization variables, not BP beliefs or BP messages.',
     math: 'bit i: b(i) ∈ [0,1];  check a: z(a) ∈ parity polytope;  edge (a,i): scaled dual u(a,i)',
     draw: function (g, p) {
       treeComic(g, { tags: cardTags(H0.b), tagCols: cardCols(H0.b, T.sent), wrong: wrongCards(H0.b, T.sent) });
       recordTag(g, 0, H0.z[0], seg(p, 0.5, 0.65)); recordTag(g, 1, H0.z[1], seg(p, 0.55, 0.7)); recordTag(g, 2, H0.z[2], seg(p, 0.6, 0.75)); noteTags(g, H0.u, seg(p, 0.72, 0.88));
       g.labelPx(g.mapR[0] + 14, g.mapR[1] + 18, 'orange dot: one scaled dual variable on each check–bit edge', P.NOTE, { size: 12, p: seg(p, 0.78, 0.94) });
-      var R = g.sideR; g.panel(R, 'Ownership in the CAJODE constraint circuit');
+      var R = g.sideR; g.panel(R, 'Ownership in the SAPPHIRE constraint circuit');
       var items = [[CARD, 'bit i owns b(i) ∈ [0,1]', 'one shared relaxed bit variable'], [RECORD, 'check a owns vector z(a)', 'one entry for every incident bit'], [NOTE, 'edge (a,i) owns u(a,i)', 'accumulated relaxed disagreement']];
       items.forEach(function (it, j) { var y = R[1] + 56 + j * 52, q = seg(p, 0.1 + 0.12 * j, 0.25 + 0.12 * j); g.labelPx(R[0] + 16, y, it[1], it[0], { plain: true, size: 13, p: q }); g.labelPx(R[0] + 16, y + 19, it[2], C.dim, { plain: true, size: 12, p: q }); });
       g.labelPx(R[0] + 16, R[1] + 230, 'The next pages introduce the valid set, then initialize these variables, then run the circuit.', C.gold, { plain: true, size: 12, p: seg(p, 0.58, 0.78) });
@@ -1717,20 +1717,20 @@ var SoldierParts = (function () {
 
   // ------------------------------------------------------------ 4. one tree, two soldiers
   out.push({ id: 'reply-record', chapter: CH.cmp, title: 'The same edge carries different objects', layout: 'side', dur: 6.4,
-    text: 'Compare what check c₂ sends toward bit 0. In BP, r(c₂→0) deliberately excludes bit 0 and summarizes the incoming messages from bits 4 and 5. In the CAJODE constraint circuit, bit 0 instead reads its own c₂ replica minus the scaled dual on that edge. That replica came from a projection involving all three local entries, including bit 0. The graph is the same, but the mathematical objects and update rules are not.',
-    math: 'BP, iteration 3: r(c₂→0) = ' + sgn(I3.U['2,0'], 3) + at(0.5, '<br>CAJODE before circuit 3: z(c₂,0) − u(c₂,0) = ' + num(H2.z[2][2], 3) + ' − ' + num(H2.u[2][2], 3) + ' = ' + num(H2.z[2][2] - H2.u[2][2], 3)),
+    text: 'Compare what check c₂ sends toward bit 0. In BP, r(c₂→0) deliberately excludes bit 0 and summarizes the incoming messages from bits 4 and 5. In the SAPPHIRE constraint circuit, bit 0 instead reads its own c₂ replica minus the scaled dual on that edge. That replica came from a projection involving all three local entries, including bit 0. The graph is the same, but the mathematical objects and update rules are not.',
+    math: 'BP, iteration 3: r(c₂→0) = ' + sgn(I3.U['2,0'], 3) + at(0.5, '<br>SAPPHIRE before circuit 3: z(c₂,0) − u(c₂,0) = ' + num(H2.z[2][2], 3) + ' − ' + num(H2.u[2][2], 3) + ' = ' + num(H2.z[2][2] - H2.u[2][2], 3)),
     draw: function (g, p) {
       var R = g.sideR, half = R[2] >= 600 ? [[R[0], R[1], R[2] / 2 - 4, R[3]], [R[0] + R[2] / 2 + 4, R[1], R[2] / 2 - 4, R[3]]] : [[R[0], R[1], R[2], R[3] / 2 - 4], [R[0], R[1] + R[3] / 2 + 4, R[2], R[3] / 2 - 4]];
       P.zoom(g, half[0], { k: 2, members: T.checks[2], up: [sgn(I3.V['2,4']), sgn(I3.V['2,5']), null], down: [null, null, sgn(I3.U['2,0'], 3)], active: 2, wrong: startWrong, title: 'BP: a check-to-variable message', bubble: ['For bit 0, I use', 'bits 4 and 5 only.'], bubbleP: seg(p, 0.1, 0.3), p: seg(p, 0, 0.2) });
-      P.zoom(g, half[1], { k: 2, members: T.checks[2], up: H2.z[2].map(function (v, j) { return num(v, 2) + ' − ' + num(H2.u[2][j], 2); }), upCol: RECORD, down: [null, null, num(H2.z[2][2] - H2.u[2][2], 3)], active: 2, downCol: RECORD, wrong: wrongCards(H2.b, T.sent), title: 'CAJODE: replica minus scaled dual', bubble: ['My replica used all three;', 'this edge also keeps', 'its own disagreement.'], bubbleP: seg(p, 0.5, 0.7), p: seg(p, 0.4, 0.6) });
+      P.zoom(g, half[1], { k: 2, members: T.checks[2], up: H2.z[2].map(function (v, j) { return num(v, 2) + ' − ' + num(H2.u[2][j], 2); }), upCol: RECORD, down: [null, null, num(H2.z[2][2] - H2.u[2][2], 3)], active: 2, downCol: RECORD, wrong: wrongCards(H2.b, T.sent), title: 'SAPPHIRE: replica minus scaled dual', bubble: ['My replica used all three;', 'this edge also keeps', 'its own disagreement.'], bubbleP: seg(p, 0.5, 0.7), p: seg(p, 0.4, 0.6) });
     } });
   var bpCount = 2 * T.checks.reduce(function (s, c) { return s + c.length; }, 0), ntCount = 6 + 2 * T.checks.reduce(function (s, c) { return s + c.length; }, 0);
   out.push({ id: 'keeps', chapter: CH.cmp, title: 'What each soldier keeps', layout: 'side', dur: 6,
-    text: 'This tree has eight check–bit edges. BP keeps two directed messages per edge: ' + bpCount + ' numbers. The CAJODE reduction keeps six shared relaxed bits, eight replica entries and eight scaled duals: ' + ntCount + ' numbers. Here BP accepts after three iterations and the CAJODE reduction after three circuits. The update units do different work. These counts explain state ownership; they are not a speed or complexity ranking.',
-    math: 'BP: 2 × 8 directed messages = ' + bpCount + at(0.5, ';  CAJODE reduction: 6 b + 8 z + 8 u = ' + ntCount),
+    text: 'This tree has eight check–bit edges. BP keeps two directed messages per edge: ' + bpCount + ' numbers. The SAPPHIRE reduction keeps six shared relaxed bits, eight replica entries and eight scaled duals: ' + ntCount + ' numbers. Here BP accepts after three iterations and the SAPPHIRE reduction after three circuits. The update units do different work. These counts explain state ownership; they are not a speed or complexity ranking.',
+    math: 'BP: 2 × 8 directed messages = ' + bpCount + at(0.5, ';  SAPPHIRE reduction: 6 b + 8 z + 8 u = ' + ntCount),
     draw: function (g, p) {
       var R = g.sideR, c = g.ctx; g.panel(R, 'Numbers kept between rounds, on the tree');
-      var rows = [{ name: 'BP protocol', blocks: [[BPC, bpCount, 'directed messages']], tail: 'two directions on each edge' }, { name: 'CAJODE constraint circuit', blocks: [[CARD, 6, 'shared b values'], [RECORD, 8, 'replica entries'], [NOTE, 8, 'scaled duals']], tail: 'different state, different work' }];
+      var rows = [{ name: 'BP protocol', blocks: [[BPC, bpCount, 'directed messages']], tail: 'two directions on each edge' }, { name: 'SAPPHIRE constraint circuit', blocks: [[CARD, 6, 'shared b values'], [RECORD, 8, 'replica entries'], [NOTE, 8, 'scaled duals']], tail: 'different state, different work' }];
       if (R[2] < 480) {
         var x0 = R[0] + 22, cellN = Math.min(17, (R[2] - 48 - 15 * 3) / 16), gapN = 3;
         function blocks(x, y, n, col, q) { for (var k = 0; k < n; k++) { var vis = clamp(q * n - k, 0, 1); if (vis > 0) { c.globalAlpha = vis; c.fillStyle = col; c.fillRect(x + k * (cellN + gapN), y, cellN, cellN); c.globalAlpha = 1; } } }
@@ -1761,7 +1761,7 @@ var SoldierParts = (function () {
     } });
   var c1Residual2 = T.checks[1].map(function (i, j) { return H2.b[i] - H2.z[1][j]; });
   out.push({ id: 'support', chapter: CH.cmp, title: 'Support or disagreement?', layout: 'map+side', view: TREEV, dur: 6,
-    text: 'Neither object is a hard parity-failure flag. BP’s c₁ replies carry extrinsic support from the other incoming messages, whether the thresholded pattern passes or fails. In CAJODE circuit 2, c₁’s hard pattern is 011 and already has even parity. Its current residual b−z is ' + triple(c1Residual2, 3) + ', so the accumulated scaled dual changes by that vector and becomes ' + triple(H2.u[1], 3) + '. A nonzero dual alone does not prove current disagreement; it may remain nonzero after b and z agree.',
+    text: 'Neither object is a hard parity-failure flag. BP’s c₁ replies carry extrinsic support from the other incoming messages, whether the thresholded pattern passes or fails. In SAPPHIRE circuit 2, c₁’s hard pattern is 011 and already has even parity. Its current residual b−z is ' + triple(c1Residual2, 3) + ', so the accumulated scaled dual changes by that vector and becomes ' + triple(H2.u[1], 3) + '. A nonzero dual alone does not prove current disagreement; it may remain nonzero after b and z agree.',
     math: 'c₁: hard pattern 011 passes;  Δu = b − z = ' + triple(c1Residual2, 3) + at(0.58, ';  new u = ' + triple(H2.u[1], 3)),
     draw: function (g, p) {
       treeComic(g, { tags: cardTags(H2.b), focus: 1, lit: ['1,2', '1,3', '1,4'], litCol: BPC });
@@ -1773,7 +1773,7 @@ var SoldierParts = (function () {
         title: phone ? 'BP: soft support' : 'BP at c₁: soft support', bubble: ['My replies summarize', 'the other inputs.'], bubbleP: seg(p, 0.3, 0.5), bubbleCol: BPC, p: seg(p, 0, 0.2) });
       P.zoom(g, half[1], { k: 1, members: T.checks[1], up: phone ? T.checks[1].map(function () { return ''; }) : T.checks[1].map(function (i, j) { return 'u ' + num(H2.u[1][j], 2); }), upCol: NOTE,
         cards: phone ? T.checks[1].map(function (i, j) { return sgn(H2.u[1][j], 2).replace('0.', '.'); }) : T.checks[1].map(function (i) { return num(H2.b[i], 2); }), cardCol: phone ? NOTE : CARD,
-        shortNames: phone, nameSize: phone ? 9.5 : 11.5, cardSize: phone ? 9.5 : 12, title: phone ? 'CAJODE: b − z' : 'CAJODE at c₁: continuous disagreement', bubble: ['011 passes parity,', 'yet b and z still differ.'], bubbleP: seg(p, 0.6, 0.8), p: seg(p, 0.45, 0.65) });
+        shortNames: phone, nameSize: phone ? 9.5 : 11.5, cardSize: phone ? 9.5 : 12, title: phone ? 'SAPPHIRE: b − z' : 'SAPPHIRE at c₁: continuous disagreement', bubble: ['011 passes parity,', 'yet b and z still differ.'], bubbleP: seg(p, 0.6, 0.8), p: seg(p, 0.45, 0.65) });
     } });
 
   // ------------------------------------------------------------ 5. the loop
@@ -1816,7 +1816,7 @@ var SoldierParts = (function () {
   var LW = LH.map(function (h) { return bitWord(h.b); }), nChanges = wordChanges(LW), NC = lnt.circuits;
   function noteAt(h, k, i) { var j = L6.checks[k].indexOf(i); return h.u[k][j]; }
   out.push({ id: 'loop-notes', chapter: CH.loop, title: 'The note-taking soldier walks the loop', layout: 'map+side', view: LOOPV, dur: 9,
-    text: 'The CAJODE constraint circuit uses the same relaxed-bit convention: b near 1 means bit 1. For two circuits no hard decision moves, while the edge duals accumulate relaxed disagreement. The hard words then change at circuits 3, 4 and 9. At circuit ' + NC + ', bit 4 finally crosses the 0.5 boundary and the hard word becomes the sent word. Unlike BP replies, the duals do not claim to be extrinsic LLRs.',
+    text: 'The SAPPHIRE constraint circuit uses the same relaxed-bit convention: b near 1 means bit 1. For two circuits no hard decision moves, while the edge duals accumulate relaxed disagreement. The hard words then change at circuits 3, 4 and 9. At circuit ' + NC + ', bit 4 finally crosses the 0.5 boundary and the hard word becomes the sent word. Unlike BP replies, the duals do not claim to be extrinsic LLRs.',
     math: 'b(i) ← Π[0,1][(ρ Σ(z − u) − Lᶜʰ(i) − β)/(ρ d(i) − 2β)]' + at(0.3, '<br>' + nChanges.map(function (c) { return bits(c[1]) + ' (' + (c[0] ? c[0] : 'start') + ')'; }).join(' → ')),
     draw: function (g, p) {
       var f = seg(p, 0.04, 0.88) * NC, t = Math.min(NC, Math.floor(f)), h = LH[t], w = LW[t];
@@ -1859,7 +1859,7 @@ var SoldierParts = (function () {
       pl.point(0, cStop.J, P.PULL, 'the stop ' + num(cStop.J, 4), seg(p, 0.55, 0.65), 'right'); pl.point(1, jSent, C.gold, 'the sent word ' + num(jSent, 4), seg(p, 0.85, 0.95), 'left'); pl.point(hillPeak.t, hillPeak.J, WRONG, 'a hill: ' + num(hillPeak.J, 2), seg(p, 0.72, 0.82), 'right');
     } });
   out.push({ id: 'apart', chapter: CH.optional, title: 'One summed slope or separate constraint memory', layout: 'map+side', view: LOOPV, dur: 6,
-    text: 'Bit 0 belongs to c₀ and c₂. The penalty walk adds c₀’s partial derivative, ' + sgn(slope0[0]) + ', c₂’s partial derivative, ' + sgn(slope0[2]) + ', and the remaining objective terms into one number, ' + sgn(g0) + '. The CAJODE circuit also combines both checks when updating the shared bit, but it retains a separate replica and scaled dual for each check–bit edge. At circuit ' + NC + ', bit 0’s two dual values are still distinguishable: ' + sgn(notes12[0]) + ' at c₀ and ' + sgn(notes12[1]) + ' at c₂.',
+    text: 'Bit 0 belongs to c₀ and c₂. The penalty walk adds c₀’s partial derivative, ' + sgn(slope0[0]) + ', c₂’s partial derivative, ' + sgn(slope0[2]) + ', and the remaining objective terms into one number, ' + sgn(g0) + '. The SAPPHIRE circuit also combines both checks when updating the shared bit, but it retains a separate replica and scaled dual for each check–bit edge. At circuit ' + NC + ', bit 0’s two dual values are still distinguishable: ' + sgn(notes12[0]) + ' at c₀ and ' + sgn(notes12[1]) + ' at c₂.',
     math: 'gradient soldier: ' + sgn(slope0[0]) + [slope0[2], fit0].map(function (v) { return (v < 0 ? ' − ' : ' + ') + num(Math.abs(v), 2); }).join('') + ' = ' + sgn(g0) + ', one number' + at(0.5, '<br>note-taking soldier: notes ' + sgn(notes12[0]) + ' (c₀) and ' + sgn(notes12[1]) + ' (c₂), two numbers'),
     draw: function (g, p) {
       loopComic(g, { tags: [null, null, null, null, null, null], focus: null, lit: ['0,0', '2,0'], litCol: NOTE });
@@ -1868,15 +1868,15 @@ var SoldierParts = (function () {
       if (q1 >= 1 && q2 <= 0) g.label(LP[0], 'kept: one number, ' + sgn(g0), P.PULL, { dy: 70, align: 'center', size: 12.5 });
       if (q2 > 0) { var m0 = lerp2(LJ[0], LP[0], 0.5), m2 = lerp2(LJ[2], LP[0], 0.5); g.label(m0, 'note ' + sgn(notes12[0]), NOTE, { dx: -10, align: 'right', size: 12, p: q2 }); g.label(m2, 'note ' + sgn(notes12[1]), NOTE, { dx: 10, size: 12, p: q2 }); }
       var R = g.sideR; g.panel(R, 'bit 0, incident to c₀ and c₂');
-      var rows3 = [['projected gradient with one penalty function', '', P.PULL], ['c₀ partial derivative', sgn(slope0[0]), C.ink], ['c₂ partial derivative', sgn(slope0[2]), C.ink], ['fit and binary terms', sgn(fit0), C.ink], ['kept: their sum', sgn(g0), P.PULL], ['CAJODE circuit ' + NC, '', NOTE], ['scaled dual at c₀', sgn(notes12[0]), NOTE], ['scaled dual at c₂', sgn(notes12[1]), NOTE]];
+      var rows3 = [['projected gradient with one penalty function', '', P.PULL], ['c₀ partial derivative', sgn(slope0[0]), C.ink], ['c₂ partial derivative', sgn(slope0[2]), C.ink], ['fit and binary terms', sgn(fit0), C.ink], ['kept: their sum', sgn(g0), P.PULL], ['SAPPHIRE circuit ' + NC, '', NOTE], ['scaled dual at c₀', sgn(notes12[0]), NOTE], ['scaled dual at c₂', sgn(notes12[1]), NOTE]];
       rows3.forEach(function (ln, j) { var y = R[1] + 56 + 27 * j, q = seg(p, j < 5 ? 0.05 + 0.08 * j : 0.5 + 0.08 * (j - 5), j < 5 ? 0.15 + 0.08 * j : 0.6 + 0.08 * (j - 5)); g.labelPx(R[0] + (ln[1] ? 26 : 14), y, ln[0], ln[1] ? C.ink : ln[2], { plain: true, size: ln[1] ? 12.5 : 13, p: q }); if (ln[1]) g.labelPx(R[0] + R[2] - 16, y, ln[1], ln[2], { plain: true, size: 13, mono: true, align: 'right', p: q }); });
     } });
   var walks = [{ name: 'BP protocol', unit: 'iterations', changes: [0, 1, 2, 3].map(function (s) { return [s, bpWord(s)]; }), end: 3, keeps: 18, col: BPC },
-               { name: 'CAJODE constraint circuit', unit: 'circuits', changes: nChanges, end: NC, keeps: 6 + 2 * 9, col: CARD },
+               { name: 'SAPPHIRE constraint circuit', unit: 'circuits', changes: nChanges, end: NC, keeps: 6 + 2 * 9, col: CARD },
                { name: 'projected gradient with one penalty', unit: 'steps', changes: gChanges.concat([[cStop.it, bitsFromSigns(cStop.word)]]), end: cStop.it, keeps: 6, col: P.PULL }];
   out.push({ id: 'ends', chapter: CH.optional, title: 'Three traces, not a race', layout: 'side', dur: 7,
-    text: 'The three traces end differently on this chosen loop. BP accepts the sent word in 3 message-passing iterations. The known-channel CAJODE reduction accepts it in ' + NC + ' constraint circuits. Projected gradient descent with one penalty function stops at a different word that passes every parity check after ' + cStop.it + ' steps. Their update units and per-update work are not comparable, so the counts are not a speed ranking. The useful abstraction is structural: BP passes extrinsic information, and each reply excludes its recipient’s current input. CAJODE preserves one replica variable and one scaled dual per edge. The penalty function combines the instantaneous constraint contributions into one summed partial derivative.',
-    math: 'this fixture: BP 3 iterations;  CAJODE reduction ' + NC + ' circuits;  single penalty ' + cStop.it + ' steps',
+    text: 'The three traces end differently on this chosen loop. BP accepts the sent word in 3 message-passing iterations. The known-channel SAPPHIRE reduction accepts it in ' + NC + ' constraint circuits. Projected gradient descent with one penalty function stops at a different word that passes every parity check after ' + cStop.it + ' steps. Their update units and per-update work are not comparable, so the counts are not a speed ranking. The useful abstraction is structural: BP passes extrinsic information, and each reply excludes its recipient’s current input. SAPPHIRE preserves one replica variable and one scaled dual per edge. The penalty function combines the instantaneous constraint contributions into one summed partial derivative.',
+    math: 'this fixture: BP 3 iterations;  SAPPHIRE reduction ' + NC + ' circuits;  single penalty ' + cStop.it + ' steps',
     draw: function (g, p) {
       var R = g.sideR, phone = R[2] < 480; g.panel(R, 'each walk: its start, every change of word, its end');
       walks.forEach(function (wk, r) {
@@ -1897,8 +1897,8 @@ var SoldierParts = (function () {
 
   // ------------------------------------------------------------ 6. inside a receiver
   out.push({ id: 'officer', chapter: CH.rx, title: 'Inside a receiver: the officer’s map', layout: 'side', dur: 8,
-    text: 'So far the channel was frozen. In the full OFDM receiver it must be estimated jointly with the data. JADE uses a BP decoder whose check nodes run normalized min-sum. It returns a posteriori LLRs Lpost from channel LLRs Lch. The receiver computes extrinsic information Lext = Lpost−Lch, then forms Lch+αLext. A tanh map turns that sum into x, which initializes joint channel estimation and decoding on the next pass. Here x = 1−2b, so x near +1 represents bit 0, and T is the initialization temperature. Thus α damps only the extrinsic addition; the channel evidence remains. The receiver does not differentiate through BP or feed a hard word back as the channel estimate. Our small graph walks used sum-product BP to expose recipient exclusion. The referenced JADE implementation instead uses normalized min-sum at each check node while retaining the directed messages. CAJODE updates the channel, relaxed bits, replica variables and scaled dual variables within each ADMM iteration.',
-    math: 'Lext = Lpost − Lch;  x₀ = tanh[(Lch + α Lext)/(2T)];  x = 1−2b;  x ≈ +1 ↔ bit 0;  T is the initialization temperature' + at(0.5, '<br>CAJODE: weights → relaxed bits → weights → channel → replica variables → scaled dual variables'),
+    text: 'So far the channel was frozen. In the full OFDM receiver it must be estimated jointly with the data. JADE uses a BP decoder whose check nodes run normalized min-sum. It returns a posteriori LLRs Lpost from channel LLRs Lch. The receiver computes extrinsic information Lext = Lpost−Lch, then forms Lch+αLext. A tanh map turns that sum into x, which initializes joint channel estimation and decoding on the next pass. Here x = 1−2b, so x near +1 represents bit 0, and T is the initialization temperature. Thus α damps only the extrinsic addition; the channel evidence remains. The receiver does not differentiate through BP or feed a hard word back as the channel estimate. Our small graph walks used sum-product BP to expose recipient exclusion. The referenced JADE implementation instead uses normalized min-sum at each check node while retaining the directed messages. SAPPHIRE updates the channel, relaxed bits, replica variables and scaled dual variables within each ADMM iteration.',
+    math: 'Lext = Lpost − Lch;  x₀ = tanh[(Lch + α Lext)/(2T)];  x = 1−2b;  x ≈ +1 ↔ bit 0;  T is the initialization temperature' + at(0.5, '<br>SAPPHIRE: weights → relaxed bits → weights → channel → replica variables → scaled dual variables'),
     draw: function (g, p) {
       var R = g.sideR, c = g.ctx, half = (R[3] - 30) / 2;
       function lane(y, title, boxes, col, loopBack, q, token) {
@@ -1916,26 +1916,26 @@ var SoldierParts = (function () {
       g.panel(R, 'where the officer’s map is drawn');
       var t1 = seg(p, 0.05, 0.45), t2 = seg(p, 0.5, 0.92);
       lane(R[1] + 46, 'JADE: soft information initializes the next step', ['channel LLR Lch', 'BP posterior Lpost', 'Lext = Lpost − Lch', 'Lch + α Lext', 'tanh map', 'next joint step'], BPC, 'the joint step produces the next channel estimate', t1, t1 >= 1 ? Math.floor((p * 24) % 6) : null);
-      lane(R[1] + 46 + half, 'CAJODE: one ADMM iteration', ['weights', 'relaxed bits', 'weights', 'channel', 'replica variables', 'scaled dual variables'], NOTE, 'one ADMM iteration under one objective function', t2, t2 >= 1 ? Math.floor((p * 30) % 6) : null);
+      lane(R[1] + 46 + half, 'SAPPHIRE: one ADMM iteration', ['weights', 'relaxed bits', 'weights', 'channel', 'replica variables', 'scaled dual variables'], NOTE, 'repeat blocks of the same constrained problem', t2, t2 >= 1 ? Math.floor((p * 30) % 6) : null);
     } });
   var FIVE = [['1. robust weights', 'w', 'no', 'closed form; evaluated twice'], ['2. relaxed bits', 'b(i)', 'yes', 'closed form; evaluated together'], ['3. channel response', 'C', 'yes', 'normal equations; sparse solve'], ['4. replica variables', 'z(a)', 'no', 'projection onto the parity polytope'], ['5. scaled dual variables', 'u(a,i)', 'no', 'add b(i) − z(a,i) per edge']];
   out.push({ id: 'five', chapter: CH.rx, title: 'Five update types; the weights are evaluated twice', layout: 'side', dur: 6.4,
-    text: 'On a measured frame, one CAJODE circuit has five update types. The robust weights are evaluated twice: before the relaxed-bit update and again before the channel update. The relaxed-bit block uses partial derivatives of the objective function in a majorization-minimization step. Its quadratic approximation separates across the bits not fixed by the configured constraints, so their closed-form updates use the same preceding state. In the displayed rule, g(i) is the fit partial derivative, h(i) is the nonnegative diagonal coefficient of the quadratic approximation, and d(i) counts incident checks. The table’s C is the channel response. This update is not ordinary gradient descent. The channel block solves normal equations for its quadratic objective. The parity constraints are never differentiated; they are projected. The scaled dual variables then accumulate b−z per edge.',
+    text: 'On a measured frame, one SAPPHIRE circuit has five update types. The robust weights are evaluated twice: before the relaxed-bit update and again before the channel update. The relaxed-bit block uses partial derivatives of the objective function in a majorization-minimization step. Its quadratic approximation separates across the bits not fixed by the configured constraints, so their closed-form updates use the same preceding state. In the displayed rule, g(i) is the fit partial derivative, h(i) is the nonnegative diagonal coefficient of the quadratic approximation, and d(i) counts incident checks. The table’s C is the channel response. This update is not ordinary gradient descent. The channel block solves normal equations for its quadratic objective. The parity constraints are never differentiated; they are projected. The scaled dual variables then accumulate b−z per edge.',
     math: 'b_new(i) ← Π[0,1][(ρ Σ(z − u) − g(i) − β + h(i) b_old(i))/(ρ d(i) − 2β + h(i))]' + at(0.6, ';  on the teaching reductions: g = channel LLR, h = 0'),
-    draw: function (g, p) { P.table(g, g.sideR, FIVE, { head: ['step', 'moves', 'derivative?', 'how'], cols: [0, 0.26, 0.45, 0.62], title: 'one CAJODE circuit on a measured frame', p: p, reveal: true, size: 11.5, mono: false, colours: function (i, j) { return j === 2 ? (FIVE[i][2] === 'no' ? C.dim : C.gold) : j === 0 ? C.ink : C.ink; } }); } });
+    draw: function (g, p) { P.table(g, g.sideR, FIVE, { head: ['step', 'moves', 'derivative?', 'how'], cols: [0, 0.26, 0.45, 0.62], title: 'one SAPPHIRE circuit on a measured frame', p: p, reveal: true, size: 11.5, mono: false, colours: function (i, j) { return j === 2 ? (FIVE[i][2] === 'no' ? C.dim : C.gold) : j === 0 ? C.ink : C.ink; } }); } });
   out.push({ id: 'stop', chapter: CH.rx, title: 'When does each soldier stop?', layout: 'side', dur: 6,
-    text: 'Stopping is not convergence. A hard word that passes every parity check can be accepted even when the primal and dual residuals are not small. In these teaching walks, BP and the known-channel CAJODE reduction stop when every hard parity check passes, subject to a budget. In the full CAJODE receiver, acceptance also requires the configured fixed bits and the cyclic redundancy check (CRC) to pass. Small primal and dual residuals describe continuous settling; by themselves they certify neither stationarity nor a global optimum. On our tree, circuit 3 is accepted while its RMS consensus error is still ' + num(H3.primalRms, 3) + '.',
+    text: 'Stopping is not convergence. A hard word that passes every parity check can be accepted even when the primal and dual residuals are not small. In these teaching walks, BP and the known-channel SAPPHIRE reduction stop when every hard parity check passes, subject to a budget. In the full SAPPHIRE receiver, acceptance also requires the configured fixed bits and the cyclic redundancy check (CRC) to pass. Small primal and dual residuals describe continuous settling; by themselves they certify neither stationarity nor a global optimum. On our tree, circuit 3 is accepted while its RMS consensus error is still ' + num(H3.primalRms, 3) + '.',
     math: 'hard acceptance: parity checks + configured fixed bits + CRC' + at(0.52, ';  settling diagnostics: primal and dual criteria') + at(0.78, '<br>tree circuit 3: e_RMS = ' + num(H3.primalRms, 6) + ' ≠ 0'),
     draw: function (g, p) {
-      var rows = [['BP teaching walk', 'all hard parity checks pass', 'iteration budget'], ['CAJODE reduction', 'all hard parity checks pass', 'circuit budget'], ['full CAJODE receiver', 'checks, fixed bits and CRC pass', 'configured update budget'], ['primal and dual residuals', 'below configured thresholds', 'do not certify a global optimum']];
+      var rows = [['BP teaching walk', 'all hard parity checks pass', 'iteration budget'], ['SAPPHIRE reduction', 'all hard parity checks pass', 'circuit budget'], ['full SAPPHIRE receiver', 'checks, fixed bits and CRC pass', 'configured update budget'], ['primal and dual residuals', 'below configured thresholds', 'do not certify a global optimum']];
       P.table(g, g.sideR, rows, { head: ['test', 'condition', 'fallback'], cols: [0, 0.29, 0.72], title: 'Acceptance is not convergence', p: p, reveal: true, size: 12, mono: false, colours: function (i, j) { return j === 0 ? (i === 0 ? BPC : i < 3 ? NOTE : C.gold) : C.ink; } });
       var R = g.sideR; g.labelPx(R[0] + 14, R[1] + R[3] - 22, 'accepted hard word ' + bits(H3.word) + ', but b and z still differ: e_RMS ' + num(H3.primalRms, 3), C.gold, { plain: true, size: 12.5, p: seg(p, 0.8, 1) });
     } });
   var CARRY = [['state', 'q and r on each directed edge', 'shared b; replica z and dual u per edge'], ['a check contributes', 'extrinsic soft information', 'projected replica minus scaled dual'], ['recipient’s own input', 'excluded from that reply', 'included in the projection'], ['hard parity already passes', 'messages can remain nonzero', 'u changes whenever b−z is nonzero'], ['sum-product tree lesson', 'exact after information traverses it', 'accepted after 3 circuits here'], ['loop lesson', 'iterative, generally approximate', 'constraint memory remains per edge'], ['full receiver', 'Lch + αLext, then tanh', 'channel updates in each ADMM iteration'], ['acceptance', 'hard checks, within a budget', 'checks + fixed bits + CRC'], ['continuous status', 'separate from correctness', 'settling is not a global certificate']];
   out.push({ id: 'carry', chapter: CH.rx, title: 'What to carry', layout: 'side', dur: 6.6,
-    text: 'The transferable distinction is now precise. BP is a message-passing algorithm: each variable-to-check or check-to-variable message excludes the recipient’s current input, although older evidence can recirculate on a loop. The CAJODE constraint block uses ADMM: shared relaxed bits must agree with projected replica variables, and one scaled dual variable per edge remembers any remaining b−z disagreement. In JADE, Lch+αLext passes through a tanh map to initialize joint channel estimation and decoding on the next pass. CAJODE updates the channel inside each ADMM iteration. Accepting the hard word remains separate from continuous settling, which does not certify a global optimum.',
-    math: 'BP passes extrinsic information; each reply excludes its recipient’s current input.  CAJODE enforces replica agreement and accumulates b − z',
-    draw: function (g, p) { P.table(g, g.sideR, CARRY, { head: ['', 'BP protocol', 'CAJODE constraint circuit'], cols: [0, 0.3, 0.64], title: 'same code graph, different mathematical mechanism', p: p, reveal: true, size: 12, mono: false, colours: function (i, j) { return j === 0 ? C.dim : j === 1 ? BPC : NOTE; } }); } });
+    text: 'The transferable distinction is now precise. BP is a message-passing algorithm: each variable-to-check or check-to-variable message excludes the recipient’s current input, although older evidence can recirculate on a loop. The SAPPHIRE constraint block uses ADMM: shared relaxed bits must agree with projected replica variables, and one scaled dual variable per edge remembers any remaining b−z disagreement. In JADE, Lch+αLext passes through a tanh map to initialize joint channel estimation and decoding on the next pass. SAPPHIRE updates the channel inside each ADMM iteration. Accepting the hard word remains separate from continuous settling, which does not certify a global optimum.',
+    math: 'BP passes extrinsic information; each reply excludes its recipient’s current input.  SAPPHIRE enforces replica agreement and accumulates b − z',
+    draw: function (g, p) { P.table(g, g.sideR, CARRY, { head: ['', 'BP protocol', 'SAPPHIRE constraint circuit'], cols: [0, 0.3, 0.64], title: 'same code graph, different mathematical mechanism', p: p, reveal: true, size: 12, mono: false, colours: function (i, j) { return j === 0 ? C.dim : j === 1 ? BPC : NOTE; } }); } });
 
   // ------------------------------------------------------------ player, chapter bar, keyboard, and deep links
   var chapters = [];
@@ -1958,7 +1958,7 @@ var SoldierParts = (function () {
 </script>
 <script>
 // The roads of King’s Land Descent.  Six pages share one player (board.js): the game, the tale “Three heroes
-// downhill”, the CAJODE receiver tutorial and three case studies.  This file joins them.  A road starts on a step where
+// downhill”, the SAPPHIRE receiver tutorial and three case studies.  This file joins them.  A road starts on a step where
 // the reader has just met an idea that another page uses, and it is offered in a card under that step’s formula.
 // Taking it opens the other page with a short interlude played by the same player: the map of the King’s land with the
 // road walked, a scene that sets up the new place, and a key of what changes name.  A bar at the top of every page lists
@@ -1979,12 +1979,12 @@ var Realm = (function () {
   var PLACES = {
     game:     { file: 'index.html', name: 'King’s Land Descent', bar: 'The game', sub: 'walk the land yourself', q: [1.7, 3.95], icon: 'flag' },
     tutorial: { file: 'tutorial.html', name: 'Three heroes downhill', bar: 'Three heroes downhill', sub: 'gradient descent, L-BFGS, ADMM', q: [3.6, 6.15], icon: 'castle' },
-    soldiers: { file: 'bp_and_cajode.html', name: 'Counting soldiers', bar: 'BP and CAJODE', sub: 'belief propagation and CAJODE', q: [1.25, 7.0], icon: 'soldiers' },
-    keep:     { file: 'jade_keep_tutorial.html', name: 'CAJODE', bar: 'CAJODE receiver', sub: 'joint OFDM demodulation and decoding', q: [9.55, 6.3], icon: 'keep' },
+    soldiers: { file: 'bp_and_cajode.html', name: 'Counting soldiers', bar: 'BP and SAPPHIRE', sub: 'belief propagation and SAPPHIRE', q: [1.25, 7.0], icon: 'soldiers' },
+    keep:     { file: 'jade_keep_tutorial.html', name: 'SAPPHIRE', bar: 'SAPPHIRE receiver', sub: 'joint OFDM data detection and decoding', q: [9.55, 6.3], icon: 'keep' },
     coach:    { file: 'the_coach_and_the_physio.html', name: 'The Coach and the Physio', bar: 'Coach and Physio', sub: 'a training plan', q: [4.75, 2.15], icon: 'track' },
     dive:     { file: 'localization_is_decoding.html', name: 'The inspection dive', bar: 'Inspection dive', sub: 'localization at a monopile', q: [7.55, 3.15], icon: 'pile' },
     net:      { file: 'finding_the_tear.html', name: 'Finding the tear', bar: 'Finding the tear', sub: 'a fish-farm net', q: [10.45, 1.95], icon: 'pen' },
-    red:      { file: 'five_receivers_on_red.html', name: 'The Red recordings', bar: 'Red BER table', sub: 'five receivers, measured bit errors', q: [11.15, 4.3], icon: 'buoy' }
+    red:      { file: 'five_receivers_on_red.html', name: 'The Red recordings', bar: 'Red BER table', sub: 'six receivers, measured bit errors', q: [11.15, 4.3], icon: 'buoy' }
   };
   var ORDER = ['game', 'tutorial', 'soldiers', 'keep', 'coach', 'dive', 'net', 'red'];
 
@@ -2413,7 +2413,7 @@ var Realm = (function () {
   // Two coupled blocks that take turns, in the receiver and on the net.
   SCENES.twoBlocks = function (o) {
     var rows = o.rows || [
-      { name: 'the CAJODE receiver', a: 'response C', b: 'bits b', ca: 'hold the bits, solve the response', cb: 'hold the response, update the bits', first: 'b' },
+      { name: 'the SAPPHIRE receiver', a: 'response C', b: 'bits b', ca: 'hold the bits, solve the response', cb: 'hold the response, update the bits', first: 'b' },
       { name: 'the net inspection', a: 'knot positions p', b: 'twine states b', ca: 'hold the twines, move the knots', cb: 'hold the knots, re-read every twine', first: 'a' }];
     return { layout: 'side', dur: 7, draw: function (g, p) {
       var R = g.sideR, c = g.ctx, T1 = seg(p, 0.1, 0.42), T2 = seg(p, 0.48, 0.8), rowH = (R[3] - 44) / rows.length;
@@ -2492,7 +2492,7 @@ var Realm = (function () {
       g.label(inn, 'inside: stays', C.blue, { dy: 20, align: 'center', p: inR(0.55, 0.7), size: 12 }); g.label(outF, 'the nearest allowed point', C.blue, { dx: 14, dy: 6, p: inR(0.75, 0.92), size: 12 });
     } };
   };
-  // The miniature receiver of the CAJODE tutorial: two pilots, two data positions, two bits, one check, c₀ and c₁.
+  // The miniature receiver of the SAPPHIRE tutorial: two pilots, two data positions, two bits, one check, c₀ and c₁.
   SCENES.receiverMini = function () {
     return { layout: 'side', dur: 7, draw: function (g, p) {
       var R = g.sideR, c = g.ctx, w = Math.min(R[2] * 0.15, 96), hgt = 46, ys = R[1] + R[3] * 0.42, top = ys - hgt / 2, names = ['pilot', 'data', 'data', 'pilot'];
@@ -2675,7 +2675,7 @@ var Realm = (function () {
       scenes: [M('From the two-bit land to the light board', 'The two-bit land is the smallest parity check. Three heroes downhill draws it as two lamps that must agree, then builds a board of nine lamps with a check on every row and column.'),
         K('The game’s words in the tale', 'The tale writes 0 for a lamp that is off and 1 for a lamp that is on.',
           [[['lamps2', 'two signed values, −1 or +1'], ['lamps2', 'two lamps, off (0) or on (1)']], [['check', 'even parity: the signs agree'], ['check', 'an even number of lit lamps']], [['glow', 'the fixed evidence'], ['glow', 'the glow of each lamp']], [['wall', '(+, −) fails the law'], ['lamps4', '01 and 10 fail the check']]],
-          'New here: a syndrome, a replica for every check, and the step to CAJODE.')] },
+          'New here: a syndrome, a replica for every check, and the step to SAPPHIRE.')] },
     { id: 'game-ridge', from: 'game', onLand: 'ridge', to: 'tutorial', land: 'misty', sign: 'Why a hero stops behind a ridge', hook: 'The misty hills show the limit of local measurements in its plainest form.', who: 'you', carry: [],
       scenes: [M('From behind the ridge to the misty hills', 'Behind a ridge, both walkers stop in a shallow hollow whose endpoint fails parity, while the best passing pattern lies over the ridge. The misty hills of the tale show the same limit of local measurements, with haze and three narrow pits.'),
         K('The game’s words in the tale', 'No hero can see past the ground it measures.',
@@ -2688,14 +2688,14 @@ var Realm = (function () {
           'New here: a summary of the three heroes at the end of the tale.')] },
     // ---- from the tale to the receiver and the case studies
     twinsToCoach('twins-coach', 'tutorial', ['wall-tw-again', 'end']),
-    { id: 'light-keep', from: 'tutorial', at: ['light-ldpc', 'end'], to: 'keep', land: 'received-grid', sign: 'Inside the CAJODE receiver', hook: 'Where the glows come from: an OFDM frame, a channel to estimate, and the same parity checks.', who: 'you', carry: ['the light board'],
+    { id: 'light-keep', from: 'tutorial', at: ['light-ldpc', 'end'], to: 'keep', land: 'received-grid', sign: 'Inside the SAPPHIRE receiver', hook: 'Where the glows come from: an OFDM frame, a channel to estimate, and the same parity checks.', who: 'you', carry: ['the light board'],
       scenes: [M('Across the water to the receiver', 'The light board took its glows as given. A receiver must earn them. Its coded bits travel on the carriers of an orthogonal frequency-division multiplexing (OFDM) frame, and the channel that bends them is estimated from the same received samples.'),
         S('lampsToCarriers', {}, 'Lamps become carriers', 'Each lamp becomes a coded bit, and the bits ride on the carriers of the frame. Gold slots are pilots, symbols the receiver knows in advance. Residual Doppler leaks every carrier into its neighbours, so one received sample mixes several bits. This is intercarrier interference (ICI).', 'one carrier sample ≈ c₀ · its own symbol + c₁ · its neighbours’ symbols + noise'),
         K('What the light board becomes', 'The parity bookkeeping is unchanged. What is new sits in front of the checks: the frame, the pilots and a response estimated together with the bits. FFT is the fast Fourier transform, and an LLR is a log-likelihood ratio.',
           [[['lamp', 'a lamp, off or on'], ['bit', 'a coded bit b in [0, 1]']], [['glow', 'a glow yᵢ'], ['carrier', 'a carrier observation after the FFT']], [['glow', 'a channel LLR, given'], ['wave', 'a fit with an estimated response C']], [['checks', 'row and column checks'], ['check', 'the code’s parity checks']], [['book', 'a replica and duals per check'], ['book', 'the same replicas and duals']]],
           'New here: pilots, a response that couples neighbouring carriers, and robust weights for poor observations.')] },
     { id: 'tale-done', from: 'tutorial', at: ['cajode-done'], to: 'keep', land: 'milestones', sign: 'Compare the receiver’s three milestones', hook: 'A candidate can match before replica agreement and before the full toy state settles.', who: 'you', carry: ['the zero syndrome'],
-      scenes: [M('From the light board to the receiver’s timeline', 'On the light board every check passed before the residuals vanished. The CAJODE tutorial measures the same separation numerically: the toy candidate, replica agreement and the full-state threshold occur at different iterations.'),
+      scenes: [M('From the light board to the receiver’s timeline', 'On the light board every check passed before the residuals vanished. The SAPPHIRE tutorial measures the same separation numerically: the toy candidate, replica agreement and the full-state threshold occur at different iterations.'),
         K('What the light board’s tests become', 'The receiver toy separates three numerical milestones. Its hidden-truth oracle is an evaluation aid, not a real cyclic redundancy check (CRC).',
           [[['board', 'zero syndrome on the board'], ['check', 'every parity check passes']], [['seal', 'no further test'], ['seal', 'configured bits and the CRC pass']], [['gauge', 'primal and dual residuals'], ['gauge', 'r and s, reported apart']], [['days', 'pass at round 3, settle at 8'], ['days', 'stop at the first word that passes']]],
           'New here: bits fixed by the receiver configuration must keep their values.')] },
@@ -2728,11 +2728,11 @@ var Realm = (function () {
           [[['bit', 'the shared bits b'], ['wanderer', 'the Wanderer x']], [['check', 'a check’s replica z'], ['warden', 'the Warden z']], [['book', 'the scaled dual u'], ['book', 'the Warden’s book u']], [['wall', 'the parity polytope P'], ['wall', 'the kingdom wall']], [['rope', 'the penalty ρ'], ['rope', 'the rope’s stiffness ρ']]],
           'New here: what happens with the rope alone, and why the book fixes it.')] },
     { id: 'keep-net-robust', from: 'keep', at: ['robust-weights'], to: 'net', land: 'robust', sign: 'The same weights on a fish-farm net', hook: 'Finding the tear limits a doubtful knot detection with the same smooth penalty.', who: 'you', carry: ['the weights'],
-      scenes: [M('From the receiver to the fish farm', 'CAJODE gives every received sample a weight, so one poor observation cannot dominate the fit. A fish-farm inspection meets the same trouble with a knot detector. Most detections are good, and a few are false.'),
+      scenes: [M('From the receiver to the fish farm', 'SAPPHIRE gives every received sample a weight, so one poor observation cannot dominate the fit. A fish-farm inspection meets the same trouble with a knot detector. Most detections are good, and a few are false.'),
         S('netIntro', {}, 'The net inspection', NET_INTRO), S('scales', { outlier: 'a false detection' }, 'The same weight in both places', WEIGHT, 'w(E) = 1/√(1 + E/δ²);  E: a normalized squared error'),
         K('What the weights act on', 'On the net the weight limits a doubtful pairing; it cannot tell which pairing is right.', KEEP_NET_W, 'New here: a detection can switch from one knot to its neighbour between rounds.')] },
     { id: 'keep-net-blocks', from: 'keep', at: ['why-alternate', 'channel-solve'], to: 'net', land: 'coupling', sign: 'Two coupled blocks on a net', hook: 'Knot positions and twine states pull on each other as the channel and the bits do.', who: 'you', carry: ['two blocks'],
-      scenes: [M('From the receiver to the fish farm', 'CAJODE alternates because the channel and the bits are coupled through one prediction. Finding the tear has the same shape with other unknowns: where the knots are, and which twines are torn.'),
+      scenes: [M('From the receiver to the fish farm', 'SAPPHIRE alternates because the channel and the bits are coupled through one prediction. Finding the tear has the same shape with other unknowns: where the knots are, and which twines are torn.'),
         S('netIntro', {}, 'The net inspection', NET_INTRO), S('twoBlocks', {}, 'Take turns', 'The receiver holds the response and updates the bits, then holds the bits and solves the response. The net holds the twine states and moves the knots, then holds the knots and re-reads every twine. Each turn changes what the other block sees.'),
         K('What the two blocks become', 'On the net the copies and duals belong to the knot positions. Each twine state is a separate threshold with no copy.', KEEP_NET_B, 'New here: moving a knot changes which pixels a twine reads.')] },
     { id: 'keep-net-done', from: 'keep', at: ['milestones'], to: 'net', land: 'stopping', sign: 'Four meanings of done, on a net', hook: 'Finding the tear keeps geometry, consensus, motion and acceptance apart.', who: 'you', carry: ['three milestones'],
@@ -2745,12 +2745,12 @@ var Realm = (function () {
           [[['bit', 'the shared bits b'], ['coach', 'the plan x = (day, load)']], [['check', 'a check’s replica zₐ'], ['physio', 'the Physio’s copy z']], [['book', 'a scaled dual uₐ'], ['book', 'the planning log u']], [['wall', 'a parity polytope'], ['polygon', 'a polygon of safe plans']], [['seal', 'parity checks and the CRC'], ['curve', 'the athlete’s next measurement']]],
           'New here: an outer loop, in which the body’s response moves after every session.')] },
     { id: 'keep-dive', from: 'keep', at: ['takeaway'], to: 'dive', land: 'job', sign: 'Consensus copies at a monopile', hook: 'Photo positions are copied per reading, as bits are copied per check.', who: 'you', carry: ['four moves'],
-      scenes: [M('From the receiver to the wind farm', 'At an offshore monopile the shared unknowns are photo positions instead of bits. Each reading defines a local allowed set with its own replica and scaled dual, as each parity check does in CAJODE.'),
+      scenes: [M('From the receiver to the wind farm', 'At an offshore monopile the shared unknowns are photo positions instead of bits. Each reading defines a local allowed set with its own replica and scaled dual, as each parity check does in SAPPHIRE.'),
         K('What the receiver becomes', 'The image match cost has several equally good headings, so the allowed sets do real work.',
           [[['bit', 'the shared bits b'], ['photo', 'the shared photo positions']], [['check', 'the parity checks'], ['ring', 'standoff, range and step sets']], [['book', 'replicas zₐ, duals uₐ'], ['book', 'one replica and dual per set']], [['wave', 'a response C fitted jointly'], ['photo', 'an image match cost, fixed']]],
           'New here: sets that carry a stated sensor allowance.')] },
     { id: 'keep-net', from: 'keep', at: ['takeaway'], to: 'net', land: 'job', sign: 'Positions and binary states on a net', hook: 'Knot positions and twine states are estimated together, like the channel and the bits.', who: 'you', carry: ['two blocks'],
-      scenes: [M('From the receiver to the fish farm', 'A fish-farm net inspection is a joint problem like CAJODE. Continuous knot positions and binary twine states are coupled through the camera image, and every mesh rule keeps local copies of its knots.'),
+      scenes: [M('From the receiver to the fish farm', 'A fish-farm net inspection is a joint problem like SAPPHIRE. Continuous knot positions and binary twine states are coupled through the camera image, and every mesh rule keeps local copies of its knots.'),
         K('What the receiver becomes', 'The net is small enough that hidden truth can grade every step. Its close-up plays the part of the cyclic redundancy check (CRC), with a narrower reach.',
           [[['wave', 'the response C'], ['knot', 'the knot positions p']], [['bit', 'the bits b'], ['twine', 'the twine states b']], [['pilot', 'the pilots'], ['ropeline', 'the side rope and the tag']], [['check', 'parity replicas'], ['net', 'mesh-rule copies of knots']], [['seal', 'the CRC'], ['lens', 'a targeted close-up']]],
           'New here: the binary states are thresholded and have no copies of their own.')] },
@@ -2759,10 +2759,10 @@ var Realm = (function () {
         K('The receiver’s words in the game', 'Follow the Wanderer under View and press N to live one day; B works out the day step by step.',
           [[['bit', 'b in [0, 1]'], ['lamps2', 'x = 2b − 1 in [−1, +1]']], [['check', 'the parity set z₁ = z₂'], ['wall', 'the Warden’s line x₁ = x₂']], [['bit', 'the shared bits b'], ['wanderer', 'the Wanderer']], [['check', 'the check’s replica z'], ['warden', 'the Warden']]],
           'New here: a land with no channel, and lesson 7 of the trial on the light board.')] },
-    // ---- the counting soldiers: belief propagation beside CAJODE’s circuit
+    // ---- the counting soldiers: belief propagation beside SAPPHIRE’s circuit
     { id: 'light-soldiers', from: 'tutorial', at: ['light-replicas'], to: 'soldiers', land: 'count', who: 'you', carry: ['one replica per check'],
       scenes: [M('From the light board to the soldiers', 'The light board ran the note-taking circuit on nine lamps. The soldier slides tell that circuit with soldiers and set beside it the BP soldier, from belief propagation (BP), whose junctions reply instead of projecting. Both decode one small tree and one loop.'),
-        S('soldierTree', {}, 'Six bits, three connected checks', 'Bits 2 and 4 join neighbouring checks into one open chain. Bit 0 has the only wrong channel decision, so c₂ is violated. BP and the CAJODE constraint circuit both decode it, by different mechanisms.'),
+        S('soldierTree', {}, 'Six bits, three connected checks', 'Bits 2 and 4 join neighbouring checks into one open chain. Bit 0 has the only wrong channel decision, so c₂ is violated. BP and the SAPPHIRE constraint circuit both decode it, by different mechanisms.'),
         K('What the light board becomes', 'The lamps and checks keep their meaning; only the drawing changes. An LLR is a log-likelihood ratio.',
           [[['lamp', 'a lamp'], ['soldier', 'a soldier']], [['checks', 'a row or column check'], ['junction', 'a junction']], [['glow', 'observed glow → channel LLR'], ['glow', 'received sample → channel LLR']], [['book', 'a replica vector z'], ['junction', 'a record vector']], [['book', 'an edge dual u'], ['book', 'a note per edge']]],
           'New here: the BP soldier, whose junctions reply from the other soldiers.')] },
@@ -2778,13 +2778,13 @@ var Realm = (function () {
           [[['soldier', 'a card b'], ['wanderer', 'the Wanderer x']], [['junction', 'a record z'], ['warden', 'the Warden z']], [['book', 'a note u'], ['book', 'the Warden’s book u']], [['check', 'a junction’s valid patterns'], ['wall', 'the kingdom wall']]],
           'New here: the rope alone fails first, which is why the book is needed.')] },
     { id: 'keep-soldiers', from: 'keep', at: ['separate-chain'], to: 'soldiers', land: 'count', who: 'you', carry: ['records', 'notes'],
-      scenes: [M('From the receiver to the soldiers', 'CAJODE calls no belief-propagation (BP) decoder. The soldier slides show what it does instead, on six soldiers. The BP soldier passes replies, and the note-taking soldier, CAJODE’s circuit with the channel known, keeps records and notes.'),
-        S('soldierTree', {}, 'Six bits, three connected checks', 'Bits 2 and 4 join neighbouring checks into one open chain. Bit 0 has the only wrong channel decision, so c₂ is violated. The tutorial decodes this tree first with BP, then with the CAJODE constraint circuit.'),
+      scenes: [M('From the receiver to the soldiers', 'SAPPHIRE calls no belief-propagation (BP) decoder. The soldier slides show what it does instead, on six soldiers. The BP soldier passes replies, and the note-taking soldier, SAPPHIRE’s circuit with the channel known, keeps records and notes.'),
+        S('soldierTree', {}, 'Six bits, three connected checks', 'Bits 2 and 4 join neighbouring checks into one open chain. Bit 0 has the only wrong channel decision, so c₂ is violated. The tutorial decodes this tree first with BP, then with the SAPPHIRE constraint circuit.'),
         K('What the receiver becomes', 'The channel is known on these pages, so the officer’s map stays still until the last chapter.',
           [[['bit', 'the shared bits b'], ['soldier', 'a card per soldier']], [['check', 'a replica vector z per check'], ['junction', 'a record vector per junction']], [['book', 'a scaled dual per edge'], ['book', 'a note per edge']], [['wall', 'a parity polytope'], ['junction', 'a junction’s valid patterns']], [['wave', 'the response C'], ['officer', 'the officer’s map']]],
           'New here: the BP soldier, whose replies leave their recipient out.')] },
     { id: 'soldiers-keep', from: 'soldiers', at: ['officer', 'carry'], to: 'keep', land: 'received-grid', who: 'you', carry: ['cards', 'records', 'notes'],
-      scenes: [M('From the soldiers to the receiver', 'The soldiers decoded with the officer’s map held still. The CAJODE tutorial restores the map: an orthogonal frequency-division multiplexing (OFDM) frame, pilots, and a response estimated inside every circuit.'),
+      scenes: [M('From the soldiers to the receiver', 'The soldiers decoded with the officer’s map held still. The SAPPHIRE tutorial restores the map: an orthogonal frequency-division multiplexing (OFDM) frame, pilots, and a response estimated inside every circuit.'),
         S('receiverMini', {}, 'The receiver in miniature', MINI),
         K('What the soldiers become', 'The records and notes keep their meaning; the cards now also fit the received samples.',
           [[['soldier', 'a card per soldier'], ['bit', 'the shared bits b']], [['junction', 'a record vector per junction'], ['check', 'a replica vector z per check']], [['book', 'a note per edge'], ['book', 'a scaled dual per edge']], [['officer', 'the officer’s map'], ['wave', 'the response C']], [['glow', 'a received sample'], ['carrier', 'a carrier observation']]],
@@ -2803,8 +2803,8 @@ var Realm = (function () {
       scenes: [M('From the training ground to the monopile', 'The Physio’s step, the nearest safe plan, is a projection. An inspection dive uses the same move on bands: each copy of a vehicle position steps to the nearest position that its reading allows.'),
         S('diveIntro', {}, 'The inspection dive', DIVE_INTRO), S('bandProject', {}, 'Two projections side by side', 'On the left the Physio drops a plan onto the nearest rule line, at a right angle. On the right a copy outside the standoff band moves along the radius to the nearer edge. In both, a point already allowed stays where it is.'),
         K('What the Physio becomes', 'The dive has no single Physio. Every reading keeps its own copy and its own ledger.', COACH_DIVE, 'New here: an odometry pair moves both of its endpoints toward the allowance.')] },
-    { id: 'coach-keep', from: 'coach', at: ['bridge'], to: 'keep', land: 'local-copies', sign: 'From four rules to many checks', hook: 'CAJODE gives every parity check its own copy of its bits and its own scaled duals.', who: 'you', carry: ['the Physio’s copy'],
-      scenes: [M('From the training ground to the receiver', 'The Physio kept one set of rules for one plan. A decoder keeps many bits under many parity checks, and one bit can sit in several checks at once. CAJODE gives every check its own copy of its bits and its own scaled duals.'),
+    { id: 'coach-keep', from: 'coach', at: ['bridge'], to: 'keep', land: 'local-copies', sign: 'From four rules to many checks', hook: 'SAPPHIRE gives every parity check its own copy of its bits and its own scaled duals.', who: 'you', carry: ['the Physio’s copy'],
+      scenes: [M('From the training ground to the receiver', 'The Physio kept one set of rules for one plan. A decoder keeps many bits under many parity checks, and one bit can sit in several checks at once. SAPPHIRE gives every check its own copy of its bits and its own scaled duals.'),
         S('oneToMany', { left: { title: 'one plan, one Physio', node: 'the plan (day, load)', sets: ['the four rules'] }, right: { title: 'one bit, several checks', node: 'one shared bit bᵢ', sets: ['check a', 'check b', 'check c'] } },
           'One copy per check', 'One plan with one Physio and one log becomes one shared bit in several checks. Every check keeps a replica z of its bits, and every check–bit edge keeps a scaled dual u. The shared bit hears from all of its checks at once.'),
         K('What the training plan becomes', 'The receiver also estimates the channel, which the training plan does not have.',
@@ -2822,32 +2822,32 @@ var Realm = (function () {
         K('What the training plan becomes', 'The moves are the same; the set is a junction’s valid patterns.',
           [[['coach', 'the plan x'], ['soldier', 'a card per soldier']], [['physio', 'the Physio’s copy z'], ['junction', 'a record per junction']], [['book', 'the planning log u'], ['book', 'a note per edge']], [['polygon', 'four safety rules'], ['check', 'a junction’s valid patterns']]],
           'New here: the BP soldier, which decodes the same bits by replies alone.')] },
-    // ---- the Red recordings: five receivers counted on recorded frames
-    { id: 'keep-red', from: 'keep', at: ['full-frame'], to: 'red', land: 'question', who: 'you', carry: ['CAJODE’s update'],
-      scenes: [M('From the receiver to the Red recordings', 'The CAJODE tutorial followed one frame through its updates. The Red table counts the payload bits that five receivers, CAJODE among them, get wrong on recorded frames.'),
+    // ---- the Red recordings: six receivers counted on recorded frames
+    { id: 'keep-red', from: 'keep', at: ['full-frame'], to: 'red', land: 'question', who: 'you', carry: ['SAPPHIRE’s update'],
+      scenes: [M('From the receiver to the Red recordings', 'The SAPPHIRE tutorial followed one frame through its updates. The Red table counts the payload bits that six receivers, SAPPHIRE among them, get wrong on recorded frames.'),
         K('What the receiver becomes', 'One decoded frame becomes one of the 47 frames behind each point of the table.',
-          [[['bit', 'the accepted hard word'], ['key:E', 'bit errors, counted']], [['carrier', 'one received frame'], ['key:47', 'forty-seven frames per point']], [['key:C', 'CAJODE alone'], ['key:5', 'five receivers side by side']]],
+          [[['bit', 'the accepted hard word'], ['key:E', 'bit errors, counted']], [['carrier', 'one received frame'], ['key:47', 'forty-seven frames per point']], [['key:C', 'SAPPHIRE alone'], ['key:6', 'six receivers side by side']]],
           'New here: the bit error rate (BER), measured on recorded frames.')] },
     { id: 'red-keep', from: 'red', at: ['cajode'], to: 'keep', land: 'separate-chain', who: 'you', carry: ['the BER table'],
-      scenes: [M('From the Red recordings to the receiver', 'The table counts the bits CAJODE gets wrong but does not show how it decodes. The CAJODE tutorial opens one frame and follows each update, from the received carriers to an accepted word.'),
+      scenes: [M('From the Red recordings to the receiver', 'The table counts the bits SAPPHIRE gets wrong but does not show how it decodes. The SAPPHIRE tutorial opens one frame and follows each update, from the received carriers to an accepted word.'),
         S('receiverMini', {}, 'The receiver in miniature', MINI),
         K('What the table becomes', 'One point of the table becomes one frame, decoded step by step.',
           [[['key:47', 'forty-seven frames per point'], ['carrier', 'one received frame']], [['key:E', 'bit errors, counted'], ['bit', 'the shared bits b']], [['key:50', 'at most 50 updates'], ['book', 'one update after another']]],
           'New here: the channel response, estimated inside every update.')] },
     { id: 'soldiers-red', from: 'soldiers', at: ['officer'], to: 'red', land: 'question', who: 'you', carry: ['the BP soldier', 'the note-taking soldier'],
-      scenes: [M('From the soldiers to the Red recordings', 'The soldiers decoded six bits with the channel known. The Red table counts the bits that JADE and CAJODE get wrong on recorded frames, beside three other receivers.'),
+      scenes: [M('From the soldiers to the Red recordings', 'The soldiers decoded six bits with the channel known. The Red table counts the bits that JADE and SAPPHIRE get wrong on recorded frames, beside four other receivers.'),
         K('What the soldiers become', 'Six soldiers become thousands of bits in each recorded frame, and the channel must be estimated.',
           [[['soldier', 'six soldiers'], ['key:E', 'bit errors in 47 frames']], [['officer', 'the officer’s map, held still'], ['key:dB', 'a recorded channel and an SNR']], [['junction', 'a junction’s checks'], ['key:¼', 'a code of rate one quarter']]],
-          'New here: measured bit error rate (BER) curves for five receivers.')] },
+          'New here: measured bit error rate (BER) curves for six receivers.')] },
     { id: 'red-soldiers', from: 'red', at: ['jade'], to: 'soldiers', land: 'count', who: 'you', carry: ['JADE’s BP decoder'],
-      scenes: [M('From the Red recordings to the soldiers', 'JADE’s decoder passes belief-propagation (BP) messages, and CAJODE projects onto parity checks. The soldier slides show both on six soldiers, with the channel held still.'),
-        S('soldierTree', {}, 'Six bits, three connected checks', 'Bits 2 and 4 join neighbouring checks into one open chain. Bit 0 has the only wrong channel decision, so c₂ is violated. The tutorial decodes this tree first with BP, then with the CAJODE constraint circuit.'),
+      scenes: [M('From the Red recordings to the soldiers', 'JADE’s decoder passes belief-propagation (BP) messages, and SAPPHIRE projects onto parity checks. The soldier slides show both on six soldiers, with the channel held still.'),
+        S('soldierTree', {}, 'Six bits, three connected checks', 'Bits 2 and 4 join neighbouring checks into one open chain. Bit 0 has the only wrong channel decision, so c₂ is violated. The tutorial decodes this tree first with BP, then with the SAPPHIRE constraint circuit.'),
         K('What the receivers become', 'Thousands of bits become six soldiers, so every message can be drawn.',
-          [[['key:BP', 'JADE’s BP decoder'], ['soldier', 'the BP soldier']], [['key:C', 'CAJODE’s update'], ['junction', 'the note-taking soldier']], [['key:E', 'bit errors in 47 frames'], ['bit', 'six bits, one wrong']]],
+          [[['key:BP', 'JADE’s BP decoder'], ['soldier', 'the BP soldier']], [['key:C', 'SAPPHIRE’s update'], ['junction', 'the note-taking soldier']], [['key:E', 'bit errors in 47 frames'], ['bit', 'six bits, one wrong']]],
           'New here: messages that leave their recipient out.')] },
     // ---- from the dive
     { id: 'dive-light', from: 'dive', at: ['analogy'], to: 'tutorial', land: 'light-patterns', sign: 'The exact rule behind the likeness', hook: 'A light board shows a parity check pruning patterns, then grows it into a code.', who: 'you', carry: ['four headings'],
-      scenes: [M('From the monopile to the light board', 'The range band resembles a parity check. Three heroes downhill shows the exact rule with lamps: two lamps, four patterns, two that pass. Its next pages grow the check into nine lamps and connect it to CAJODE.'),
+      scenes: [M('From the monopile to the light board', 'The range band resembles a parity check. Three heroes downhill shows the exact rule with lamps: two lamps, four patterns, two that pass. Its next pages grow the check into nine lamps and connect it to SAPPHIRE.'),
         S('checksToBands', { reverse: true }, 'Four headings, four patterns', 'The bands keep one of four headings. On the light board the check keeps two of four patterns, and it does so exactly, with no allowance. A code is built from many such exact checks.'),
         K('What the bands become', 'The tale holds its evidence fixed and draws every check as lamps.', flip([[['lamps2', 'two lamps'], ['photo', 'one photo’s position']], [['lamps4', 'four patterns'], ['ring4', 'four headings that fit']], [['check', 'the parity check'], ['ring', 'standoff and range bands']], [['lamp', 'the patterns that pass'], ['star', 'the heading inside both']]]),
           'New here: a syndrome, the list of checks that fail.')] },
@@ -2864,8 +2864,8 @@ var Realm = (function () {
         K('Who is who at the wall', 'One wall and one copy keep every number on the map.',
           [[['photo', 'the shared positions x'], ['wanderer', 'the Wanderer x']], [['ring', 'a replica z per allowed set'], ['warden', 'the Warden z']], [['book', 'the scaled dual u'], ['book', 'the Warden’s book u']], [['aim', 'the target v = z − u'], ['aim', 'the aim past the Warden']]],
           'New here: the rope-only run, in which the gap never closes.')] },
-    { id: 'dive-keep', from: 'dive', at: ['cajode_adds'], to: 'keep', land: 'iteration-order', sign: 'See CAJODE’s complete update order', hook: 'Weights, bits and the channel, solved around the same projection and scaled dual.', who: 'you', carry: ['the projection', 'the ledger'],
-      scenes: [M('From the monopile to the receiver', 'The dive and CAJODE share the replica projection and the scaled-dual update. The receiver tutorial’s chapter on alternating channel and bits shows what surrounds them, in a receiver small enough to draw.'),
+    { id: 'dive-keep', from: 'dive', at: ['cajode_adds'], to: 'keep', land: 'iteration-order', sign: 'See SAPPHIRE’s complete update order', hook: 'Weights, bits and the channel, solved around the same projection and scaled dual.', who: 'you', carry: ['the projection', 'the ledger'],
+      scenes: [M('From the monopile to the receiver', 'The dive and SAPPHIRE share the replica projection and the scaled-dual update. The receiver tutorial’s chapter on alternating channel and bits shows what surrounds them, in a receiver small enough to draw.'),
         S('receiverMini', {}, 'The receiver in miniature', MINI),
         K('What the dive becomes', 'The receiver fits the channel between the bit step and the projections; the dive had nothing to fit there.',
           [[['photo', 'the shared positions x'], ['bit', 'the shared bits b in [0, 1]']], [['ring', 'allowed sets'], ['check', 'parity polytopes']], [['photo', 'an image match cost'], ['scales', 'a robust fit with weights']], [['ring4', 'no channel'], ['wave', 'response coefficients c₀ and c₁']]],
@@ -2876,12 +2876,12 @@ var Realm = (function () {
           [[['photo', 'seven photo positions'], ['knot', 'thirty-six knot positions']], [['ring', 'allowed sets'], ['net', 'a parallelogram rule per mesh']], [['photo', 'an image match cost'], ['twine', 'evidence along each twine']], [['beacon', 'the range beacon'], ['tag', 'the side rope and the tag']]],
           'New here: binary twine states and a close-up that verifies the report.')] },
     // ---- from the net
-    { id: 'net-keep-robust', from: 'net', at: ['robust'], to: 'keep', land: 'robust-weights', sign: 'The same weights inside a receiver', hook: 'CAJODE weights every received sample with the same pseudo-Huber penalty.', who: 'you', carry: ['the weights'],
-      scenes: [M('From the fish farm to the receiver', 'The smooth penalty is not special to nets. The CAJODE receiver puts it on every received sample, so that one corrupted observation cannot dominate the channel and bit estimates.'),
+    { id: 'net-keep-robust', from: 'net', at: ['robust'], to: 'keep', land: 'robust-weights', sign: 'The same weights inside a receiver', hook: 'SAPPHIRE weights every received sample with the same pseudo-Huber penalty.', who: 'you', carry: ['the weights'],
+      scenes: [M('From the fish farm to the receiver', 'The smooth penalty is not special to nets. The SAPPHIRE receiver puts it on every received sample, so that one corrupted observation cannot dominate the channel and bit estimates.'),
         S('receiverMini', {}, 'The receiver in miniature', MINI), S('scales', { outlier: 'a poor observation' }, 'The same weight in both places', WEIGHT, 'w(E) = 1/√(1 + E/δ²);  E: a normalized squared error'),
         K('What the weights act on', 'In the receiver the weights are computed before the bit step and again before the channel solve.', flip(KEEP_NET_W), 'New here: pilots that anchor the response, and a parity check on the bits.')] },
-    { id: 'net-keep-blocks', from: 'net', at: ['coupling'], to: 'keep', land: 'why-alternate', sign: 'The same coupling in a receiver', hook: 'CAJODE alternates between the channel response and the bit variables.', who: 'you', carry: ['two blocks'],
-      scenes: [M('From the fish farm to the receiver', 'Moving a knot changes what its twines read, and a torn twine changes what pulls on its knots. The CAJODE receiver has the same coupling between its channel response and its bits, through one prediction of every received sample.'),
+    { id: 'net-keep-blocks', from: 'net', at: ['coupling'], to: 'keep', land: 'why-alternate', sign: 'The same coupling in a receiver', hook: 'SAPPHIRE alternates between the channel response and the bit variables.', who: 'you', carry: ['two blocks'],
+      scenes: [M('From the fish farm to the receiver', 'Moving a knot changes what its twines read, and a torn twine changes what pulls on its knots. The SAPPHIRE receiver has the same coupling between its channel response and its bits, through one prediction of every received sample.'),
         S('receiverMini', {}, 'The receiver in miniature', MINI), S('twoBlocks', {}, 'Take turns', 'The net holds the twine states and moves the knots, then holds the knots and re-reads every twine. The receiver holds the response and updates the bits, then holds the bits and solves the response. Each turn changes what the other block sees.'),
         K('What the two blocks become', 'In the receiver the copies and duals belong to the bits, through the parity checks.', flip(KEEP_NET_B), 'New here: the bits have copies of their own, one per parity check.')] },
     { id: 'net-misty', from: 'net', at: ['difficulty'], to: 'tutorial', land: 'misty', sign: 'What local moves cannot see', hook: 'In the misty hills three heroes settle in hollows, and none finds the deepest pit.', who: 'you', carry: ['a chosen start'],
@@ -2896,7 +2896,7 @@ var Realm = (function () {
         K('The net’s words in the game', 'Press F to tap the ground and W to walk; lesson 8 of the trial sets the land up for you.',
           [[['knot', 'the knot positions p'], ['you', 'your own spot x']], [['net', 'registration basins'], ['pits', 'hollows and narrow pits']], [['photo', 'kinks of the sampled image'], ['staff', 'haze on every tap']], [['tag', 'the start from the tag'], ['flag', 'the start flag']]],
           'New here: three heroes on the same land, to follow and compare.')] },
-    { id: 'net-keep-done', from: 'net', at: ['stopping', 'verification'], to: 'keep', land: 'acceptance', sign: 'Acceptance inside a receiver', hook: 'CAJODE accepts a word that passes every parity check and the CRC; convergence is a separate question.', who: 'you', carry: ['the close-up'],
+    { id: 'net-keep-done', from: 'net', at: ['stopping', 'verification'], to: 'keep', land: 'acceptance', sign: 'Acceptance inside a receiver', hook: 'SAPPHIRE accepts a word that passes every parity check and the CRC; convergence is a separate question.', who: 'you', carry: ['the close-up'],
       scenes: [M('From the fish farm to the receiver', 'The net accepts its report when a targeted close-up agrees. A receiver accepts a decoded word when it passes every parity check and a cyclic redundancy check (CRC), and it keeps that test apart from convergence as well.'),
         S('gauges', { gauges: [{ name: 'agreement: r, the primal residual', t0: 0.15, t1: 0.9, end: 0.2 }, { name: 'motion: s, the dual residual', t0: 0.25, t1: 0.95, end: 0.3, col: C.blue }, { name: 'every parity check passes', stamp: true, at: 0.42 }, { name: 'the CRC passes', stamp: true, at: 0.52 }] },
           'Several meanings of done', 'In a receiver, a hard word can pass every parity check and the CRC while both residuals are still nonzero. The tests of the word decide acceptance; the residuals describe the continuous state.'),
@@ -2906,8 +2906,8 @@ var Realm = (function () {
         K('Who is who at the wall', 'One knot and one rule shrink to one Wanderer and one Warden.',
           [[['knot', 'a shared knot pₙ'], ['wanderer', 'the Wanderer x']], [['net', 'a rule’s copy zᵣₙ'], ['warden', 'the Warden z']], [['book', 'the scaled dual u'], ['book', 'the Warden’s book u']], [['aim', 'the target v = z − u'], ['aim', 'the aim past the Warden']]],
           'New here: the first entry, written on the day the Wanderer first leaves the wall.')] },
-    { id: 'net-keep-copies', from: 'net', at: ['bridge'], to: 'keep', land: 'local-copies', sign: 'Copies per check in a receiver', hook: 'CAJODE copies bits per parity check, as the net copies knots per mesh rule.', who: 'you', carry: ['the copies'],
-      scenes: [M('From the fish farm to the receiver', 'An interior knot belongs to four mesh rules, and each rule keeps its own copy. A bit in an LDPC code belongs to several parity checks, and CAJODE gives each check its own copy and scaled duals. LDPC stands for low-density parity-check.'),
+    { id: 'net-keep-copies', from: 'net', at: ['bridge'], to: 'keep', land: 'local-copies', sign: 'Copies per check in a receiver', hook: 'SAPPHIRE copies bits per parity check, as the net copies knots per mesh rule.', who: 'you', carry: ['the copies'],
+      scenes: [M('From the fish farm to the receiver', 'An interior knot belongs to four mesh rules, and each rule keeps its own copy. A bit in an LDPC code belongs to several parity checks, and SAPPHIRE gives each check its own copy and scaled duals. LDPC stands for low-density parity-check.'),
         S('oneToMany', { left: { title: 'one knot, four mesh rules', node: 'a shared knot pₙ', sets: ['mesh 1', 'mesh 2', 'mesh 3', 'mesh 4'] }, right: { title: 'one bit, several checks', node: 'one shared bit bᵢ', sets: ['check a', 'check b', 'check c'] } },
           'One copy per rule, one copy per check', 'Each mesh rule moves only its own copy of a knot, and each parity check moves only its own copy of a bit. The shared variable hears from all of them through the targets z − u.'),
         K('What the copies become', 'The sets change from geometry to parity; the bookkeeping does not.',
@@ -2917,8 +2917,8 @@ var Realm = (function () {
       scenes: [M('From the fish farm to the monopile', 'A repeating net made a sliding grid fit at every mesh. A repeating steel pile does the same to a single photo, which fits four headings. A range reading keeps one, as the rope and the tag keep one patch.'),
         S('diveIntro', {}, 'The inspection dive', DIVE_INTRO),
         K('What the aliases become', 'Both pages break a symmetry with something the evidence alone does not give.', flip(ALIASES), 'New here: allowed sets with stated allowances, one replica each.')] },
-    { id: 'net-keep-circuit', from: 'net', at: ['learned'], to: 'keep', land: 'iteration-order', sign: 'One complete CAJODE iteration', hook: 'The receiver’s own order of updates, after the net’s.', who: 'you', carry: ['the net’s round'],
-      scenes: [M('From the fish farm to the receiver', 'The net’s round has its own order: associate, move the knots, re-read the twines, project, update the duals and verify. The CAJODE receiver puts a different order around the same projection and scaled dual, and that page lists it.'),
+    { id: 'net-keep-circuit', from: 'net', at: ['learned'], to: 'keep', land: 'iteration-order', sign: 'One complete SAPPHIRE iteration', hook: 'The receiver’s own order of updates, after the net’s.', who: 'you', carry: ['the net’s round'],
+      scenes: [M('From the fish farm to the receiver', 'The net’s round has its own order: associate, move the knots, re-read the twines, project, update the duals and verify. The SAPPHIRE receiver puts a different order around the same projection and scaled dual, and that page lists it.'),
         S('receiverMini', {}, 'The receiver in miniature', MINI),
         K('What the net’s round becomes', 'Each step of the net has a counterpart, but the order differs. The receiver updates its bits before its channel and recomputes its weights in between. CRC stands for cyclic redundancy check.',
           [[['scales', 'frozen detection weights'], ['scales', 'a pseudo-Huber weight per sample']], [['knot', 'the knot sweep'], ['wave', 'an exact sparse channel solve']], [['twine', 'a threshold on every twine'], ['bit', 'a majorized step on the bits']], [['net', 'mesh projections'], ['check', 'parity projections']], [['book', 'a dual per copy'], ['book', 'a dual per check–bit edge']], [['lens', 'the close-up'], ['seal', 'parity, configured bits, CRC']]],
@@ -2956,19 +2956,19 @@ var Realm = (function () {
 
   var ROAD_COPY = {
     'keep-red': {
-      sign: 'See CAJODE’s measured bit error rate', hook: 'A results table counts what CAJODE and four other receivers get wrong on recorded frames.', cta: 'Read the Red BER table →',
-      same: 'CAJODE runs the same updates on every recorded frame.', different: 'One frame becomes 47 frames per point, at five pilot ratios and sixteen SNR values.'
+      sign: 'See SAPPHIRE’s measured bit error rate', hook: 'A results table counts what SAPPHIRE and five other receivers get wrong on recorded frames.', cta: 'Read the Red BER table →',
+      same: 'SAPPHIRE runs the same updates on every recorded frame.', different: 'One frame becomes 47 frames per point, at five pilot ratios and sixteen SNR values.'
     },
     'red-keep': {
-      sign: 'Open one CAJODE decode', hook: 'Follow one frame from the received carriers to an accepted word, update by update.', cta: 'Follow one CAJODE decode →',
+      sign: 'Open one SAPPHIRE decode', hook: 'Follow one frame from the received carriers to an accepted word, update by update.', cta: 'Follow one SAPPHIRE decode →',
       same: 'The same receiver that the table counts.', different: 'One frame, seen from inside, instead of error counts over many.'
     },
     'soldiers-red': {
-      sign: 'See JADE and CAJODE on recorded frames', hook: 'A results table counts their bit errors, beside three other receivers.', cta: 'Read the Red BER table →',
-      same: 'JADE’s decoder passes BP messages; CAJODE keeps records and notes.', different: 'The channel is unknown and estimated, and errors are counted over thousands of bits.'
+      sign: 'See JADE and SAPPHIRE on recorded frames', hook: 'A results table counts their bit errors, beside four other receivers.', cta: 'Read the Red BER table →',
+      same: 'JADE’s decoder passes BP messages; SAPPHIRE keeps records and notes.', different: 'The channel is unknown and estimated, and errors are counted over thousands of bits.'
     },
     'red-soldiers': {
-      sign: 'See BP messages on six soldiers', hook: 'The soldier slides show JADE’s kind of decoder and CAJODE’s circuit on one small tree.', cta: 'Watch the BP soldier →',
+      sign: 'See BP messages on six soldiers', hook: 'The soldier slides show JADE’s kind of decoder and SAPPHIRE’s circuit on one small tree.', cta: 'Watch the BP soldier →',
       same: 'A parity code and its checks.', different: 'Six bits and a known channel replace thousands of bits and an estimated one.'
     },
     'light-soldiers': {
@@ -2976,8 +2976,8 @@ var Realm = (function () {
       same: 'Each check still keeps its own view of the bits it touches.', different: 'A BP reply leaves its recipient out; a record takes in every card, and a note keeps the disagreement.'
     },
     'keep-soldiers': {
-      sign: 'Compare CAJODE’s circuit with a BP decoder', hook: 'Six soldiers decode one tree twice: the BP soldier passes replies, and the note-taking soldier runs CAJODE’s circuit with records and notes.', cta: 'Compare the two soldiers →',
-      same: 'Both decode the same codeword from the same readings.', different: 'BP passes support from the other bits; CAJODE projects onto each check and keeps the disagreement.'
+      sign: 'Compare SAPPHIRE’s circuit with a BP decoder', hook: 'Six soldiers decode one tree twice: the BP soldier passes replies, and the note-taking soldier runs SAPPHIRE’s circuit with records and notes.', cta: 'Compare the two soldiers →',
+      same: 'Both decode the same codeword from the same readings.', different: 'BP passes support from the other bits; SAPPHIRE projects onto each check and keeps the disagreement.'
     },
     'soldiers-twins': {
       sign: 'See a note as the Warden’s book', hook: 'At the kingdom wall one Warden keeps one book, and the rope fails without it.', cta: 'Watch the rope fail before the book →',
@@ -2989,9 +2989,9 @@ var Realm = (function () {
       offers: { carry: { role: 'chooser', badge: 'Overlapping checks', direct: true, order: 1, sign: 'Grow one check into a light board', hook: 'See every bit in two checks, each with its own replica and notes.', cta: 'Build the self-checking board →' } }
     },
     'soldiers-keep': {
-      sign: 'Follow the circuit inside an OFDM receiver', hook: 'Restore the officer’s map: an OFDM frame, pilots and a response estimated inside every circuit.', cta: 'Apply the circuit to CAJODE →',
+      sign: 'Follow the circuit inside an OFDM receiver', hook: 'Restore the officer’s map: an OFDM frame, pilots and a response estimated inside every circuit.', cta: 'Apply the circuit to SAPPHIRE →',
       same: 'Cards, records and notes keep their roles as bits, replicas and scaled dual variables.', different: 'The readings come from received samples through an estimated channel response.',
-      offers: { carry: { role: 'chooser', badge: 'Actual OFDM receiver', recommended: true, direct: true, order: 0, sign: 'Follow CAJODE from carriers to a candidate word', hook: 'Move from soldiers with a known channel to joint OFDM demodulation and decoding.', cta: 'Continue to the CAJODE receiver →' } }
+      offers: { carry: { role: 'chooser', badge: 'Actual OFDM receiver', recommended: true, direct: true, order: 0, sign: 'Follow SAPPHIRE from carriers to a candidate word', hook: 'Move from soldiers with a known channel to joint OFDM data detection and decoding.', cta: 'Continue to the SAPPHIRE receiver →' } }
     },
     'soldiers-coach': {
       badge: 'Simplest ADMM recap', direct: true, order: 2, sign: 'Plan one safe training session', hook: 'See the same four moves with one visible day-and-load plan.', cta: 'Review the moves on a training plan →',
@@ -3030,9 +3030,9 @@ var Realm = (function () {
       offers: { end: { role: 'chooser', badge: 'First application', recommended: true, direct: true, order: 0, sign: 'Plan one safe training session', hook: 'Learn the four ADMM moves with one visible day-and-load plan.', cta: 'Start with the Coach and Physio →' } }
     },
     'light-keep': {
-      sign: 'Put the light board inside an OFDM receiver', hook: 'Trace how post-FFT carrier observations, pilots, the channel response and coded bits create the evidence constrained by the checks.', cta: 'Apply the checks to CAJODE →',
+      sign: 'Put the light board inside an OFDM receiver', hook: 'Trace how post-FFT carrier observations, pilots, the channel response and coded bits create the evidence constrained by the checks.', cta: 'Apply the checks to SAPPHIRE →',
       same: 'Shared bits, per-check replicas and scaled dual variables keep the same roles.', different: 'The glows now come from received samples through an estimated channel response.',
-      offers: { end: { role: 'chooser', badge: 'Actual OFDM receiver', direct: true, order: 1, sign: 'Follow CAJODE from carriers to a candidate word', hook: 'Move from the light-board abstraction to joint OFDM demodulation and decoding.', cta: 'Continue to the CAJODE receiver →' } }
+      offers: { end: { role: 'chooser', badge: 'Actual OFDM receiver', direct: true, order: 1, sign: 'Follow SAPPHIRE from carriers to a candidate word', hook: 'Move from the light-board abstraction to joint OFDM data detection and decoding.', cta: 'Continue to the SAPPHIRE receiver →' } }
     },
     'tale-done': {
       sign: 'Compare the receiver’s three milestones', hook: 'A candidate can match before replica agreement and before the full toy state settles.', cta: 'See the numerical timeline →',
@@ -3055,7 +3055,7 @@ var Realm = (function () {
       same: 'x is shared, z is lawful, u stores signed disagreement, and ρ weights agreement.', different: 'One wall and two points replace the receiver’s many bits and checks.'
     },
     'keep-coach': {
-      badge: 'Simplest ADMM recap', direct: true, order: 1, sign: 'Strip CAJODE down to one visible plan', hook: 'Keep x, z, u, v and projection; remove the channel, CRC and thousands of bits.', cta: 'Review the four moves on a training plan →',
+      badge: 'Simplest ADMM recap', direct: true, order: 1, sign: 'Strip SAPPHIRE down to one visible plan', hook: 'Keep x, z, u, v and projection; remove the channel, CRC and thousands of bits.', cta: 'Review the four moves on a training plan →',
       same: 'The scaled ADMM circuit and nearest-set projection remain.', different: 'The objective scores training benefit and the feasible set is one polygon.'
     },
     'keep-dive': {
@@ -3063,7 +3063,7 @@ var Realm = (function () {
       same: 'Each local set keeps a replica and scaled dual variable.', different: 'The shared unknown is continuous position; no parity candidate or channel block is present.'
     },
     'keep-net': {
-      badge: 'Closest structural analogue', recommended: true, direct: true, order: 0, sign: 'Carry the joint-block idea to a torn net', hook: 'Estimate continuous knot positions and binary twine states from the same image while mesh rules keep local copies.', cta: 'Compare CAJODE with the torn net →',
+      badge: 'Closest structural analogue', recommended: true, direct: true, order: 0, sign: 'Carry the joint-block idea to a torn net', hook: 'Estimate continuous knot positions and binary twine states from the same image while mesh rules keep local copies.', cta: 'Compare SAPPHIRE with the torn net →',
       same: 'A continuous block and a binary block change one another’s evidence.', different: 'The copies enforce mesh geometry, and targeted follow-up is not CRC acceptance.'
     },
     'coach-twins': {
@@ -3084,8 +3084,8 @@ var Realm = (function () {
       same: 'Repeated visual structure creates several plausible registrations until an external anchor is added.', different: 'The pile repeats by rotation; the net repeats by translation.'
     },
     'dive-keep': {
-      sign: 'See CAJODE’s complete update order', hook: 'Place robust weights, the bit update, channel solve, parity projections, scaled-dual updates and candidate test in sequence.', cta: 'Open one complete CAJODE iteration →',
-      same: 'Projection and the scaled-dual update are the shared consensus steps.', different: 'CAJODE adds robust weights, bounded bits and a jointly fitted channel response.'
+      sign: 'See SAPPHIRE’s complete update order', hook: 'Place robust weights, the bit update, channel solve, parity projections, scaled-dual updates and candidate test in sequence.', cta: 'Open one complete SAPPHIRE iteration →',
+      same: 'Projection and the scaled-dual update are the shared consensus steps.', different: 'SAPPHIRE adds robust weights, bounded bits and a jointly fitted channel response.'
     },
     'dive-net-next': {
       badge: 'Next: add binary decisions', recommended: true, direct: true, order: 0, sign: 'Add torn-or-intact twines to the position problem', hook: 'Keep continuous geometry, then add binary states whose image evidence depends on the current knot positions.', cta: 'Continue to the torn net →',
@@ -3100,7 +3100,7 @@ var Realm = (function () {
       same: 'Every local rule keeps its own replica and scaled dual variable on each incidence.', different: 'Affine mesh geometry becomes a parity polytope on bits.'
     },
     'net-keep-circuit': {
-      badge: 'Return to the actual receiver', recommended: true, sign: 'Compare the net round with one CAJODE iteration', hook: 'Line up the corresponding updates, then see where the receiver recomputes weights and changes the order.', cta: 'Compare the full update schedules →',
+      badge: 'Return to the actual receiver', recommended: true, sign: 'Compare the net round with one SAPPHIRE iteration', hook: 'Line up the corresponding updates, then see where the receiver recomputes weights and changes the order.', cta: 'Compare the full update schedules →',
       same: 'Both alternate coupled blocks around local projections and persistent scaled dual variables.', different: 'The copied variables, update order, robust-weight timing and acceptance tests differ.'
     }
   };
@@ -3132,7 +3132,7 @@ var Realm = (function () {
   // the whole map, from wherever the reader stands
   function mapStep(here, onPage) {
     var lit = ROADS.filter(function (r) { return r.from === here || r.to === here; }).map(function (r) { return ORDER.indexOf(r.from) < ORDER.indexOf(r.to) ? r.from + '|' + r.to : r.to + '|' + r.from; });
-    var mine = ROADS.filter(function (r) { return r.from === here; }), html = 'Eight places teach one set of moves. Three heroes find the lowest spot of a land in fog; the Twins add a law with two copies, a rope and a book. Counting soldiers set those copies beside belief propagation. The same copies decode bits in CAJODE, plan a training session, tag photos at a monopile and find a tear in a net. The Red recordings count the bits that five receivers get wrong on recorded frames.<br><br>';
+    var mine = ROADS.filter(function (r) { return r.from === here; }), html = 'Eight places teach one set of moves. Three heroes find the lowest spot of a land in fog; the Twins add a law with two copies, a rope and a book. Counting soldiers set those copies beside belief propagation. The same copies decode bits in SAPPHIRE, plan a training session, tag photos at a monopile and find a tear in a net. The Red recordings count the bits that six receivers get wrong on recorded frames.<br><br>';
     html += ORDER.map(function (k) { var P0 = PLACES[k]; return (k === here ? '<b>' + P0.name + '</b> (you are here)' : '<a href="' + P0.file + '" data-realm-go="1">' + P0.name + '</a>') + ', ' + P0.sub; }).join('<br>');
     if (mine.length) {
       function roadLine(r) {
@@ -3224,6 +3224,15 @@ var Realm = (function () {
       html += k === page ? '<span class="' + cls + '" aria-current="page" aria-label="' + esc(label) + '">' + P0.bar + mark + '</span>' : '<a class="' + cls + '" aria-label="' + esc(label) + '" href="' + P0.file + '" data-realm-go="1">' + P0.bar + mark + '</a>';
     });
     barEl.innerHTML = html;
+    // On a narrow screen the sticky “more →” cue occupies the right edge.  Scroll only this navigation strip so
+    // the current label is visible; scrollIntoView would also move the document horizontally on some page shells.
+    try {
+      var current = barEl.querySelector && barEl.querySelector('[aria-current="page"]');
+      if (current && window.matchMedia && window.matchMedia('(max-width: 680px)').matches) {
+        var centreCurrent = function () { barEl.scrollLeft = Math.max(0, current.offsetLeft - (barEl.clientWidth - current.offsetWidth) / 2); };
+        if (window.requestAnimationFrame) window.requestAnimationFrame(centreCurrent); else centreCurrent();
+      }
+    } catch (e) { /* scrolling is only a visual convenience */ }
   }
   function predictionFor(r) {
     var key = null; for (var j = r.scenes.length - 1; j >= 0; j--) if (r.scenes[j].kind === 'key') { key = r.scenes[j]; break; }
@@ -3432,7 +3441,7 @@ var Realm = (function () {
         }
       }
       lane(top, 'JADE: feedback between joint steps', ['channel LLR Lch', 'BP posterior Lpost', 'Lext = Lpost − Lch', 'Lch + α Lext', 'tanh map', 'next joint step'], P.BP, 'the joint step produces the next channel estimate', H.seg(p, 0.05, 0.47));
-      lane(top + laneH + between, 'CAJODE: variables in one ADMM iteration', ['weights', 'relaxed bits', 'weights', 'channel', 'replica variables', 'scaled dual variables'], P.NOTE, 'one ADMM iteration under one objective', H.seg(p, 0.5, 0.95));
+      lane(top + laneH + between, 'SAPPHIRE: one constrained problem', ['weights', 'relaxed bits', 'weights', 'channel', 'replica variables', 'scaled dual variables'], P.NOTE, 'repeat ADMM blocks of that problem', H.seg(p, 0.5, 0.95));
     };
     officer.narrowDrawInstalled = true;
     // A deep link is rendered before this shell enhancement runs and debug mode deliberately stops repainting.

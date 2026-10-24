@@ -85,9 +85,9 @@ if (course) {
   check('the stopping page separates diagnostics and rejects a convergence claim', /geometry correction ≠ primal residual/.test(text('stopping')) && /not because textbook ADMM residual thresholds proved convergence/.test(text('stopping')));
   check('verification is labeled targeted, partial, hidden-truth simulation rather than a CRC', /only .* of .* twines are inspected/.test(text('verification')) && /cannot rule out a missed tear elsewhere/.test(text('verification')) && /not a cyclic redundancy check/.test(text('verification')));
   check('the result separates field-style output from simulator-only evaluation', /field-style output/.test(text('result')) && /simulator can compare against hidden truth/.test(text('result')));
-  check('the CAJODE bridge preserves the copy-variable and acceptance differences', /CAJODE the shared variable is a relaxed bit/.test(text('bridge')) && /hard independent twine thresholds/.test(text('differences')) && /syndrome followed by cyclic redundancy check/.test(text('differences')));
+  check('the SAPPHIRE bridge preserves the copy-variable and acceptance differences', /SAPPHIRE the shared variable is a relaxed bit/.test(text('bridge')) && /hard independent twine thresholds/.test(text('differences')) && /syndrome followed by cyclic redundancy check/.test(text('differences')));
   var source = fs.readFileSync(path.join(__dirname, 'net_course.js'), 'utf8');
-  check('retired overclaims do not reappear', !/CAJODE[’']s CRC|same guarantees|CAJODE[’']s order|anatomy, not its algebra|no formula, only samples/.test(source));
+  check('retired overclaims do not reappear', !/SAPPHIRE[’']s CRC|same guarantees|SAPPHIRE[’']s order|anatomy, not its algebra|no formula, only samples/.test(source));
 }
 
 // ---------------------------------------------------------------- 5. generated standalone freshness

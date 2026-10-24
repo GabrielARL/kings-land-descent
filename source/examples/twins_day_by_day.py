@@ -35,7 +35,7 @@ from matplotlib.colors import LinearSegmentedColormap
 THETA = np.radians(30.0)
 ROT = np.array([[np.cos(THETA), -np.sin(THETA)], [np.sin(THETA), np.cos(THETA)]])
 A = ROT @ np.diag([1.0, 10.0]) @ ROT.T      # [[3.25, -3.897], [-3.897, 7.75]]
-C = np.array([1.45, 0.75])                  # the valley floor c, outside the box
+x̂AT = np.array([1.45, 0.75])               # the valley floor x̂, outside the box
 LO, HI = 0.0, 1.0                           # the lawful box [0, 1]^2
 RHO = 3.0                                   # the rope's stiffness
 START = np.array([0.10, 0.15])              # both twins start here, with an empty book
@@ -46,7 +46,7 @@ LAND = LinearSegmentedColormap.from_list('land', ['#2f4f6f', '#9fb6cc', '#f4f7fa
 
 def f(x):
     """The valley's height at x (any array whose last axis has length 2)."""
-    d = x - C
+    d = x - x̂AT
     return 0.5 * np.einsum('...i,ij,...j->...', d, A, d)
 
 
@@ -58,7 +58,7 @@ def cost(x, aim):
 def wanderer(aim):
     """The lowest point of today's land, where the land's pull and the rope's pull cancel:
     A (x - c) + rho (x - aim) = 0, that is (A + rho I) x = A c + rho aim."""
-    return np.linalg.solve(A + RHO * np.eye(2), A @ C + RHO * aim)
+    return np.linalg.solve(A + RHO * np.eye(2), A @ x̂AT + RHO * aim)
 
 
 def warden(w):
@@ -138,7 +138,7 @@ def draw_day(ax, days_out, k, window, book):
 
 def spot_to_dig():
     """The spot to dig: the lowest point of the valley inside the box (it lies on the wall x1 = 1)."""
-    t = C[1] - A[0, 1] * (HI - C[0]) / A[1, 1]
+    t = x̂AT[1] - A[0, 1] * (HI - x̂AT[0]) / A[1, 1]
     return np.array([HI, np.clip(t, LO, HI)])
 
 

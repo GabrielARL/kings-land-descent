@@ -1,7 +1,7 @@
-// The soldiers of the tutorial "The BP protocol and the CAJODE circuit" (bp_and_cajode.html).  The first decoding
+// The soldiers of the tutorial "The BP protocol and the SAPPHIRE circuit" (bp_and_cajode.html).  The first decoding
 // example is a connected, cycle-free six-bit Tanner chain.  The second is the retained six-bit loop from deck p5.  In
 // both examples a positive channel LLR favours binary zero.  BP passes sum-product messages, while the known-channel
-// reduction of CAJODE keeps one relaxed bit variable, one per-check replica variable per edge and one scaled dual variable per
+// reduction of SAPPHIRE keeps one relaxed bit variable, one per-check replica variable per edge and one scaled dual variable per
 // edge.  The optional loop detour also retains CORAL's gradient walk.  Plain JavaScript (Node 12 or later).
 var Soldiers = (function () {
   function clip(v, lo, hi) { return v < lo ? lo : v > hi ? hi : v; }
@@ -56,7 +56,7 @@ var Soldiers = (function () {
   function hardBits(llr) { return llr.map(function (v) { return v >= 0 ? 0 : 1; }); }
 
   // Flooding sum-product.  V stores variable-to-check messages and U stores check-to-variable messages.  The recipient
-  // is excluded in both directions. `bits` is the single binary convention used throughout the BP and CAJODE lesson;
+  // is excluded in both directions. `bits` is the single binary convention used throughout the BP and SAPPHIRE lesson;
   // `word` retains the equivalent bipolar form only for the optional gradient comparison.
   function bpWalk(T, rule, iterations, stopWhenValid) {
     var checks = T.checks, L = T.L, n = T.n, V = {}, trace = [];
@@ -96,7 +96,7 @@ var Soldiers = (function () {
              after: trace[acceptedAt - 1].bits.slice(), exact: trace[trace.length - 1].B.slice() };
   }
 
-  // ---------------------------------------------------------------- the CAJODE constraint circuit with the channel known
+  // ---------------------------------------------------------------- the SAPPHIRE constraint circuit with the channel known
   // A card is a relaxed bit variable, not a posterior probability.  bitLLR is the bit-zero channel LLR.  Start: cards
   // from hard channel decisions, per-check replica variables projected from them, scaled dual variables zero.  One circuit:
   // update every relaxed bit from the fit and its incident (z-u) terms; project every replica variable; add b-z to

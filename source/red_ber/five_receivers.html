@@ -1,7 +1,7 @@
-<!-- The tutorial page "Five receivers on the Red recordings"; build_ber.py inlines its scripts and adds the document's
+<!-- The tutorial page "Six receivers on the Red recordings"; build_ber.py inlines its scripts and adds the document's
      html, head and body tags.  Everything above the body marker goes into the head.  The styles and the player are
      those of the King's Land tutorials (source/soldiers/soldiers.html and source/simulator/board.js). -->
-<title>Five receivers on the Red recordings</title>
+<title>Six receivers on the Red recordings</title>
 <meta name="kings-land-page" content="red">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -127,7 +127,7 @@ fieldset.predict p { margin: 7px 0 0; color: var(--muted); font-size: 14px; }
   <header class="course-head">
     <div>
       <div class="eyebrow">Reading a BER table · the Red recordings</div>
-      <h1 id="board-title">Five receivers on the Red recordings</h1>
+      <h1 id="board-title">Six receivers on the Red recordings</h1>
     </div>
     <span class="count" id="board-count"></span>
   </header>
@@ -192,30 +192,30 @@ fieldset.predict p { margin: 7px 0 0; color: var(--muted); font-size: 14px; }
   labelContents();
 
   var VISUAL = {
-    question: 'A five-row comparison introduces the five receiver names; colour and marker shape identify the same receiver throughout the lesson.',
+    question: 'A six-row comparison introduces the six receiver names; colour and marker shape identify the same receiver throughout the lesson.',
     grid: 'A grid expands one recording and hydrophone into pilot-ratio and signal-to-noise-ratio test conditions, then into one result per receiver.',
     pilots: 'A payload bar shrinks as the known pilot portion grows.',
     pooled: 'Error counts and payload-bit counts from several recording-hydrophone cases are added before their ratio is taken.',
     zero: 'A hollow marker with a downward arrow means no errors were observed; its plotted height is only a visibility convention.',
-    routes: 'A comparison table places the five complete receiver routes side by side and names where channel estimation, decoding, feedback and code constraints occur.',
+    routes: 'A comparison table places the six complete receiver routes side by side and names where channel estimation, decoding, feedback and code constraints occur.',
     'pilot-only': 'Two receiver pipelines end at the decoder and have no return arrow from decoder to channel estimation.',
     jade: 'The JADE pipeline has a return arrow carrying decoder extrinsic log-likelihood ratios into another receiver pass.',
     coral: 'The CORAL diagram shows channel coefficients and one relaxed scalar per coded bit updated in its joint loop.',
-    cajode: 'The CAJODE diagram separates one objective function and its constraints, one ADMM iteration, and the checks applied after thresholding the bit variables. It has no arrow from a decoder back to the channel estimator.',
-    cohorts: 'Two outlined groups show that the five receiver results come from two separate experimental cohorts.',
+    cajode: 'The SAPPHIRE diagram separates one constrained problem, one ADMM solver iteration within that problem, and the acceptance test applied to one thresholded candidate. It has no exchange between a separate detector and decoder.',
+    cohorts: 'Outlined groups show that the six receiver results come from separate experimental cohorts.',
     missing: 'A receiver-by-channel coverage matrix uses hatching for missing results and text beneath it to give the missing reason.',
-    common: 'The recording-hydrophone tiles with all five receivers are highlighted; hatched tiles are excluded from the five-way pooled comparison.',
+    common: 'The four recording-hydrophone tiles in the fixed six-receiver plot scope are highlighted; other tiles are excluded from the pooled comparison.',
     'one-curve-predict': 'An empty logarithmic chart asks where the first measured BER point will lie. No measured result is shown yet.',
     'one-curve': 'One logarithmic bit-error-rate curve falls as signal-to-noise ratio increases. Hollow ending markers mean no error was observed.',
-    'p75-predict': 'An empty five-receiver chart asks which curve will remain highest at the sampled high-SNR end. No measured result is shown yet.',
-    p75: 'Five pooled bit-error-rate curves share one logarithmic plot at 7.5 percent pilots. Colour and marker shape both identify each receiver.',
-    sweep: 'Five small plots repeat the same five-receiver comparison at 2.5, 5, 7.5, 12 and 15 percent pilots. All panels use the same axes and the same 10 to the minus 3 reading line.',
-    thresholds: 'A five-by-five matrix reports the first sampled signal-to-noise ratio whose pooled bit error rate is at most 10 to the minus 3.',
+    'p75-predict': 'An empty six-receiver chart asks which curve will remain highest at the sampled high-SNR end. No measured result is shown yet.',
+    p75: 'Six pooled bit-error-rate curves share one logarithmic plot at 7.5 percent pilots. Colour and marker shape both identify each receiver.',
+    sweep: 'Five small plots use the same four recording-hydrophone cases at 2.5, 5, 7.5, 12 and 15 percent pilots. PEARL is queued at the first two ratios and drawn at the other three.',
+    thresholds: 'A six-by-five matrix reports the first sampled signal-to-noise ratio whose pooled bit error rate is at most 10 to the minus 3; queued conditions stay blank.',
     zeros: 'Two rows of receiver markers show where runs of sampled points with no observed errors begin at 12 and 15 percent pilots.',
-    channels: 'A five-by-twelve matrix compares receivers across recording-hydrophone cases at 5 percent pilots and 20 decibels. Cell colour and the printed BER decade encode magnitude; hatching means missing.',
+    channels: 'A six-by-twelve matrix compares receivers across recording-hydrophone cases at 5 percent pilots and 20 decibels. Cell colour and the printed BER decade encode magnitude; hatching means missing.',
     supports: 'Two columns separate descriptive statements supported by this table from claims the table cannot establish.',
     snapshot: 'A provenance card lists the table snapshot, row counts, settings, common cases and file hash.',
-    synthesis: 'Five compact receiver-route cards connect each mechanism to the bounded observation this table can support.'
+    synthesis: 'Six compact receiver-route cards connect each mechanism to the bounded observation this table can support.'
   };
   function esc(s) { return String(s).replace(/[&<>"']/g, function (ch) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]; }); }
   function berText(q) { if (!q) return 'missing'; if (q.zero) return '0 observed errors'; return q.ber.toExponential(2).replace('e-', ' × 10^−').replace('e+', ' × 10^'); }
@@ -227,7 +227,7 @@ fieldset.predict p { margin: 7px 0 0; color: var(--muted); font-size: 14px; }
   function thresholdsTable() {
     var M = window.Ber, D = window.BerData; if (!M || !D) return '';
     var heads = D.pilots.map(function (p) { return p.ratio + '% pilots'; });
-    var rows = M.IDS.map(function (id) { return [M.NAME[id]].concat(D.pilots.map(function (p, pi) { var s = M.firstAtMost(M.curve(id, pi), 1e-3); return s == null ? 'not reached' : s + ' dB'; })); });
+    var rows = M.IDS.map(function (id) { return [M.NAME[id]].concat(D.pilots.map(function (p, pi) { var cv = M.curve(id, pi), s = M.firstAtMost(cv, 1e-3); return cv.every(function (q) { return q === null; }) ? 'queued' : s == null ? 'not reached' : s + ' dB'; })); });
     return tableHtml('First sampled SNR with pooled BER at most 10^−3, over the common recording-hydrophone cases.', heads, rows);
   }
   function pooledTable(ratio) {

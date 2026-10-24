@@ -1003,7 +1003,7 @@ var Game = (function () {
     var trial = { on: false, i: 0, state: 'off', base: null, at: 0, banner: null, notes: {}, done: false, targetShown: -1, quizFeedback: '' };
     var stats = { turned: 0, walked: 0, feels: 0, started: 0, boards: 0, boardCompletions: 0 };
     var regions = {}, rimMarks = [], hlEls = [];
-    var LESSONS = ['Find your feet', 'Feel the slope', 'The King’s counsel', 'The Pilgrim', 'The Cartographer', 'Change the rules', 'The Twins and the wall', 'The light board and CAJODE', 'The misty hills'];
+    var LESSONS = ['Find your feet', 'Feel the slope', 'The King’s counsel', 'The Pilgrim', 'The Cartographer', 'Change the rules', 'The Twins and the wall', 'The light board and SAPPHIRE', 'The misty hills'];
     var LESSON_WHY = [
       'Your height J is the cost: every hero wants it as low as it goes.',
       'Four taps give the slope ∇J; walking against it is gradient descent.',
@@ -1012,7 +1012,7 @@ var Game = (function () {
       'L-BFGS: a memory of past strides bends the course, and each stride is tested before it is taken.',
       'Too long a stride (α too big) makes gradient descent overshoot and fly off.',
       'ADMM: two copies divide the cost and the law, then the rope and ledger restore agreement.',
-      'The light board shows overlapping parity checks; CAJODE adds an updated channel and a larger sparse code graph.',
+      'The light board shows overlapping parity checks; SAPPHIRE adds an updated channel and a larger sparse code graph.',
       'Bumps, noise and narrow pits: what each method does when the land is hard.'
     ];
     function roman(n) { return ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX'][n - 1] || String(n); }
@@ -1097,13 +1097,13 @@ var Game = (function () {
         king: 'The wall taught the ADMM split. This plot isolates the smallest even-parity check: two relaxed bit variables, fixed channel evidence, and a blue parity polytope joining the two passing patterns 00 and 11. It is a bridge to the light board, not a simulation of the full receiver.',
         info: true, goal: 'The two coordinates are relaxed bit values. The endpoints 00 and 11 pass even parity; 01 and 10 fail. The evidence stays fixed because this toy assumes the channel is known.', target: { dom: '#fog-stage', spot: 'centre', text: 'Two bits and one check' } },
       { lesson: 7, info: true, goal: 'The self-checking light board scales this to nine bits. Each lamp belongs to one row check and one column check. A single failed row and column locate one error only under a one-error assumption; with several uncertain glows, the channel LLRs choose among multiple parity-valid boards.' },
-      { lesson: 7, info: true, goal: 'A real LDPC code has many overlapping checks. CAJODE keeps one shared variable bᵢ ∈ [0, 1] for each coded bit. Every check keeps replica variables zₐ inside its parity polytope. Each bit occurrence in a check has a scaled dual variable uₐ,ᵢ—a ledger entry for signed disagreement.' },
-      { lesson: 7, info: true, goal: 'One full CAJODE circuit computes one robust weight for each received sample, updates all shared variables bᵢ, recomputes those weights, updates all channel coefficients, projects each check’s replicas onto its parity polytope, and then updates every scaled dual variable. The channel update is what the fixed-evidence light board does not show.' },
+      { lesson: 7, info: true, goal: 'A real LDPC code has many overlapping checks. SAPPHIRE keeps one shared variable bᵢ ∈ [0, 1] for each coded bit. Every check keeps replica variables zₐ inside its parity polytope. Each bit occurrence in a check has a scaled dual variable uₐ,ᵢ—a ledger entry for signed disagreement.' },
+      { lesson: 7, info: true, goal: 'One full SAPPHIRE circuit computes one robust weight for each received sample, updates all shared variables bᵢ, recomputes those weights, updates all channel coefficients, projects each check’s replicas onto its parity polytope, and then updates every scaled dual variable. The channel update is what the fixed-evidence light board does not show.' },
       { lesson: 7, goal: 'Which statement correctly separates accepting a decoded word from continuous convergence?',
         quiz: { options: [
           'A word may pass every parity check and the CRC even while continuous residuals remain nonzero.',
-          'A small primal residual by itself proves that CAJODE has converged to a stationary point.',
-          'The light board includes CAJODE’s channel-coefficient update, so the two are equivalent.'
+          'A small primal residual by itself proves that SAPPHIRE has converged to a stationary point.',
+          'The light board includes SAPPHIRE’s channel-coefficient update, so the two are equivalent.'
         ], correct: 0, retry: 'Try again. Parity checks plus CRC test a binary word; they do not prove continuous convergence or stationarity.' } },
       { lesson: 8, setup: function () { goLand('misty'); api.restart(); ride = null; placePlayer(); },
         king: 'Now my hardest land: ripples make extra hollows, haze makes every tap a little wrong, and black holes are narrow pits that reveal themselves only when someone samples them.',
@@ -1167,7 +1167,7 @@ var Game = (function () {
       trial.on = false; trial.done = true; trial.state = 'off'; clearHL(); renderQuest(); save();
       var secs = Math.round((tnow() - stats.started) / 1000);
       trial.banner = { text: 'Trial complete', at: tnow() };
-      showNode({ npc: 'king', narration: true, text: 'Your trial is complete, apprentice. You felt the slope as the Pilgrim does, read the Cartographer’s journal, followed one full ADMM circuit, and carried the light board’s overlapping parity checks into CAJODE. You also separated three hazards: ripples make extra hollows, haze changes measurements, and an unvisited narrow pit gives no local clue. In ' + Math.floor(secs / 60) + ' min ' + (secs % 60) + ' s you tapped the ground ' + stats.feels + ' times and walked ' + num(stats.walked, 1) + '. The hidden treasure is still yours to seek in free exploration.',
+      showNode({ npc: 'king', narration: true, text: 'Your trial is complete, apprentice. You felt the slope as the Pilgrim does, read the Cartographer’s journal, followed one full ADMM circuit, and carried the light board’s overlapping parity checks into SAPPHIRE. You also separated three hazards: ripples make extra hollows, haze changes measurements, and an unvisited narrow pit gives no local clue. In ' + Math.floor(secs / 60) + ' min ' + (secs % 60) + ' s you tapped the ground ' + stats.feels + ' times and walked ' + num(stats.walked, 1) + '. The hidden treasure is still yours to seek in free exploration.',
                  choices: [{ label: 'Explore freely.', go: function () { return null; } }] });
     }
     // A lesson may lend the Cartographer a shorter journal; leaving the lesson, or the trial, gives the old one back.

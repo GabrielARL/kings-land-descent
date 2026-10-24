@@ -1,4 +1,4 @@
-// Checks of the curated roads between the six pages (realm.js): every road starts and lands on a real step, the
+// Checks of the curated roads between the eight pages (realm.js): every road starts and lands on a real step, the
 // prominent cards answer the question at their source, secondary comparisons stay folded, map-only roads stay on the
 // map, interludes draw and land, repeat visits shorten without losing full replay, return tickets nest, and the built
 // pages carry the current player and realm source.  Run from anywhere with Node 12 or later:
@@ -73,6 +73,16 @@ var SECONDARY = ['coach-soldiers', 'misty-net', 'keep-light', 'keep-net-robust',
 var MAP_ONLY = ['tale-twins-game', 'game-ridge', 'coach-keep', 'dive-coach', 'net-keep-robust', 'net-keep-blocks', 'net-keep-done', 'net-dive-aliases'];
 var REMOVED = ['game-wall-coach', 'game-fort-keep', 'game-misty-net', 'light-dive', 'coach-dive-next'];
 check('the curation has exactly 54 roads: 33 primary, 13 secondary and 8 map-only', ROADS.length === 54 && R.PRIMARY_ROADS.length === 33 && R.SECONDARY_ROADS.length === 13 && R.MAP_ROADS.length === 8, ROADS.length + ' = ' + R.PRIMARY_ROADS.length + ' + ' + R.SECONDARY_ROADS.length + ' + ' + R.MAP_ROADS.length);
+var realmText = fs.readFileSync(path.join(__dirname, 'realm.js'), 'utf8');
+check('every Red road and map summary uses the six-receiver count',
+  PLACES.red.sub === 'six receivers, measured bit errors' &&
+  /key:6', 'six receivers side by side/.test(realmText) &&
+  /SAPPHIRE and five other receivers/.test(realmText) &&
+  /JADE and SAPPHIRE get wrong on recorded frames, beside four other receivers/.test(realmText) &&
+  /Red recordings count the bits that six receivers get wrong/.test(realmText) &&
+  !/five receivers side by side|bits that five receivers get wrong|beside three other receivers/.test(realmText));
+check('mobile navigation centres its active pill without scrolling the document',
+  /barEl\.scrollLeft\s*=/.test(realmText) && !/current\.scrollIntoView/.test(realmText));
 check('the three road tiers contain the approved ids', sameMembers(R.PRIMARY_ROADS, PRIMARY) && sameMembers(R.SECONDARY_ROADS, SECONDARY) && sameMembers(R.MAP_ROADS, MAP_ONLY));
 check('the removed duplicate roads stay removed', REMOVED.every(function (id) { return !road(id); }), REMOVED.filter(function (id) { return road(id); }).join(', '));
 check('every road id is unique and belongs to exactly one tier', ROADS.map(function (r) { return r.id; }).filter(function (id, j, a) { return a.indexOf(id) !== j; }).length === 0 && ROADS.every(function (r) { return [PRIMARY, SECONDARY, MAP_ONLY].filter(function (a) { return a.indexOf(r.id) >= 0; }).length === 1 && r.tier === (PRIMARY.indexOf(r.id) >= 0 ? 'primary' : SECONDARY.indexOf(r.id) >= 0 ? 'secondary' : 'map'); }));
@@ -111,12 +121,12 @@ check('only the three course-end choosers show several primary cards together', 
 
 function offers(ids0, step) { return ids0.map(function (id) { return R.offer(road(id), step); }).sort(function (a, b) { return a.order - b.order; }); }
 var taleChoice = offers(['twins-coach', 'light-keep', 'tale-dive', 'tale-net'], 'end');
-check('the tutorial ends with Coach, CAJODE, Dive and Net direct choices in that order', taleChoice.map(function (r) { return r.id; }).join('|') === 'twins-coach|light-keep|tale-dive|tale-net' && taleChoice.every(function (r) { return r.role === 'chooser' && r.direct; }));
+check('the tutorial ends with Coach, SAPPHIRE, Dive and Net direct choices in that order', taleChoice.map(function (r) { return r.id; }).join('|') === 'twins-coach|light-keep|tale-dive|tale-net' && taleChoice.every(function (r) { return r.role === 'chooser' && r.direct; }));
 check('the Coach is the tutorial’s single recommended first application', taleChoice.filter(function (r) { return r.recommended; }).length === 1 && taleChoice[0].recommended);
 var keepChoice = offers(['keep-net', 'keep-coach', 'keep-dive'], 'takeaway');
-check('CAJODE ends with Net recommended, then Coach and Dive, all direct', keepChoice.map(function (r) { return r.id; }).join('|') === 'keep-net|keep-coach|keep-dive' && keepChoice[0].recommended && keepChoice.every(function (r) { return r.role === 'chooser' && r.direct; }));
+check('SAPPHIRE ends with Net recommended, then Coach and Dive, all direct', keepChoice.map(function (r) { return r.id; }).join('|') === 'keep-net|keep-coach|keep-dive' && keepChoice[0].recommended && keepChoice.every(function (r) { return r.role === 'chooser' && r.direct; }));
 var soldierChoice = offers(['soldiers-keep', 'soldiers-light', 'soldiers-coach'], 'carry');
-check('the soldiers end with CAJODE recommended, then the light board and the Coach, all direct', soldierChoice.map(function (r) { return r.id; }).join('|') === 'soldiers-keep|soldiers-light|soldiers-coach' && soldierChoice[0].recommended && soldierChoice.filter(function (r) { return r.recommended; }).length === 1 && soldierChoice.every(function (r) { return r.role === 'chooser' && r.direct; }));
+check('the soldiers end with SAPPHIRE recommended, then the light board and the Coach, all direct', soldierChoice.map(function (r) { return r.id; }).join('|') === 'soldiers-keep|soldiers-light|soldiers-coach' && soldierChoice[0].recommended && soldierChoice.filter(function (r) { return r.recommended; }).length === 1 && soldierChoice.every(function (r) { return r.role === 'chooser' && r.direct; }));
 check('later course hand-offs open the next prerequisite directly', R.offer(road('coach-dive'), 'differences').direct && R.offer(road('coach-dive'), 'differences').land === 'job' && R.offer(road('dive-net-next'), 'end').direct);
 
 function reach(from) { var seen = {}, todo = [from]; seen[from] = 1; while (todo.length) { var a = todo.pop(); ROADS.forEach(function (r) { if (r.from === a && !seen[r.to]) { seen[r.to] = 1; todo.push(r.to); } }); } return Object.keys(seen).length; }
@@ -215,12 +225,12 @@ Object.keys(PAGES).forEach(function (k) {
   var replica = sandbox(PAGES.tutorial, 'tutorial', '#at=light-replicas'), d3 = replica.Board.debug({});
   check('the public replica permalink keeps its stable target', !d3.road && d3.id === 'light-replicas' && d3.title === 'Why each check keeps a replica vector');
   var tale = sandbox(PAGES.tutorial, 'tutorial'), tf = elementWithClass(tale, 'realm-fork'); tale.Board.go(ids.tutorial.indexOf('end')); var th = tf.innerHTML;
-  check('the tutorial end renders one four-way direct chooser with the Coach first and recommended', th.indexOf('Choose what to learn next') >= 0 && (th.match(/realm-road-primary/g) || []).length === 4 && th.indexOf('Plan one safe training session') < th.indexOf('Follow CAJODE') && th.indexOf('Recommended') >= 0 && th.indexOf('#via=') < 0);
+  check('the tutorial end renders one four-way direct chooser with the Coach first and recommended', th.indexOf('Choose what to learn next') >= 0 && (th.match(/realm-road-primary/g) || []).length === 4 && th.indexOf('Plan one safe training session') < th.indexOf('Follow SAPPHIRE') && th.indexOf('Recommended') >= 0 && th.indexOf('#via=') < 0);
   var keep = sandbox(PAGES.keep, 'keep'), kf = elementWithClass(keep, 'realm-fork'); keep.Board.go(ids.keep.indexOf('takeaway')); var kh = kf.innerHTML;
-  check('the CAJODE takeaway renders Net first in its three-way direct chooser', (kh.match(/realm-road-primary/g) || []).length === 3 && kh.indexOf('Carry the joint-block idea') < kh.indexOf('Strip CAJODE down') && kh.indexOf('Recommended') >= 0 && kh.indexOf('#via=') < 0);
+  check('the SAPPHIRE takeaway renders Net first in its three-way direct chooser', (kh.match(/realm-road-primary/g) || []).length === 3 && kh.indexOf('Carry the joint-block idea') < kh.indexOf('Strip SAPPHIRE down') && kh.indexOf('Recommended') >= 0 && kh.indexOf('#via=') < 0);
   var seeded = memoryStorage({ 'kings-land-roads-v1': JSON.stringify({ seen: { tutorial: 1, coach: 1 }, done: { keep: 1 } }) });
   var access = sandbox(PAGES.tutorial, 'tutorial', '', seeded), ab = elementWithClass(access, 'realm-bar'), ah = ab && ab.innerHTML || '';
-  check('page progress uses visible marks plus screen-reader and aria-label status text', ah.indexOf('Coach and Physio, visited') >= 0 && ah.indexOf('CAJODE receiver, reached the end') >= 0 && ah.indexOf('aria-hidden="true"') >= 0 && ah.indexOf('realm-sr') >= 0);
+  check('page progress uses visible marks plus screen-reader and aria-label status text', ah.indexOf('Coach and Physio, visited') >= 0 && ah.indexOf('SAPPHIRE receiver, reached the end') >= 0 && ah.indexOf('aria-hidden="true"') >= 0 && ah.indexOf('realm-sr') >= 0);
   check('the old generic “Take the road” CTA is absent from all contextual cards', ROADS.every(function (r) { return !/take the road/i.test(r.cta || ''); }));
 })();
 

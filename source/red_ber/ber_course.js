@@ -1,5 +1,5 @@
-// "Five receivers on the Red recordings": how to read the Red-channel receiver BER table.  Chapter 1 defines the
-// experiment and its units; chapter 2 distinguishes five complete receiver routes; chapter 3 establishes the comparison
+// "Six receivers on the Red recordings": how to read the Red-channel receiver BER table.  Chapter 1 defines the
+// experiment and its units; chapter 2 distinguishes six complete receiver routes; chapter 3 establishes the comparison
 // population before any pooled claim; chapter 4 reads the principal and supporting result views; chapter 5 separates
 // descriptive evidence from mechanism and provenance.  Every number below is computed from ber_data.js.
 (function () {
@@ -7,7 +7,7 @@
   var B = window.Board, M = window.Ber, P = window.BerParts; if (!B || !M || !P) return;
   var H = B.H, C = H.C, seg = H.seg, num = H.num, at = H.at, clamp = H.clamp, ease = H.ease;
   var D = M.D, RX = P.RX, ORDER = P.ORDER, sci = P.sci, group = P.group, pow10 = P.pow10;
-  var out = [], CH = { what: 'What was measured', rx: 'Five receivers', read: 'Reading the table', shows: 'What the table shows', claims: 'What it supports' };
+  var out = [], CH = { what: 'What was measured', rx: 'Six receivers', read: 'Reading the table', shows: 'What the table shows', claims: 'What it supports' };
   function pct(r) { return (r % 1 ? String(r) : String(r)) + '%'; }
   function pi(r) { return M.pilotIndex(r); }
   function si(s) { return M.snrIndex(s); }
@@ -15,7 +15,8 @@
   function list(items) { return items.length < 2 ? items.join('') : items.slice(0, -1).join(', ') + ' and ' + items[items.length - 1]; }
   function dB(s) { return s == null ? 'never' : s + ' dB'; }
   function subN(n) { return String(n).split('').map(function (ch) { return '₀₁₂₃₄₅₆₇₈₉'.charAt(+ch); }).join(''); }
-  function firstSentence(i) { return ORDER.map(function (k) { return M.NAME[k] + ': ' + dB(FIRST[k][i]); }).join('; '); }
+  function curveReady(k, i) { return CURVES[k][i].some(function (q) { return !!q; }); }
+  function firstSentence(i) { return ORDER.map(function (k) { return M.NAME[k] + ': ' + (curveReady(k, i) ? dB(FIRST[k][i]) : 'missing'); }).join('; '); }
   function choice(name, legend, values) {
     return '<fieldset class="predict"><legend>' + legend + '</legend>' + values.map(function (v) {
       return '<label><input type="radio" name="' + name + '"> <span>' + v + '</span></label>';
@@ -23,21 +24,23 @@
   }
   var cov = M.coverage(), avail = cov.reduce(function (s, q) { return s + q.available; }, 0), miss = cov.reduce(function (s, q) { return s + q.missing; }, 0);
   var PIL = D.pilots, LO = PIL[0], HI = PIL[PIL.length - 1], NCH = M.CHANNELS.length, PER = PIL.length * D.snrs.length;
-  // the pooled curves on the channels where all five receivers have results, at every pilot ratio
+  // Every panel uses the same four case labels.  PEARL is currently complete on them at 7.5%, 12% and 15%; its
+  // queued 2.5% and 5% cells stay null while the other five curves retain this same comparison population.
   var CURVES = {}; ORDER.forEach(function (k) { CURVES[k] = PIL.map(function (p, i) { return M.curve(k, i); }); });
   var FIRST = {}, ZERO = {}, LOWEST = {};
   ORDER.forEach(function (k) { FIRST[k] = CURVES[k].map(function (cv) { return M.firstAtMost(cv, 1e-3); }); ZERO[k] = CURVES[k].map(function (cv) { return M.zeroFrom(cv); }); LOWEST[k] = CURVES[k].map(function (cv) { return M.lowest(cv); }); });
   var commonBits = function (i) { return M.COMMON.length * M.bits(i); };
+  var BASE = ORDER.filter(function (k) { return k !== 'pearl'; });
 
   // ------------------------------------------------------------ 1. what was measured
-  out.push({ id: 'question', chapter: CH.what, title: 'One question for five receivers', layout: 'side', dur: 6,
+  out.push({ id: 'question', chapter: CH.what, title: 'One question for six receivers', layout: 'side', dur: 6,
     text: 'This tutorial reads one table of results. Each row asks: when a receiver decodes recorded frames, how many payload bits does it get wrong? The answer is a bit error rate (BER). ' +
       'Red is a family of measured shallow-water channel recordings from a drifting acoustic link near Singapore at a 25 kHz carrier. Generated orthogonal frequency-division multiplexing (OFDM) frames are replayed through those measured channels and observed on three hydrophones. ' +
       'Here, the signal-to-noise ratio (SNR) is the sample signal power in the replay divided by the expected noise power added during replay, not E_b/N_0. A larger value means less added noise relative to the signal. ' +
       'Every row reports a fast Fourier transform (FFT) length of ' + D.fftLength + ', code rate ' + D.codeRate + ', and ' + D.frames + ' one-second frames.',
     math: 'rows = ' + D.recordings.length + ' recordings × ' + D.hydrophones.length + ' hydrophones × ' + PIL.length + ' pilot ratios × ' + D.snrs.length + ' SNRs × ' + ORDER.length + ' receivers = ' + group(D.rows),
     draw: function (g, p) {
-      var R = g.sideR, c = g.ctx, narrow = R[2] < 560; g.panel(R, 'one recorded frame, five receivers');
+      var R = g.sideR, c = g.ctx, narrow = R[2] < 560; g.panel(R, 'one recorded frame, six receivers');
       var fx = R[0] + 16, fy = R[1] + 50, fw = narrow ? R[2] - 32 : R[2] * 0.36, fh = narrow ? 64 : 90, q0 = seg(p, 0, 0.25);
       // the frame: OFDM symbols as columns, pilots as gold ticks
       c.save(); c.globalAlpha = q0; c.fillStyle = 'rgba(169,205,246,0.08)'; c.strokeStyle = C.faint; c.lineWidth = 1; c.beginPath(); P.rrect(c, fx, fy, fw, fh, 6); c.fill(); c.stroke();
@@ -45,7 +48,7 @@
         for (var k = 0; k < 6; k++) { var y = fy + 10 + k * (fh - 20) / 5; c.fillStyle = (s + k) % 4 === 0 ? C.gold : 'rgba(242,245,248,0.45)'; c.fillRect(x + 3, y - 1.5, (fw - 16) / 12 - 6, 3); } }
       c.restore();
       g.labelPx(fx + fw / 2, fy + fh + 14, 'one second, Red r, hydrophone h; gold: pilots', C.dim, { plain: true, size: 11, align: 'center', p: q0 });
-      var rx0 = narrow ? R[0] + 16 : R[0] + R[2] * 0.47, ry0 = narrow ? fy + fh + 44 : R[1] + 56, rh = narrow ? 40 : Math.min(88, (R[3] - 100) / 5);
+      var rx0 = narrow ? R[0] + 16 : R[0] + R[2] * 0.47, ry0 = narrow ? fy + fh + 44 : R[1] + 56, rh = narrow ? 35 : Math.min(74, (R[3] - 100) / ORDER.length);
       ORDER.forEach(function (id, i) {
         var q = seg(p, 0.25 + 0.1 * i, 0.4 + 0.1 * i); if (!(q > 0)) return;
         var y = ry0 + i * rh + rh / 2;
@@ -152,27 +155,29 @@
       g.labelPx(L, Bt + 56, 'hollow circle: where a zero is drawn, 0.5 / bits', C.ink, { plain: true, size: 11.5, p: seg(p, 0.8, 0.95) });
     } });
 
-  // ------------------------------------------------------------ 2. the five receivers
+  // ------------------------------------------------------------ 2. the six receivers
   var ROUTE = {
     'ofdm+fec': ['pilot-assisted|channel estimation', 'BP once', 'no feedback'],
     'pfft+fec': ['partial FFT|outputs', 'BP once', 'no feedback'],
     jade: ['channel response +|variables for coded bits', 'normalized min-sum', 'decoder feedback'],
+    pearl: ['channel response +|variables for coded bits', 'normalized min-sum', 'messages persist|between iterations'],
     coral: ['channel response +|variables for coded bits', 'penalty term|from parity checks', 'backtracking|line search'],
-    cajode: ['channel response +|variables for coded bits', 'parity-polytope|projection', 'scaled dual|variables']
+    cajode: ['channel response +|shared relaxed bits', 'parity polytopes|as constraints', 'ADMM blocks|of one problem']
   };
   var ROUTE_PHONE = {
     'ofdm+fec': ['pilots', 'BP once', 'no feedback'],
     'pfft+fec': ['partial FFT', 'BP once', 'no feedback'],
     jade: ['channel +|bits', 'min-sum', 'feedback'],
+    pearl: ['channel +|bits', 'min-sum', 'messages persist'],
     coral: ['channel +|bits', 'penalty term', 'line search'],
-    cajode: ['channel +|bits', 'parity|polytope', 'scaled duals']
+    cajode: ['channel +|bits', 'parity constraints', 'ADMM blocks']
   };
-  out.push({ id: 'routes', chapter: CH.rx, title: 'Five receivers, five complete routes', layout: 'side', dur: 6.5,
-    text: 'Belief propagation is a decoder component, while the five rows in the mechanism map are complete receiver routes. The first two estimate from pilots and then decode once. ' +
-      'JADE returns extrinsic information from the decoder to the next pass that estimates the channel response and variables representing the coded bits. CORAL includes the code constraints as penalty terms while estimating those variables, without a separate decoder. CAJODE gives each parity check a constrained local copy and represents its disagreement with scaled dual variables. ' +
-      'The next four pages unpack those differences before any performance curve appears.',
+  out.push({ id: 'routes', chapter: CH.rx, title: 'Six receivers, six complete routes', layout: 'side', dur: 6.5,
+    text: 'Belief propagation is a decoder component, while the six rows in the mechanism map are complete receiver routes. The first two estimate from pilots and then decode once. ' +
+      'JADE returns extrinsic information from the decoder to the next estimation pass. PEARL is the Persistent-Edge Alternating Receiver Loop. It carries its check-to-variable and variable-to-check messages from one message-passing iteration to the next while it updates the channel estimate. CORAL includes the code constraints as penalty terms without a separate decoder. SAPPHIRE gives each parity check a constrained local copy and represents its disagreement with scaled dual variables. ' +
+      'The next five pages unpack those differences before any performance curve appears.',
     math: 'ask of each route: how is the response estimated?  where does the code enter?  what computation repeats?',
-    a11y: 'Receiver mechanism map. OFDM plus FEC uses pilot-assisted channel estimation, runs the belief-propagation decoder once and provides no feedback. Partial FFT plus FEC combines partial FFT outputs, then runs the belief-propagation decoder once and provides no feedback. JADE returns extrinsic information from the normalized min-sum decoder to another pass that estimates the channel response and variables representing the coded bits. CORAL estimates those variables with a penalty term formed from parity checks and no belief-propagation decoder. CAJODE projects a local copy of the bit variables for each parity check onto its parity polytope and updates scaled dual variables.',
+    a11y: 'Receiver mechanism map. OFDM plus FEC uses pilot-assisted channel estimation, runs the belief-propagation decoder once and provides no feedback. Partial FFT plus FEC combines partial FFT outputs, then runs the belief-propagation decoder once and provides no feedback. JADE returns extrinsic information from the normalized min-sum decoder to another estimation pass. PEARL is the Persistent-Edge Alternating Receiver Loop. It keeps its check-to-variable and variable-to-check messages between message-passing iterations while updating the channel estimate. CORAL uses a penalty term formed from parity checks and no belief-propagation decoder. SAPPHIRE projects a local copy of the bit variables for each parity check onto its parity polytope and updates scaled dual variables.',
     draw: function (g, p) {
       var R = g.sideR, narrow = R[2] < 560; g.panel(R, 'compare mechanisms before curves');
       P.matrix(g, R, { rows: ORDER, cols: narrow ? ['response', 'code', 'repeats'] : ['observation / response', 'how code enters', 'what repeats'], labelW: narrow ? 104 : 146, top: 64, maxH: narrow ? 43 : 54, size: narrow ? 9.5 : 11, headSize: narrow ? 9.5 : 11, p: p,
@@ -200,6 +205,18 @@
       P.pipeline(g, R, { title: 'JADE', col: RX.jade.col, q: p, y: R[1] + 50, perRow: 3, h: R[2] < 560 ? 50 : 76, rowGap: 64, back: 'the next estimation pass', boxes: ['channel LLR|Lch', 'BP decoder|normalized min-sum', 'extrinsic|Lext = Lpost − Lch', 'Lch + α·Lext', 'hyperbolic tangent|function', 'estimate channel +|variables for bits'] });
     } });
 
+  out.push({ id: 'pearl', chapter: CH.rx, title: 'PEARL: messages persist across iterations', layout: 'side', dur: 7,
+    text: 'PEARL is the Persistent-Edge Alternating Receiver Loop and names the frozen R2-V1 receiver profile. It estimates the channel response and variables representing the coded bits jointly. ' +
+      'Within the normalized min-sum computation, its check-to-variable and variable-to-check messages carry from one message-passing iteration to the next instead of being reinitialized for each channel update. ' +
+      'The profile updates the channel estimate after every second message-passing iteration and permits at most 80 iterations. The plotted rows use this frozen profile; the table does not tune it from the reported BER.',
+    math: 'keep check-to-variable and variable-to-check messages → update the channel estimate every second iteration → continue, at most 80 iterations',
+    a11y: 'PEARL is the Persistent-Edge Alternating Receiver Loop and uses the frozen R2-V1 profile. Its check-to-variable and variable-to-check messages persist from one message-passing iteration to the next. It updates the channel estimate after every second iteration and permits at most 80 iterations. The BER table does not tune this profile.',
+    draw: function (g, p) {
+      var R = g.sideR, narrow = R[2] < 560; g.panel(R, narrow ? 'PEARL: retain messages' : 'retain messages while the channel estimate is updated');
+      P.pipeline(g, R, { title: 'PEARL', col: RX.pearl.col, q: p, y: R[1] + 50, perRow: 3, h: narrow ? 50 : 76, rowGap: 64,
+        back: 'retain both directed messages', boxes: ['channel LLR', 'variable-to-check|message', 'check-to-variable|message', 'normalized|min-sum', 'update channel|every second iteration', 'posterior|coded bits'] });
+    } });
+
   out.push({ id: 'coral', chapter: CH.rx, title: 'CORAL: parity modifies the search direction', layout: 'side', dur: 6.5,
     text: 'CORAL is the table’s project label for the source profile jcade_regularized_power; it is a name, not an expanded acronym. It estimates the channel response and variables representing the coded bits jointly. The implementation restricts the response matrix to a band and each bit variable to its permitted interval. ' +
       'Its objective function combines a term measuring mismatch to the received signal, a regularization term on the response, a pull toward binary values, and a penalty term formed from products computed over each parity check. It calls no BP or min-sum decoder. ' +
@@ -216,37 +233,39 @@
       }
     } });
 
-  out.push({ id: 'cajode', chapter: CH.rx, title: 'CAJODE: one objective function, one ADMM iteration', layout: 'side', dur: 8,
-    text: 'CAJODE, Code-Aided Joint OFDM Demodulation and Error Correction, does not run a belief-propagation decoder and feed its output back to a channel estimator. ' +
-      'Instead, it poses one constrained optimization problem over the channel response C, shared relaxed coded bits b, and a local copy z_a for each parity check. ' +
+  out.push({ id: 'cajode', chapter: CH.rx, title: 'SAPPHIRE: one constrained problem, solved by ADMM', layout: 'side', dur: 8,
+    text: 'SAPPHIRE performs channel estimation, OFDM data detection, and error-correction decoding in one constrained optimization problem. ' +
+      'Its unknowns are the channel response C, shared relaxed coded bits b, and a local copy z_a for each parity check. ' +
+      'The alternating direction method of multipliers (ADMM) repeats block updates within that same problem; it does not exchange outputs between a separate detector and decoder. ' +
       'Its objective function compares the received samples with samples predicted by C and b. As their residual energy grows, this term increases more slowly than squared error. ' +
       'Other terms keep C near an estimate obtained from the pilots, discourage large differences across adjacent carriers and symbols, and use β Σ bᵢ(1−bᵢ) to pull b toward binary values. ' +
       'The constraints keep b in [0,1], hold configured bits fixed, place each z_a in its parity polytope, and require z_a to agree with the corresponding entries of b. ' +
-      'One alternating direction method of multipliers (ADMM) iteration computes one weight per observation, updates b by majorization–minimization, recomputes those weights, solves the linear system for C, projects z, and updates the scaled dual variables u. ' +
-      'It is an ADMM iteration, not a decoder iteration. Afterward, the receiver thresholds b and accepts the resulting bits only when parity, configured bits, and cyclic redundancy check (CRC) checks all pass. ' +
-      'Passing those checks is separate from ADMM convergence; this table permits at most 50 ADMM iterations.',
+      'One ADMM iteration computes one weight per observation, updates b by majorization–minimization, recomputes those weights, solves the linear system for C, projects z, and updates the scaled dual variables u. ' +
+      'After each iteration, the receiver thresholds b to form a candidate. Parity checks, configured bits, and the cyclic redundancy check (CRC) decide acceptance. ' +
+      'That acceptance test is separate from ADMM convergence. This table permits at most 50 ADMM iterations. ' +
+      'The public name is SAPPHIRE. The evidence snapshot retains the legacy receiver key cajode and source label CAJODE so its data provenance remains stable.',
     math: 'min over C, b, {zₐ}  J(C,b),  subject to b ∈ [0,1]ⁿ, zₐ ∈ Pₐ and zₐ = b_N(a)' + at(0.55, ';  ADMM: one weight per observation → b → weights → C → z → u') + at(0.82, ';  then threshold b and check it'),
-    a11y: 'The CAJODE diagram has three separate regions. The first gives one constrained optimization problem and its objective function over the channel response, shared relaxed bits and local copies constrained to parity polytopes. The second shows one ADMM iteration: one weight per observation, a majorization–minimization bit update, recomputed weights, solving a linear system for the channel response, projections onto parity polytopes and updates of the scaled dual variables. This is not a decoder iteration, and there is no arrow from a decoder back to the channel estimator. The third region shows the parity, configured bits and CRC checks applied after thresholding b. Passing those checks is separate from ADMM convergence.',
+    a11y: 'The SAPPHIRE diagram has three separate regions. The first gives one constrained optimization problem over the channel response, shared relaxed bits and local copies constrained to parity polytopes. The second shows one ADMM solver iteration within that problem: one weight per observation, a majorization–minimization bit update, recomputed weights, a linear solve for the channel response, parity-polytope projections and scaled-dual updates. There is no exchange between a separate detector and decoder. The third region thresholds b to form one candidate, then applies the parity, configured-bit and CRC acceptance tests. Candidate acceptance is separate from ADMM convergence.',
     draw: function (g, p) { P.cajodeSolver(g, g.sideR, { p: p, col: RX.cajode.col }); } });
 
   var coh = {}; D.receivers.forEach(function (r) { (coh[r.cohort] = coh[r.cohort] || []).push(r.id); });
-  var replay = coh.four_receivers_red_replay || [], modern = coh.modern_r3_ber || [];
-  out.push({ id: 'cohorts', chapter: CH.rx, title: 'Two cohorts in one table', layout: 'side', dur: 5.5,
-    text: 'The table joins two sets of runs and records the source cohort on every row. ' + list(replay.map(function (k) { return M.NAME[k]; })) + ' come from the authenticated four-receiver Red replay. ' +
+  var replay = coh.four_receivers_red_replay || [], modern = coh.modern_r3_ber || [], persistent = coh.persistent_r2_v1 || [];
+  out.push({ id: 'cohorts', chapter: CH.rx, title: 'Three cohorts in one table', layout: 'side', dur: 6,
+    text: 'The table joins three sets of runs and records the source cohort on every row. ' + list(replay.map(function (k) { return M.NAME[k]; })) + ' come from the authenticated four-receiver Red replay. ' +
       'That replay also contained an older jade_bp output, which this table excludes instead of mixing it into the modern JADE curve. ' + list(modern.map(function (k) { return M.NAME[k]; })) + ' come from the newer R3 BER campaign. ' +
-      'The cohorts share the reported FFT length, code rate, frame count, pilot-ratio labels, SNR labels, and recording–hydrophone labels. Their provenance hashes do not establish identical received samples, payloads, or noise draws across cohorts.',
-    math: 'source_cohort:  four_receivers_red_replay  or  modern_r3_ber',
-    a11y: 'Cohort map. OFDM plus FEC, Partial FFT plus FEC and CORAL are from the authenticated four-receiver Red replay. The replay’s older jade_bp output is excluded. Modern JADE and CAJODE are from the newer R3 BER campaign. Shared labels provide common coverage, but the table does not establish paired received samples or noise across cohorts.',
+      list(persistent.map(function (k) { return M.NAME[k]; })) + ' comes from the frozen persistent R2-V1 campaign. The cohort records share configuration labels, but their provenance does not establish identical payload bits, transmitted waveforms, received samples, or noise realizations across all three campaigns.',
+    math: 'source_cohort:  four_receivers_red_replay,  modern_r3_ber,  or  persistent_r2_v1',
+    a11y: 'Cohort map. OFDM plus FEC, Partial FFT plus FEC and CORAL are from the authenticated four-receiver Red replay. The replay’s older jade_bp output is excluded. Modern JADE and SAPPHIRE are from the newer R3 BER campaign. PEARL is from the frozen persistent R2-V1 campaign. Shared labels provide common coverage, but the table does not establish identical payload bits, transmitted waveforms, received samples, or noise realizations across all three cohorts.',
     draw: function (g, p) {
       var R = g.sideR, c = g.ctx, narrow = R[2] < 560; g.panel(R, 'where each receiver’s rows come from');
-      var boxes = [['the four-receiver Red replay', replay], ['the newer R3 BER campaign', modern]], bw = narrow ? R[2] - 32 : (R[2] - 48) / 2, bh = narrow ? 110 : 170;
+      var boxes = [['the four-receiver Red replay', replay], ['the newer R3 BER campaign', modern], ['the persistent R2-V1 campaign', persistent]], bw = narrow ? R[2] - 32 : (R[2] - 64) / 3, bh = narrow ? 82 : 170;
       boxes.forEach(function (b, i) {
-        var q = seg(p, 0.1 + 0.3 * i, 0.4 + 0.3 * i), x = narrow ? R[0] + 16 : R[0] + 16 + i * (bw + 16), y = narrow ? R[1] + 44 + i * (bh + 16) : R[1] + 50; if (!(q > 0)) return;
+        var q = seg(p, 0.08 + 0.22 * i, 0.34 + 0.22 * i), x = narrow ? R[0] + 16 : R[0] + 16 + i * (bw + 16), y = narrow ? R[1] + 38 + i * (bh + 10) : R[1] + 50; if (!(q > 0)) return;
         c.save(); c.globalAlpha = q; c.fillStyle = 'rgba(255,255,255,0.04)'; c.strokeStyle = C.faint; c.lineWidth = 1.2; c.beginPath(); P.rrect(c, x, y, bw, bh, 8); c.fill(); c.stroke(); c.restore();
         g.labelPx(x + 12, y + 18, b[0], C.gold, { plain: true, size: 12.5, p: q });
-        b[1].forEach(function (id, k) { var yy = y + 46 + k * (narrow ? 22 : 30); P.rxMarker(c, x + 22, yy, id, 6, { alpha: q }); g.labelPx(x + 36, yy, RX[id].name + (id === 'cajode' ? ', at most 50 updates' : ''), RX[id].col, { plain: true, size: 12.5, p: q }); });
+        b[1].forEach(function (id, k) { var yy = y + 42 + k * (narrow ? 20 : 30); P.rxMarker(c, x + 22, yy, id, 6, { alpha: q }); g.labelPx(x + 36, yy, RX[id].name + (id === 'cajode' ? ', at most 50 updates' : id === 'pearl' ? ', at most 80 iterations' : ''), RX[id].col, { plain: true, size: narrow ? 10.5 : 12, p: q }); });
       });
-      var yk = narrow ? R[1] + 44 + 2 * (bh + 16) + 8 : R[1] + 50 + bh + 34, qk = seg(p, 0.75, 0.95);
+      var yk = narrow ? R[1] + 38 + 3 * (bh + 10) + 2 : R[1] + 50 + bh + 34, qk = seg(p, 0.75, 0.95);
       g.labelPx(R[0] + 16, yk, 'every available row keeps:', C.ink, { plain: true, size: 12.5, p: qk });
       g.labelPx(R[0] + 16, yk + 22, 'cohort · source file · evidence file · SHA-256 of each', C.dim, { plain: true, mono: true, size: narrow ? 10 : 12, p: qk });
     } });
@@ -255,6 +274,8 @@
   var REASON = {
     run_in_progress_no_complete_aggregate: 'run in progress',
     run_not_started: 'not started',
+    queued_waiting_predecessor: 'queued behind the active campaign',
+    source_result_missing: 'no complete source result',
     no_compatible_modern_result: 'no compatible modern result',
     controller_terminal_failure_before_science: 'controller stopped before science',
     blocked_by_predecessor_terminal_failure: 'blocked by predecessor failure'
@@ -262,13 +283,14 @@
   function missingTag(why) {
     if (why === 'run_in_progress_no_complete_aggregate') return 'run';
     if (why === 'run_not_started') return 'not yet';
+    if (why === 'queued_waiting_predecessor') return 'queued';
     if (why === 'controller_terminal_failure_before_science') return 'stopped';
     if (why === 'blocked_by_predecessor_terminal_failure') return 'blocked';
     return 'none';
   }
   var missJ = D.missing.filter(function (m) { return m.receiver === 'jade'; }), missC = D.missing.filter(function (m) { return m.receiver === 'cajode'; });
   function missText(ms) {
-    var by = {}; ms.forEach(function (m) { (by[m.reason] = by[m.reason] || []).push(m); });
+    var by = {}, seen = {}; ms.forEach(function (m) { var k = m.reason + ':' + m.red + ':' + m.hydrophone; if (!seen[k]) { (by[m.reason] = by[m.reason] || []).push(m); seen[k] = true; } });
     return Object.keys(by).map(function (r) {
       var ch = by[r], reds = {}; ch.forEach(function (m) { (reds[m.red] = reds[m.red] || []).push(m.hydrophone); });
       var parts = Object.keys(reds).map(function (rd) { return reds[rd].length === D.hydrophones.length ? 'all of Red ' + rd : 'Red ' + rd + ', hydrophone ' + reds[rd].join(' and '); });
@@ -277,37 +299,37 @@
   }
   out.push({ id: 'missing', chapter: CH.read, title: 'Missing is not zero', layout: 'side', dur: 6.5,
     text: 'Of the ' + group(D.rows) + ' rows, ' + group(miss) + ' have no result yet. They stay in the table, marked missing, with blank BER fields and a reason. ' +
-      'JADE has no result for ' + list(missText(missJ)) + '. CAJODE has none for ' + list(missText(missC)) + '. ' +
-      'A receiver run is not reported before it produces its authenticated aggregate. A missing result is never drawn as zero.',
+      'JADE has no result for ' + list(missText(missJ)) + '. SAPPHIRE has none for ' + list(missText(missC)) + '. ' +
+      'PEARL has complete curves at 7.5%, 12% and 15% pilots on the four-case plot scope. Its 2.5% and 5% jobs are queued, so those curve cells remain missing. A receiver run is not reported before it produces its authenticated aggregate. A missing result is never drawn as zero.',
     math: 'available ' + group(avail) + ' + missing ' + group(miss) + ' = ' + group(D.rows) + ' rows',
-    a11y: 'Coverage table across twelve recording–hydrophone cases. OFDM plus FEC, Partial FFT plus FEC and CORAL have 960 of 960 receiver results. JADE and CAJODE each have 800 of 960. Both lack Red 4 hydrophones 2 and 3. Missing entries are blank, never zero.',
+    a11y: 'Coverage table across twelve recording–hydrophone cases and five pilot ratios. OFDM plus FEC, Partial FFT plus FEC and CORAL have 960 of 960 receiver results. JADE and SAPPHIRE each have 800 of 960. PEARL has 240 of 960: complete 7.5 percent curves on seven cases, and complete 12 and 15 percent curves on four cases. Its 2.5 and 5 percent jobs for the four-case plot scope are queued. Missing entries are blank, never zero.',
     draw: function (g, p) {
       var R = g.sideR, narrow = R[2] < 560; g.panel(R, 'which receiver has results in which case');
       var cols = M.CHANNELS.map(function (ch) { return ch.key; });
       var res = P.matrix(g, [R[0], R[1], R[2] - (narrow ? 0 : 92), narrow ? R[3] * 0.62 : R[3] - 40], { rows: ORDER, cols: cols, labelW: narrow ? 104 : 150, top: 56, maxH: narrow ? 30 : 40, headSize: narrow ? 8.5 : 10.5, p: seg(p, 0, 0.6),
-        cell: function (id, k) { var ch = M.CHANNELS[k]; if (M.has(id, ch)) return { fill: RX[id].col.replace(')', ',0.35)').replace('rgb(', 'rgba(').replace(/^#(..)(..)(..)$/, function (m, a, b, c2) { return 'rgba(' + parseInt(a, 16) + ',' + parseInt(b, 16) + ',' + parseInt(c2, 16) + ',0.35)'; }) };
-          var why = M.missingOf(id, ch); return { hatch: true, text: narrow ? '' : missingTag(why), textCol: C.dim }; } });
+        cell: function (id, k) { var ch = M.CHANNELS[k], np = PIL.filter(function (_, i) { return M.has(id, ch, i); }).length;
+          if (np) return { fill: RX[id].col.replace(')', ',0.35)').replace('rgb(', 'rgba(').replace(/^#(..)(..)(..)$/, function (m, a, b, c2) { return 'rgba(' + parseInt(a, 16) + ',' + parseInt(b, 16) + ',' + parseInt(c2, 16) + ',0.35)'; }), text: np === PIL.length || narrow ? '' : np + '/' + PIL.length, textCol: C.ink };
+          var why = M.missingOf(id, ch, 0); return { hatch: true, text: narrow ? '' : missingTag(why), textCol: C.dim }; } });
       cov.forEach(function (q, r) {
         var y = res.top + r * (res.ch + 4) + res.ch / 2, qq = seg(p, 0.6 + 0.06 * r, 0.75 + 0.06 * r);
         if (!narrow) g.labelPx(R[0] + R[2] - 12, y, group(q.available) + ' / ' + group(q.available + q.missing), q.missing ? C.gold : C.ink, { plain: true, mono: true, size: 11, align: 'right', p: qq });
       });
       var yk = res.bottom + 26, qk = seg(p, 0.8, 1);
       if (narrow) cov.forEach(function (q, r) { g.labelPx(R[0] + 16 + (r % 2) * (R[2] / 2), yk + Math.floor(r / 2) * 20, RX[q.id].name + ': ' + group(q.available) + ' / ' + group(q.available + q.missing), RX[q.id].col, { plain: true, size: 10.5, p: qk }); });
-      else g.labelPx(R[0] + 16, yk, 'hatched: missing (stopped = controller stopped before science; blocked = predecessor failure)', C.dim, { plain: true, size: 11, p: qk });
+      else g.labelPx(R[0] + 16, yk, 'fraction: available pilot ratios; hatched: no complete result; queued: waiting behind active work', C.dim, { plain: true, size: 11, p: qk });
     } });
 
   var notCommon = M.CHANNELS.filter(function (ch) { return M.COMMON.indexOf(ch) < 0; });
-  out.push({ id: 'common', chapter: CH.read, title: 'Common coverage before comparison', layout: 'side', dur: 6,
-    text: 'A common-coverage descriptive comparison uses only recording–hydrophone cases where all five receivers have results. ' + M.COMMON.length + ' cases qualify: ' +
-      list(D.recordings.map(function (r) { var hs = M.COMMON.filter(function (c) { return c.red === r; }).map(function (c) { return c.hyd; }); return hs.length === D.hydrophones.length ? 'Red ' + r + ' on all three hydrophones' : hs.length ? 'Red ' + r + ' on hydrophone ' + hs.join(' and ') : ''; }).filter(Boolean)) + '. ' +
-      'Pooling adds their errors and bits before dividing. One resulting value is a pooled curve point. Common labels make coverage comparable, but they do not make the two cohorts a paired experiment or establish why curves differ.',
-    math: 'pooled curve point = Σ errors / Σ bits over the ' + M.COMMON.length + ' cases where all five have results',
-    a11y: 'Ten of twelve recording–hydrophone cases have results for all five receivers: every hydrophone in Red 1, Red 2 and Red 3, plus Red 4 hydrophone 1. Red 4 hydrophones 2 and 3 are excluded. Every pooled curve point adds errors and bits over those same ten case labels before dividing. This is common coverage, not proof of paired runs across the two cohorts.',
+  out.push({ id: 'common', chapter: CH.read, title: 'One fixed four-case plot scope', layout: 'side', dur: 6,
+    text: 'All five pilot panels use the same four recording–hydrophone labels: Red 1 on all three hydrophones and Red 2 on hydrophone 1. These are the cases where PEARL has complete 7.5%, 12% and 15% curves. ' +
+      'At 2.5% and 5%, the other five receivers are pooled over the same four labels while PEARL remains missing. Pooling adds errors and bits before dividing, so one resulting value is a pooled curve point. Matching case labels make coverage comparable, but they do not establish identical payload bits, transmitted waveforms, received samples, or noise realizations across the three cohorts.',
+    math: 'pooled curve point = Σ errors / Σ bits over R1h1, R1h2, R1h3 and R2h1;  PEARL missing at 2.5% and 5%',
+    a11y: 'Every plotted curve uses the same four recording–hydrophone labels: Red 1 hydrophones 1, 2 and 3, and Red 2 hydrophone 1. PEARL has complete curves there at 7.5, 12 and 15 percent pilots. At 2.5 and 5 percent, only the other five receiver curves are shown over those same four labels because the PEARL jobs are queued. Shared labels do not prove that the three cohorts used identical payload bits, transmitted waveforms, received samples, or noise realizations.',
     draw: function (g, p) {
-      var R = g.sideR, narrow = R[2] < 560; g.panel(R, M.COMMON.length + ' of ' + NCH + ' cases have all five receivers');
+      var R = g.sideR, narrow = R[2] < 560; g.panel(R, M.COMMON.length + ' fixed cases for every pilot panel');
       P.tiles(g, [R[0] + 8, R[1] + 30, R[2] - 16, R[3] - 40], M.CHANNELS, { top: 26, maxH: R[2] < 560 ? 70 : 84, cell: function (ch, i) {
-        var common = M.COMMON.indexOf(ch) >= 0, q = seg(p, 0.05 + 0.04 * i, 0.2 + 0.04 * i), lacking = ORDER.filter(function (k) { return !M.has(k, ch); }).map(function (k) { return M.NAME[k]; });
-        return common ? { p: q, col: C.gold, lw: 2, fill: 'rgba(255,210,122,0.12)', text: ch.key, sub: 'all five', subCol: C.gold } : { p: q, alpha: 0.6, hatch: true, text: ch.key, textCol: C.dim, sub: narrow ? 'missing' : 'no ' + lacking.join(', '), subSize: narrow ? 9 : 10 };
+        var common = M.COMMON.indexOf(ch) >= 0, q = seg(p, 0.05 + 0.04 * i, 0.2 + 0.04 * i);
+        return common ? { p: q, col: C.gold, lw: 2, fill: 'rgba(255,210,122,0.12)', text: ch.key, sub: 'plot scope', subCol: C.gold } : { p: q, alpha: 0.6, hatch: true, text: ch.key, textCol: C.dim, sub: narrow ? 'outside' : 'outside plot scope', subSize: narrow ? 9 : 10 };
       } });
     } });
 
@@ -339,15 +361,15 @@
       g.labelPx(pl.X(z.snr) - 10, pl.Y(z.plot) + 26, 'no error seen: hollow, plotted at 0.5 / N', C.ink, { size: 12, align: 'right', p: seg(p, 0.85, 1) });
     } });
 
-  // ------------------------------------------------------------ 4. what the table shows (pooled over the common channels)
+  // ------------------------------------------------------------ 4. what the table shows (pooled over the fixed four-case scope)
   var i75 = pi(7.5);
   function curvesAt(i, p, o) { o = o || {}; return ORDER.map(function (k, n) { return { id: k, pts: CURVES[k][i], p: o.all ? p : seg(p, 0.1 + 0.13 * n, 0.3 + 0.13 * n) }; }); }
   var coralFloor = Math.min.apply(null, LOWEST.coral);
-  out.push({ id: 'p75-predict', chapter: CH.shows, title: 'Predict the five-way comparison', layout: 'side', dur: 3.5,
-    text: 'The next page overlays the five pooled curves at ' + pct(7.5) + ' pilots. Use the mechanism map, not a result already shown, to predict which curve will remain highest at the sampled high-SNR end. ' +
+  out.push({ id: 'p75-predict', chapter: CH.shows, title: 'Predict the six-way comparison', layout: 'side', dur: 3.5,
+    text: 'The next page overlays the six pooled curves at ' + pct(7.5) + ' pilots. Use the mechanism map, not a result already shown, to predict which curve will remain highest at the sampled high-SNR end. ' +
       choice('p75-choice', 'Choose one receiver before the curves are shown', ORDER.map(function (k) { return M.NAME[k]; })),
-    math: 'prediction first;  the next page reveals all five sampled curves',
-    a11y: 'An empty logarithmic BER chart asks which of the five receiver curves will remain highest at the sampled high-SNR end. The five receiver names are available as radio-button choices. No curve or outcome is shown on this page.',
+    math: 'prediction first;  the next page reveals all six sampled curves',
+    a11y: 'An empty logarithmic BER chart asks which of the six receiver curves will remain highest at the sampled high-SNR end. The six receiver names are available as radio-button choices. No curve or outcome is shown on this page.',
     draw: function (g, p) {
       var R = g.sideR, narrow = R[2] < 560, lh = narrow ? 64 : 34;
       P.berPlot(g, [R[0], R[1], R[2], R[3] - lh], { title: 'prediction: pooled over ' + M.COMMON.length + ' cases, ' + pct(7.5) + ' pilots', decades: [-7, 0], ref: 1e-3, refP: seg(p, 0.2, 0.4), curves: [] });
@@ -355,11 +377,11 @@
       g.labelPx(R[0] + R[2] / 2, R[1] + R[3] * 0.5, 'Which curve will remain highest?', C.gold, { size: narrow ? 12 : 14, align: 'center', p: seg(p, 0.25, 0.55) });
     } });
   out.push({ id: 'p75', chapter: CH.shows, title: 'At 7.5% pilots', layout: 'side', dur: 7.5,
-    text: 'These are the five pooled curves at ' + pct(7.5) + ' pilots. JADE first reaches a pooled BER of 10⁻³ or less at ' + dB(FIRST.jade[i75]) + ', and CAJODE at ' + dB(FIRST.cajode[i75]) + '. ' +
-      'OFDM + FEC and Partial FFT + FEC first do so at ' + dB(FIRST['ofdm+fec'][i75]) + ' and ' + dB(FIRST['pfft+fec'][i75]) + '. CORAL’s lowest sampled pooled BER is ' + sci(LOWEST.coral[i75], 1) + ', so it does not reach 10⁻³ on this grid. ' +
+    text: 'These are the six pooled curves at ' + pct(7.5) + ' pilots. Their first sampled SNR values at a pooled BER of 10⁻³ or less are ' + firstSentence(i75) + '. ' +
+      'CORAL’s lowest sampled pooled BER is ' + sci(LOWEST.coral[i75], 1) + ', so it does not reach 10⁻³ on this grid. ' +
       'The dashed line is only a reading aid; the table sets no target BER. This observation does not by itself identify which receiver mechanism caused a difference.',
     math: 'pooled over ' + M.COMMON.length + ' cases;  first sampled SNR with BER ≤ 10⁻³:  ' + ORDER.map(function (k) { return M.NAME[k] + ' ' + dB(FIRST[k][i75]); }).join(',  '),
-    a11y: 'Five pooled BER curves at 7.5 percent pilots over ' + M.COMMON.length + ' common cases. First sampled SNR at or below 10 to the minus 3: ' + firstSentence(i75) + '. CORAL never reaches that line; its lowest sampled pooled BER is ' + sci(LOWEST.coral[i75], 1) + '. The threshold is a reading aid, not a configured receiver target.',
+    a11y: 'Six pooled BER curves at 7.5 percent pilots over the fixed four-case scope. First sampled SNR at or below 10 to the minus 3: ' + firstSentence(i75) + '. CORAL never reaches that line; its lowest sampled pooled BER is ' + sci(LOWEST.coral[i75], 1) + '. The threshold is a reading aid, not a configured receiver target.',
     draw: function (g, p) {
       var R = g.sideR, narrow = R[2] < 560, lh = narrow ? 64 : 34;
       P.berPlot(g, [R[0], R[1], R[2], R[3] - lh], { title: 'pooled over ' + M.COMMON.length + ' cases, ' + pct(7.5) + ' pilots', decades: [-7, 0], ref: 1e-3, refP: seg(p, 0.75, 0.9), curves: curvesAt(i75, p) });
@@ -367,14 +389,14 @@
       g.labelPx(R[0] + R[2] - 16, R[1] + R[3] - (narrow ? 14 : lh - 10), 'dashed: 10⁻³, a reading aid', C.gold, { plain: true, size: 11.5, align: 'right', p: seg(p, 0.75, 0.9) });
     } });
 
-  var twoFive = Math.min.apply(null, ORDER.map(function (k) { return LOWEST[k][0]; }));
+  var twoFive = Math.min.apply(null, BASE.map(function (k) { return LOWEST[k][0]; }));
   var firstPilotOnly = PIL.map(function (pl, i) { return FIRST['ofdm+fec'][i] != null && FIRST['pfft+fec'][i] != null; }).indexOf(true);
-  out.push({ id: 'sweep', chapter: CH.shows, title: 'Supporting view: all five pilot sweeps', layout: 'side', dur: 9,
-    text: 'These panels retain the full curves behind the threshold grid. With ' + pct(LO.ratio) + ' pilots no pooled curve falls below ' + sci(twoFive, 1) + ', even at the sampled 30 dB endpoint. ' +
+  out.push({ id: 'sweep', chapter: CH.shows, title: 'Supporting view: all pilot sweeps', layout: 'side', dur: 9,
+    text: 'These panels retain the full curves behind the threshold grid. With ' + pct(LO.ratio) + ' pilots none of the five available pooled curves falls below ' + sci(twoFive, 1) + ', even at the sampled 30 dB endpoint. PEARL appears at 7.5%, 12% and 15%; its 2.5% and 5% curves stay absent while their queued jobs have no authenticated aggregate. ' +
       'OFDM + FEC and Partial FFT + FEC first reach 10⁻³ from ' + pct(PIL[firstPilotOnly].ratio) + ' pilots. The sampled results do not obey a pointwise rule that more pilots always lowers every curve. ' +
       'For example, CORAL’s lowest pooled BER is ' + sci(LOWEST.coral[pi(12)], 1) + ' at 12% pilots and ' + sci(LOWEST.coral[pi(15)], 1) + ' at 15% pilots.',
     math: 'lowest pooled BER of CORAL:  ' + PIL.map(function (pl, i) { return pct(pl.ratio) + ' ' + sci(LOWEST.coral[i], 1); }).join(',  '),
-    a11y: 'Supporting sweep of pooled BER against sampled SNR at five pilot ratios. At 2.5 percent pilots no receiver falls below ' + sci(twoFive, 1) + '. OFDM plus FEC and Partial FFT plus FEC first reach 10 to the minus 3 at 7.5 percent pilots. CORAL’s minimum is ' + sci(LOWEST.coral[pi(12)], 1) + ' at 12 percent and ' + sci(LOWEST.coral[pi(15)], 1) + ' at 15 percent, so the result is not pointwise monotonic in pilot ratio.',
+    a11y: 'Supporting sweep of pooled BER against sampled SNR at five pilot ratios over the same four cases. PEARL is drawn at 7.5, 12 and 15 percent; its 2.5 and 5 percent curves are missing. At 2.5 percent pilots none of the five available receivers falls below ' + sci(twoFive, 1) + '. OFDM plus FEC and Partial FFT plus FEC first reach 10 to the minus 3 at 7.5 percent pilots. CORAL’s minimum is ' + sci(LOWEST.coral[pi(12)], 1) + ' at 12 percent and ' + sci(LOWEST.coral[pi(15)], 1) + ' at 15 percent, so the result is not pointwise monotonic in pilot ratio.',
     draw: function (g, p) {
       var R = g.sideR, narrow = R[2] < 560; g.panel(R);
       var cols = narrow ? 2 : 3, rows = Math.ceil(PIL.length / cols), lh = narrow ? 60 : 30, w = (R[2] - 12) / cols, h = (R[3] - lh - 8) / rows;
@@ -393,13 +415,13 @@
   out.push({ id: 'thresholds', chapter: CH.shows, title: 'Main comparison: first sampled SNR at 10⁻³', layout: 'side', dur: 6.5,
     text: 'This grid reads one number from each pooled curve: the first sampled SNR at which its BER is 10⁻³ or less. A dash means none of the 0-to-30 dB samples reaches that level. ' +
       'Read across a row to see what pilots do for one receiver; read down a column to compare receivers at one pilot ratio. ' +
-      'At ' + pct(12) + ' pilots, for example, JADE needs ' + dB(FIRST.jade[i12]) + ', CAJODE ' + dB(FIRST.cajode[i12]) + ', OFDM + FEC ' + dB(FIRST['ofdm+fec'][i12]) + ', Partial FFT + FEC ' + dB(FIRST['pfft+fec'][i12]) + ' and CORAL ' + dB(FIRST.coral[i12]) + '.',
-    math: 'cell = first sampled SNR with pooled BER ≤ 10⁻³ over ' + M.COMMON.length + ' common cases;  — : not sampled by 30 dB',
-    a11y: 'Main threshold table. Columns are pilot ratios. At 2.5 percent: ' + firstSentence(pi(2.5)) + '. At 5 percent: ' + firstSentence(pi(5)) + '. At 7.5 percent: ' + firstSentence(pi(7.5)) + '. At 12 percent: ' + firstSentence(pi(12)) + '. At 15 percent: ' + firstSentence(pi(15)) + '. Never means no sampled SNR from 0 through 30 dB reaches a pooled BER of 10 to the minus 3.',
+      'At ' + pct(12) + ' pilots, for example, the six entries are ' + firstSentence(i12) + '.',
+    math: 'cell = first sampled SNR with pooled BER ≤ 10⁻³ over the fixed four cases;  — : not sampled by 30 dB;  missing: no authenticated curve',
+    a11y: 'Main threshold table. Columns are pilot ratios. At 2.5 percent: ' + firstSentence(pi(2.5)) + '. At 5 percent: ' + firstSentence(pi(5)) + '. At 7.5 percent: ' + firstSentence(pi(7.5)) + '. At 12 percent: ' + firstSentence(pi(12)) + '. At 15 percent: ' + firstSentence(pi(15)) + '. Never means no sampled SNR from 0 through 30 dB reaches a pooled BER of 10 to the minus 3. Missing means no authenticated curve exists.',
     draw: function (g, p) {
       var R = g.sideR, narrow = R[2] < 560; g.panel(R, narrow ? 'first sampled SNR at 10⁻³' : 'first SNR at which the pooled BER is 10⁻³ or less');
       P.matrix(g, R, { rows: ORDER, cols: PIL.map(function (pl) { return pct(pl.ratio) + (narrow ? '' : ' pilots'); }), labelW: narrow ? 112 : 160, top: 64, maxH: narrow ? 40 : 56, size: narrow ? 12 : 14, headSize: narrow ? 10 : 11.5, p: p,
-        cell: function (id, k) { var s = FIRST[id][k]; return s == null ? { text: '—', textCol: C.dim } : { fill: 'rgba(169,205,246,' + num(0.12 + 0.5 * (1 - s / 30), 2) + ')', text: s + ' dB' }; } });
+        cell: function (id, k) { var s = FIRST[id][k]; if (!curveReady(id, k)) return { hatch: true, text: narrow ? 'miss.' : 'missing', textCol: C.dim }; return s == null ? { text: '—', textCol: C.dim } : { fill: 'rgba(169,205,246,' + num(0.12 + 0.5 * (1 - s / 30), 2) + ')', text: s + ' dB' }; } });
     } });
 
   var i15 = pi(15);
@@ -428,11 +450,11 @@
   var h3Lowest = D.recordings.every(function (r) { var ks = M.CHANNELS.map(function (ch, k) { return ch.red === r ? k : -1; }).filter(function (k) { return k >= 0; }), best = ks.reduce(function (a, k) { return perChan['ofdm+fec'][k].ber <= perChan['ofdm+fec'][a].ber ? k : a; }, ks[0]); return M.CHANNELS[best].hyd === 3; });
   out.push({ id: 'channels', chapter: CH.shows, title: 'Case by case before pooling', layout: 'side', dur: 6.5,
     text: 'Pooling hides how much the recording–hydrophone cases differ. This map shows every case at one test condition: ' + pct(5) + ' pilots and ' + sC + ' dB. ' +
-      chanText(M.CHANNELS[hardest]) + ' is the hardest there: OFDM + FEC leaves ' + sci(perChan['ofdm+fec'][hardest].ber, 1) + ', JADE ' + sci(perChan.jade[hardest].ber, 1) + ' and CAJODE ' + sci(perChan.cajode[hardest].ber, 1) + '. ' +
+      chanText(M.CHANNELS[hardest]) + ' is the hardest there: OFDM + FEC leaves ' + sci(perChan['ofdm+fec'][hardest].ber, 1) + ', JADE ' + sci(perChan.jade[hardest].ber, 1) + ' and SAPPHIRE ' + sci(perChan.cajode[hardest].ber, 1) + '. ' +
       (h3Lowest ? 'On every recording, hydrophone 3 gives OFDM + FEC its lowest BER at this point. ' : '') +
-      'Red 4 has a five-way result on hydrophone 1. Hydrophones 2 and 3 still lack JADE and CAJODE results.',
+      'At this 5% condition, PEARL is blank in all 12 cases: the four fixed plot-scope cases are queued, and the other eight have no complete source result. Red 4 has results for the original five receivers on hydrophone 1; hydrophones 2 and 3 still lack JADE and SAPPHIRE results.',
     math: 'one test condition: ' + pct(5) + ' pilots, ' + sC + ' dB, every recording–hydrophone case, ' + D.frames + ' frames each',
-    a11y: 'Case-by-case information BER at 5 percent pilots and 20 dB. ' + chanText(M.CHANNELS[hardest]) + ' has the largest OFDM plus FEC BER, ' + sci(perChan['ofdm+fec'][hardest].ber, 1) + '; JADE is ' + sci(perChan.jade[hardest].ber, 1) + ' and CAJODE is ' + sci(perChan.cajode[hardest].ber, 1) + ' there. Hydrophone 3 has the lowest OFDM plus FEC BER within every recording at this condition. Red 4 hydrophone 1 has all five receiver results; hydrophones 2 and 3 lack JADE and CAJODE results.',
+    a11y: 'Case-by-case information BER at 5 percent pilots and 20 dB. ' + chanText(M.CHANNELS[hardest]) + ' has the largest OFDM plus FEC BER, ' + sci(perChan['ofdm+fec'][hardest].ber, 1) + '; JADE is ' + sci(perChan.jade[hardest].ber, 1) + ' and SAPPHIRE is ' + sci(perChan.cajode[hardest].ber, 1) + ' there. PEARL is missing at 5 percent on every case: four fixed plot-scope cases are queued, and eight have no complete source result. Hydrophone 3 has the lowest OFDM plus FEC BER within every recording at this condition. Red 4 hydrophone 1 has results for the original five receivers; hydrophones 2 and 3 lack JADE and SAPPHIRE results.',
     draw: function (g, p) {
       var R = g.sideR, narrow = R[2] < 560; g.panel(R, narrow ? 'BER by case: ' + pct(5) + ' pilots, ' + sC + ' dB' : 'information BER per case at ' + pct(5) + ' pilots, ' + sC + ' dB');
       var res = P.matrix(g, [R[0], R[1], R[2], R[3] - 40], { rows: ORDER, cols: M.CHANNELS.map(function (ch) { return ch.key; }), labelW: narrow ? 104 : 150, top: 56, maxH: narrow ? 34 : 50, headSize: narrow ? 8.5 : 10.5, size: narrow ? 8.5 : 10.5, p: p,
@@ -447,25 +469,27 @@
   var fromFive = PIL.map(function (pl, i) { return i; }).filter(function (i) { return PIL[i].ratio >= 5; });
   var jointLead = fromFive.every(function (i) { return ['jade', 'cajode'].every(function (k) { return FIRST[k][i] != null && ['ofdm+fec', 'pfft+fec', 'coral'].every(function (o) { return FIRST[o][i] == null || FIRST[o][i] > FIRST[k][i]; }); }); });
   var SUPPORT = [
-    'At 2.5% pilots, no pooled curve falls below ' + sci(twoFive, 1) + '.',
-    (jointLead ? 'From 5% to 15% pilots, JADE and CAJODE first sample 10⁻³ at a lower SNR than the other three.' : ''),
+    'At 2.5% pilots, none of the five available pooled curves falls below ' + sci(twoFive, 1) + '.',
+    (jointLead ? 'From 5% to 15% pilots, JADE and SAPPHIRE first sample 10⁻³ at a lower SNR than OFDM + FEC, Partial FFT + FEC and CORAL.' : ''),
     'OFDM + FEC and Partial FFT + FEC first sample 10⁻³ only from ' + pct(PIL[firstPilotOnly].ratio) + ' pilots.',
     'CORAL shows errors at every available receiver result; its lowest pooled BER is ' + sci(coralFloor, 1) + '.',
-    'At 12% and 15% pilots, JADE and CAJODE show runs with no error seen.'
+    'At 12% and 15% pilots, JADE and SAPPHIRE show runs with no error seen.',
+    'PEARL has authenticated pooled curves at 7.5%, 12% and 15% pilots on the fixed four-case scope.'
   ].filter(Boolean);
   var NOT = [
-    'A five-receiver comparison on Red 4 hydrophones 2 and 3: JADE and CAJODE results are missing there.',
+    'A six-receiver comparison at 2.5% or 5% pilots: PEARL results are still missing there.',
+    'A six-receiver comparison on every Red channel: PEARL coverage is incomplete, and Red 4 hydrophones 2 and 3 also lack JADE and SAPPHIRE.',
     'A measured BER of 0.5/N: that value only places a zero-observation marker on a logarithmic plot.',
     'Anything about speed: the table holds no timing.',
     'A causal explanation: the table compares outcomes but does not isolate which mechanism caused a difference.',
     'Other pilot ratios, code rates or FFT lengths, such as the older 20% pilot runs.',
-    'CAJODE with more than 50 updates.',
-    'One paired run for all five: the two cohorts are separate experiment families.'
+    'SAPPHIRE with more than 50 updates.',
+    'One paired run for all six: the three cohorts are separate experiment families.'
   ];
   out.push({ id: 'supports', chapter: CH.claims, title: 'What the table supports, and what it does not', layout: 'side', dur: 7,
-    text: 'Read with its settings, on the ' + M.COMMON.length + ' cases where all five have results, the table supports descriptive statements like those marked with a tick. ' +
+    text: 'Read with its settings and the fixed ' + M.COMMON.length + '-case plot scope, the table supports descriptive statements like those marked with a tick. PEARL participates only where its curve is authenticated. ' +
       'It does not support those marked with a cross. The observations are descriptive for this table, not causal explanations or universal receiver rankings. A rebuild recomputes every ticked statement from the counts.',
-    math: 'supported: descriptive, pooled over ' + M.COMMON.length + ' common cases, at these settings;  not supported: missing-case rankings, causality, universality or speed',
+    math: 'supported: descriptive, pooled over the fixed four cases, at these settings;  not supported: missing-curve rankings, causality, universality or speed',
     a11y: 'Evidence boundary. Supported statements: ' + SUPPORT.join(' ') + ' Not supported: ' + NOT.join(' '),
     draw: function (g, p) {
       var R = g.sideR, c = g.ctx, narrow = R[2] < 560; g.panel(R);
@@ -497,7 +521,7 @@
     draw: function (g, p) {
       var R = g.sideR, narrow = R[2] < 560; g.panel(R, 'the table these pages read');
       var rows = [['snapshot', D.snapshot], ['rows', group(D.rows) + ': ' + group(avail) + ' available, ' + group(miss) + ' missing'], ['CSV SHA-256', D.csvSha256.slice(0, 32)], ['', D.csvSha256.slice(32)],
-        ['settings', 'FFT ' + D.fftLength + ', code rate ' + D.codeRate + ', ' + D.frames + ' frames per result'], ['cases', NCH + ' (' + D.recordings.length + ' recordings × ' + D.hydrophones.length + ' hydrophones)'], ['common', M.COMMON.map(function (c) { return c.key; }).join(' ')]];
+        ['settings', 'FFT ' + D.fftLength + ', code rate ' + D.codeRate + ', ' + D.frames + ' frames per result'], ['cases', NCH + ' (' + D.recordings.length + ' recordings × ' + D.hydrophones.length + ' hydrophones)'], ['plot scope', M.COMMON.map(function (c) { return c.key; }).join(' ')]];
       rows.forEach(function (r, i) {
         var y = R[1] + 56 + i * (narrow ? 34 : 40), q = seg(p, 0.05 + 0.1 * i, 0.25 + 0.1 * i);
         if (r[0]) g.labelPx(R[0] + 16, y, r[0], C.gold, { plain: true, size: 12, p: q });
@@ -505,12 +529,12 @@
       });
     } });
 
-  out.push({ id: 'synthesis', chapter: CH.claims, title: 'Five routes, one bounded conclusion', layout: 'side', dur: 6.5,
-    text: 'The first two routes estimate from pilots and decode once. JADE supplies extrinsic information from the decoder to the next pass that estimates the channel response and variables representing the coded bits. CORAL estimates those variables together, with code constraints represented by penalty terms and no BP decoder. CAJODE projects a local copy of the bit variables for each parity check onto its parity polytope and updates scaled dual variables. ' +
-      'On the ' + M.COMMON.length + ' common case labels and this table’s settings, JADE and CAJODE first sample 10⁻³ at lower SNR values than the other three from 5% through 15% pilots. ' +
-      'That sentence reports an observed pattern, not its cause and not a promise for another channel, code, pilot ratio, update budget, or cohort. When reading another comparison, ask where the code enters, what returns between updates, and whether received-sample and noise identities were checked.',
+  out.push({ id: 'synthesis', chapter: CH.claims, title: 'Six routes, one bounded conclusion', layout: 'side', dur: 6.5,
+    text: 'The first two routes estimate from pilots and decode once. JADE supplies extrinsic information from the decoder to the next estimation pass. PEARL retains its check-to-variable and variable-to-check messages across message-passing iterations while updating the channel estimate. CORAL includes code constraints as penalty terms and no BP decoder. SAPPHIRE projects a local copy of the bit variables for each parity check onto its parity polytope and updates scaled dual variables. ' +
+      (jointLead ? 'On the fixed four case labels and this table’s settings, JADE and SAPPHIRE first sample 10⁻³ at lower SNR values than OFDM + FEC, Partial FFT + FEC and CORAL from 5% through 15% pilots. ' : '') +
+      'PEARL is present only at 7.5%, 12% and 15%; its missing 2.5% and 5% curves are not inferred. These sentences report observed patterns, not causes or promises for another channel, code, pilot ratio, update budget, or cohort.',
     math: 'mechanism map + coverage boundary + counted errors = an interpretable descriptive result',
-    a11y: 'Final synthesis. OFDM plus FEC and Partial FFT plus FEC use pilot-assisted channel estimation, decode once, and provide no feedback. JADE adds extrinsic information from the decoder to the next estimation pass. CORAL estimates the channel response and variables representing the coded bits with penalty terms and no BP decoder. CAJODE projects a local copy of the bit variables for each parity check onto its parity polytope and updates scaled dual variables. The lower sampled thresholds of JADE and CAJODE in this table are descriptive observations over ' + M.COMMON.length + ' common case labels, not causal or universal conclusions.',
+    a11y: 'Final synthesis. OFDM plus FEC and Partial FFT plus FEC use pilot-assisted channel estimation, decode once, and provide no feedback. JADE adds extrinsic information from the decoder to the next estimation pass. PEARL retains check-to-variable and variable-to-check messages across message-passing iterations while updating the channel estimate. CORAL uses penalty terms and no BP decoder. SAPPHIRE projects local copies onto parity polytopes and updates scaled dual variables. PEARL is plotted only at 7.5, 12 and 15 percent pilots. Every threshold statement is descriptive over the fixed four case labels, not a causal or universal conclusion.',
     draw: function (g, p) {
       var R = g.sideR, c = g.ctx, narrow = R[2] < 560; g.panel(R, narrow ? 'three questions for the next table' : 'carry three questions to the next result table');
       var cards = [
@@ -529,7 +553,7 @@
     } });
 
   // ------------------------------------------------------------ player, chapter bar, keyboard, and deep links
-  var STEP_ORDER = ['question', 'grid', 'pilots', 'pooled', 'zero', 'routes', 'pilot-only', 'jade', 'coral', 'cajode', 'cohorts',
+  var STEP_ORDER = ['question', 'grid', 'pilots', 'pooled', 'zero', 'routes', 'pilot-only', 'jade', 'pearl', 'coral', 'cajode', 'cohorts',
     'missing', 'common', 'one-curve-predict', 'one-curve', 'channels', 'p75-predict', 'p75', 'thresholds', 'zeros', 'sweep', 'snapshot', 'supports', 'synthesis'];
   out.sort(function (a, b) { return STEP_ORDER.indexOf(a.id) - STEP_ORDER.indexOf(b.id); });
   var chapters = [];

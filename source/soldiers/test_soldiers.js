@@ -1,5 +1,5 @@
 // Model, numerical-trace, teaching-flow, drawing, wording and generated-page checks for "The BP protocol and the
-// CAJODE circuit".  Run from anywhere with Node 12 or later:  node source/soldiers/test_soldiers.js
+// SAPPHIRE circuit".  Run from anywhere with Node 12 or later:  node source/soldiers/test_soldiers.js
 var M = require('./soldiers.js'), fs = require('fs'), path = require('path'), vm = require('vm'), cp = require('child_process');
 var failures = 0, checks = 0;
 function check(what, ok, detail) { checks++; console.log((ok ? 'ok    ' : 'FAIL  ') + what + (detail !== undefined && detail !== '' ? '  [' + detail + ']' : '')); if (!ok) failures++; }
@@ -86,10 +86,10 @@ check('each BP reply is keyed per check-bit edge and excludes its recipient', bp
 
 // ---------------------------------------------------------------- 4. the note-taking soldier on the tree
 var nt = M.treeNotes(), NH = nt.hist;
-check('CAJODE initializes one relaxed bit vector, projected per-check replica variables and zero scaled duals', bits(NH[0].b) === '100111'
+check('SAPPHIRE initializes one relaxed bit vector, projected per-check replica variables and zero scaled duals', bits(NH[0].b) === '100111'
   && NH[0].z[0].join() === '0,0' && NH[0].z[1].join() === '0,1,1' && allNear(NH[0].z[2], [2 / 3, 2 / 3, 2 / 3], 1e-12)
   && NH[0].u.every(function (r) { return r.every(function (v) { return v === 0; }); }));
-check('the three CAJODE circuits reproduce the approved relaxed-bit and RMS consensus-error trace', nt.circuits === 3 && NH.length === 4
+check('the three SAPPHIRE circuits reproduce the approved relaxed-bit and RMS consensus-error trace', nt.circuits === 3 && NH.length === 4
   && NH.every(function (h, i) { return allNear(h.b, TREE_ADMM.cards[i], 1e-12); })
   && allNear(NH.slice(1).map(function (h) { return h.primalRms; }), TREE_ADMM.primalRms, 1e-12));
 check('the hard word remains 100111 for two circuits and passes all checks in circuit 3', NH.slice(1).map(function (h) { return bits(h.word); }).join(',') === '100111,100111,000111'
@@ -156,8 +156,8 @@ if (course) {
   function text(id) { var q = steps[ids.indexOf(id)]; return ((q && q.text || '') + ' ' + (q && q.math || '')).replace(/<[^>]*>/g, ''); }
   var all = steps.map(function (q) { return q.title + ' ' + text(q.id); }).join(' ');
   check('the receiver need comes first, before either decoding mechanism', ids.indexOf('roadmap') === 0 && ids.indexOf('roadmap') < ids.indexOf('count')
-    && /JADE/.test(text('roadmap')) && /CAJODE/.test(text('roadmap')) && /Lext = Lpost − Lch/.test(text('roadmap')) && /x = 1−2b/.test(text('roadmap'))
-    && /initialization temperature/.test(text('roadmap')) && /CAJODE does not call BP/.test(text('roadmap')));
+    && /JADE/.test(text('roadmap')) && /SAPPHIRE/.test(text('roadmap')) && /Lext = Lpost − Lch/.test(text('roadmap')) && /x = 1−2b/.test(text('roadmap'))
+    && /initialization temperature/.test(text('roadmap')) && /SAPPHIRE does not call BP/.test(text('roadmap')));
   check('one explicit convention bridges channel LLRs, hard bits and relaxed bits before decoding', ids.indexOf('key') < ids.indexOf('tree')
     && /positive channel LLR favours bit 0/.test(text('key')) && /relaxed bit value near 1 represents bit 1/.test(text('key'))
     && !/positive (?:channel )?LLR favours (?:binary )?one/i.test(all));
@@ -165,7 +165,7 @@ if (course) {
     && /iteration 3/.test(text('decide')) && /not necessarily after one flooding iteration/.test(text('decide')) && !/exact in one round|one round of replies is exact/i.test(all));
   check('the reply pages state recipient exclusion and propagation through a shared bit', /reply never reuses the recipient/.test(text('reply-c0'))
     && /excludes c₁/.test(text('reply-c1')) && /c₀/.test(text('reply-c1')) && /c₂/.test(text('decide')));
-  check('CAJODE introduces owners before the lawful set, then initializes before the first circuit', ids.indexOf('cast') < ids.indexOf('polytope') && ids.indexOf('polytope') < ids.indexOf('start') && ids.indexOf('start') < ids.indexOf('read1')
+  check('SAPPHIRE introduces owners before the lawful set, then initializes before the first circuit', ids.indexOf('cast') < ids.indexOf('polytope') && ids.indexOf('polytope') < ids.indexOf('start') && ids.indexOf('start') < ids.indexOf('read1')
     && /relaxed bit variable/.test(text('cast')) && /replica variable/.test(text('cast')) && /Each check owns/.test(text('cast')) && /scaled dual variable/.test(text('cast'))
     && /000, 011, 101 and 110/.test(text('polytope')) && /parity polytope/.test(text('polytope')));
   check('the course never misnames a relaxed bit variable as a probability or BP belief', !/card is (?:the )?probability|belief in a binary one|b(?:\(i\)|ᵢ)? is a belief/i.test(all));
@@ -178,10 +178,10 @@ if (course) {
     && predictSteps.some(function (q) { return q.chapter === 'A related loop'; }), predictSteps.map(function (q) { return q.id; }).join(','));
   check('prediction answers land after the learner has committed to an idea', ids.indexOf('listen') < ids.indexOf('reply-c0') && /answer is no/i.test(text('reply-c0'))
     && ids.indexOf('polytope') < ids.indexOf('start') && ids.indexOf('start') < ids.indexOf('project1') && /mixture|nearest point|nearest lawful/i.test(text('project1')));
-  check('the memory comparison counts 16 directed BP messages and 22 CAJODE values on the open chain', /16/.test(text('keeps')) && /22/.test(text('keeps')) && /three iterations|3 iterations/.test(text('keeps')) && /three circuits|3 circuits/.test(text('keeps')));
+  check('the memory comparison counts 16 directed BP messages and 22 SAPPHIRE values on the open chain', /16/.test(text('keeps')) && /22/.test(text('keeps')) && /three iterations|3 iterations/.test(text('keeps')) && /three circuits|3 circuits/.test(text('keeps')));
   check('the loop ends with a structural conclusion and a no-ranking boundary', /BP passes extrinsic information/.test(text('ends'))
     && /each reply excludes its recipient’s current input/.test(text('ends')) && /one replica variable and one scaled dual per edge/.test(text('ends')) && /not a speed ranking/.test(text('ends')));
-  check('the gradient comparison is visibly optional rather than part of the BP-versus-CAJODE core', steps[ids.indexOf('loop-gradient')].chapter === 'Optional: why not one gradient?');
+  check('the gradient comparison is visibly optional rather than part of the BP-versus-SAPPHIRE core', steps[ids.indexOf('loop-gradient')].chapter === 'Optional: why not one gradient?');
   check('the receiver chapter keeps projection, acceptance and settling claims separate', /never differentiated; they are projected/.test(text('five')) && /Stopping is not convergence/.test(text('stop')) && /cyclic redundancy check \(CRC\)/.test(text('stop')) && /neither stationarity nor a global optimum/.test(text('stop')));
   check('JADE separates and damps extrinsic information without replacing the channel evidence', /Lext = Lpost − Lch/.test(text('roadmap')) && /Lch \+ α Lext/.test(text('roadmap')) && /tanh/.test(text('roadmap')) && /x = 1−2b/.test(text('officer')) && /initialization temperature/.test(text('officer')) && /sum-product BP/.test(text('officer')) && /normalized min-sum/.test(text('officer')) && !/BP → hard word →/.test(all));
   check('message-passing steps are iterations, never sweeps', !/\bsweep/i.test(all) && /iteration/.test(text('loop-bp')));

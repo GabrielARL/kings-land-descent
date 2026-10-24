@@ -10,7 +10,9 @@ from __future__ import annotations
 
 import csv
 import hashlib
-from collections import defaultdict
+import json
+import math
+from collections import Counter, defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -35,6 +37,7 @@ RECEIVERS = {
     "jade": "JADE",
     "coral": "CORAL",
     "cajode": "CAJODE",
+    "pearl": "PEARL",
 }
 RECEIVER_ORDER = {receiver: index for index, receiver in enumerate(RECEIVERS)}
 FRAMES_EXPECTED = 47
@@ -95,11 +98,167 @@ MODERN_RUNS = {
 # Snapshot state for known runs that have not yet produced authenticated aggregates.
 # A completed run is promoted to available by load_modern_run, which clears this reason.
 MODERN_MISSING_REASONS = {
-    (4, 2, "jade"): "controller_terminal_failure_before_science",
-    (4, 3, "jade"): "blocked_by_predecessor_terminal_failure",
-    (4, 2, "cajode"): "controller_terminal_failure_before_science",
-    (4, 3, "cajode"): "blocked_by_predecessor_terminal_failure",
+    (4, 2, "jade"): "run_in_progress_no_complete_aggregate",
+    (4, 3, "jade"): "run_not_started",
+    (4, 2, "cajode"): "run_in_progress_no_complete_aggregate",
+    (4, 3, "cajode"): "run_not_started",
 }
+
+PEARL_RECEIVER = "joint_persistent_normalized_min_sum"
+PEARL_COHORT = "persistent_r2_v1"
+PEARL_SOURCE_COMMIT = "1c577f5a611b8e8e545707dc9bf0e28af8fd3091"
+PEARL_PAPER_SOURCE_COMMIT = "590347bb8fb09af2e8b4f8bd5d7322a411853a1e"
+PEARL_RUNNER = "experiments/jade_red12/run_paper_graph.jl"
+PEARL_RUNNER_SHA256 = (
+    "ffc89ecd0817e015ee86105987501b80210ef932bb0f31d30e2c99c23e18c58c"
+)
+PEARL_GRAPH_SHA256 = (
+    "fd8a50fb12c3206cbed2df604168bc2aa7d338b5a4317efdc4974a7c913bf9e7"
+)
+PEARL_PROFILE = {
+    "belief_damping": 1.0,
+    "channel_extrinsic_scale": 0.5,
+    "channel_llr_scale": 1.0,
+    "channel_mode": "gradient",
+    "channel_step_size": 0.1,
+    "channel_update_interval": 2,
+    "check_rule": "normalized_min_sum",
+    "early_exit": True,
+    "factor_counting_weight": 1.0,
+    "include_variance": True,
+    "iterations": 80,
+    "max_backtracks": 16,
+    "message_damping": 1.0,
+    "message_retention": 0.9,
+    "minimum_iterations": 1,
+    "normalized_minsum_alpha": 0.8,
+    "temperature": 1.0,
+    "variance_weight": 1.0,
+}
+
+PEARL_P075_DISTRIBUTED = (
+    GITHUB_ROOT
+    / "JadeJcade-runs/persistent-p075-distributed-20261011/thinkpad-attempt-001"
+)
+PEARL_P075_TAKEOVER = (
+    GITHUB_ROOT
+    / "JadeJcade-runs/persistent-p075-local-takeover-20261011/attempt-001"
+)
+PEARL_P12_P15 = (
+    GITHUB_ROOT
+    / "JadeJcade-runs/persistent-p12-p15-distributed-001/thinkpad/attempt-002/jobs"
+)
+# Every listed root is authenticated by the pinned SHA-256 registry below and
+# must also satisfy the embedded completion, manifest, frame, aggregate, and
+# trace-audit contracts before it is admitted.
+PEARL_RUNS = {
+    (1, 1, "p075"): PEARL_P075_DISTRIBUTED / "red1-h1",
+    (1, 2, "p075"): PEARL_P075_DISTRIBUTED / "red1-h2",
+    (1, 3, "p075"): PEARL_P075_DISTRIBUTED / "red1-h3",
+    (2, 1, "p075"): PEARL_P075_TAKEOVER / "red2-h1",
+    (2, 2, "p075"): PEARL_P075_TAKEOVER / "red2-h2",
+    (2, 3, "p075"): PEARL_P075_TAKEOVER / "red2-h3",
+    (3, 1, "p075"): PEARL_P075_TAKEOVER / "red3-h1",
+    **{
+        (red, hydrophone, pilot): PEARL_P12_P15
+        / f"n1024-{pilot}-red{red}-h{hydrophone}"
+        for red, hydrophone in ((1, 1), (1, 2), (1, 3), (2, 1))
+        for pilot in ("p12", "p15")
+    },
+}
+PEARL_ARTIFACT_SHA256 = {
+    (1, 1, "p075"): (
+        "75c02857840fd8525e5d71a9a4ee054f39865d8e46816f3c253678b3da518436",
+        "6bbeeb3e0bb9a2322e324d7348f291ed17ef0b434ec4bdd824eeebfe208f6e2a",
+        "75b5a22ddeeb577af4e66d89c09bf30860cc5a91991ee7c3db1563d089dab96a",
+        "bc3539e8b251c987e9f922d2ac679c4beaab29ffd8e5f98231a3532f399f9ce3",
+    ),
+    (1, 2, "p075"): (
+        "2581a53813ff30a76684e0b41614d245ab0484392bae71f36211418cf1a90683",
+        "1b6138e516564a352536c5823b3f5b697b312feb096fc1a314831cb02b48a371",
+        "f012288016ad0b1490e8493d17456ad94de78600f76be2dace5860c3acb5f7dc",
+        "debc9df1236547b806e6e25916563fad8be54ac59e80750a8714325e3b21c7af",
+    ),
+    (1, 3, "p075"): (
+        "d21a17ed65264233089b295c6e61e3ff3fd16145569341b4804de20e1cf888f7",
+        "76871678fd18bbb142a3589ddb31d568c3d943b4181431664c8f3d7eb7b4c4e6",
+        "3cbc7dcb731249ecbc0fef085e399fbc50a5224785bb0543a17c0ca447048f69",
+        "8bbb2683144b2219e887e185c795df394c6db01873028f078fbeedd7592c06ae",
+    ),
+    (2, 1, "p075"): (
+        "582b089d335083e9bd8fa3b327ea1f7213136f1a25e381b54226182fe3387c67",
+        "b28606fc265138e877b1e581aca33cfd19a0c0fee0fd97abdedd4de4cb9b7cd5",
+        "8b2762715b7683719de0843a8a07c104450df388548ca685ad0b7b3bb720d81c",
+        "f3f34de0f82315668dce2948f544dbae61ea1176fdc471b9f061ed07a404255f",
+    ),
+    (2, 2, "p075"): (
+        "0599fe2a8186eca11e8519b224e685f174eaacc558cbd28a84b4e0e84198c7e0",
+        "d45f347249b66cdaa7b007ef04f5598e11373996665c89cd6fbcfc00874e6c31",
+        "9a411518e97b6a6d93fc6a8f006ad747b753ccfdc77382848f295efb4258e581",
+        "ae77731cb0ce3e786e9b44c35301538d364a9f9d01e07fd32a3a6b72d42b54f3",
+    ),
+    (2, 3, "p075"): (
+        "9d9f57b5e485192a43187e285568d6606055b36f61a5f1dacf5c4104992f8942",
+        "09ca89d0f781baf5245c368ad2c70e3837e752d00e1d620a27062a4de20e6d42",
+        "2715b67230f628544565fd4c803ea968d305479bad96a2ca7025858ce29ed0e9",
+        "0a298c936dbdb945614ba1fe86062fb5a13ef00819458fd59fcca8aab96e9a1c",
+    ),
+    (3, 1, "p075"): (
+        "a0bc957ec357c2db2b51aa09d76f5633ff721b3e072c0d903cf4c026a94205d5",
+        "5926cdccb113a3bf51d873c44665b66fde758f66ad8fb7213ddfcc43d32f8d94",
+        "46861842d11c1963df0ee702ec97deac77eb3ba707ad237d227741e4d44c04bd",
+        "bc5400961915cd1383039f7e7850e12f3c1222eea56b8892c8c78be60cff1d6d",
+    ),
+    (1, 1, "p12"): (
+        "6c990b91384cbc485e94a0cc140aa54c3fbf8c655708022099f57dd639bae284",
+        "0e357ddaaedb279fbd983c00a280d0f568461dd3ed4019ed14462641735f1cd8",
+        "3e979792b8a68ab3c06c321a0659725aed847f79f6cb9f92eac57e00600c347f",
+        "6a24e7cbd8980e12a31e361783d4c85a5d3cff12f90a7986dd16db078fc5d460",
+    ),
+    (1, 2, "p12"): (
+        "2bac29a839eea9a3be3832ffd220e7b431985b4677ebd501388ca66aa28b7abf",
+        "4a196fd132e0a38fcc810c51ac51f8557f347b4659292e17d262a9057c10756b",
+        "492f83748c940ec1cdfdbae92d0f1e2933958ef9c902d58a5591f467abf2ae85",
+        "5daea1f2ea32e72337db9fdae6db61227992d12db91d67c26e931b20e175e814",
+    ),
+    (1, 3, "p12"): (
+        "05b3c4ca9049563bbfe05c503312cabfd3da187f0fb1385bc96a73e87b67202c",
+        "7b2a164b8f46c50541dd51430d02efdd6dbf4e3081adb41799992d2383457d4d",
+        "fce2f47ce12ebcab7b684b301825f89d67fb5a7c823e428379a31aab9beb909b",
+        "e8f9717acf11554530184963d1d6df296883aa23341b6948b929315c3961dcab",
+    ),
+    (2, 1, "p12"): (
+        "e1e83fa8d7bfba3fdd922c4af25f4ec20fa61d42d87d53c69423a1352b499112",
+        "ce58a0441111d4509cda531e6a2de5491882c6cf440df80a4129e86ceaf1cd95",
+        "99e29f228f8bd02d84aa8ca8a4547abccb49ce8131403f2d49b7070e0843fbf0",
+        "75b0c1ae92a819bf42301f2d5e0bd1c11a246b3eec1f1417539067c4c5f4ad27",
+    ),
+    (1, 1, "p15"): (
+        "4de838f0096f04546cf8100870ce1e34472591633f079578133eb63564e9dff6",
+        "dfb75cc15b6de9bf1dd9c7d1f33043ccc1577c5377a5cbc0b9c3731a64741e93",
+        "46d00662bc13ba62b5d52529e845bfd8086996770d85b25e3138138060ea21c2",
+        "2fc066c5c09a076aeaebe4eeaa26c47565aba6cd6deff6198747198e446db595",
+    ),
+    (1, 2, "p15"): (
+        "1571105005f481c8f8f227f3439c3e857c3133808cbee93c3f502d11db69889b",
+        "eb8b9958a46473efd53949fdef6bf64fe6ddaced83ed91bafab880ab93ce107a",
+        "dc9c511617937ebceb23c85d73f953fa4c2a3d95ab5edf24e03e17299d4674c8",
+        "beb09661784651d927326cc47f8127da1c44fab1442b857a9513fe416b486c58",
+    ),
+    (1, 3, "p15"): (
+        "c7ac294cc0d4a93dccb82ad4296c5572bc3e5e36a898199811c1ad4a21647873",
+        "965a11a5f6d4fa83ff9651d4407796cde8aeb358632263899c34bc7b3ab7f56c",
+        "4809ef47c605e72d0c0fd9f721b767fe0ac567f14ce20eadb538f2f95338d84b",
+        "9daf22acd2c3c9d4e132ae5e89c75366658cd7a020f3b8e8851bcc57593ab5de",
+    ),
+    (2, 1, "p15"): (
+        "c0999053d0b88a71088299d2b2f800889d44c3fb4fa081bcd319655f4e23469e",
+        "190ff614bafea899937b11883813e4b43696cb27faed6559557894f5728d0819",
+        "88eb0d3c24ea595142b07286328a7248d8600ad8bbb23cb9033fbb2fe6d568e8",
+        "2926065d405c5c136264b1f782dba801981c4a29981d09060678d76512049cff",
+    ),
+}
+PEARL_QUEUED_CHANNELS = {(1, 1), (1, 2), (1, 3), (2, 1)}
 
 FIELDS = (
     "red",
@@ -207,6 +366,12 @@ def blank_row(
             (red, hydrophone, receiver), "source_result_missing"
         )
         cohort = "modern_r3_ber"
+    elif receiver == "pearl":
+        if pilot in ("p025", "p05") and (red, hydrophone) in PEARL_QUEUED_CHANNELS:
+            reason = "queued_waiting_predecessor"
+        else:
+            reason = "source_result_missing"
+        cohort = PEARL_COHORT
     else:
         reason = "source_result_missing"
         cohort = "four_receivers_red_replay"
@@ -462,6 +627,382 @@ def load_modern_run(
     return True
 
 
+def require_equal(actual: object, expected: object, label: str) -> None:
+    if actual != expected:
+        raise ValueError(f"{label}: {actual!r} != {expected!r}")
+
+
+def read_json(path: Path) -> dict[str, object]:
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        raise ValueError(f"cannot read JSON artifact {path}: {error}") from error
+    if not isinstance(value, dict):
+        raise ValueError(f"JSON artifact is not an object: {path}")
+    return value
+
+
+def safe_result_file(root: Path, relative_name: str, label: str) -> Path:
+    relative = Path(relative_name)
+    if relative.is_absolute():
+        raise ValueError(f"{label} uses an absolute path: {relative_name}")
+    candidate = root / relative
+    try:
+        candidate.resolve().relative_to(root.resolve())
+    except ValueError as error:
+        raise ValueError(f"{label} escapes its result root: {relative_name}") from error
+    if candidate.is_symlink() or not candidate.is_file():
+        raise ValueError(f"{label} is not a regular file: {candidate}")
+    return candidate
+
+
+def parse_csv_bool(value: str, label: str) -> bool:
+    lowered = value.lower()
+    if lowered == "true":
+        return True
+    if lowered == "false":
+        return False
+    raise ValueError(f"{label} is not a CSV boolean: {value!r}")
+
+
+def load_pearl_run(
+    rows: dict[tuple, dict[str, object]],
+    red: int,
+    hydrophone: int,
+    pilot: str,
+    root: Path,
+) -> bool:
+    """Load one authenticated PEARL artifact, failing closed if it is malformed."""
+    completion_path = root / "completion.json"
+    if not completion_path.is_file():
+        return False
+    required = {
+        name: root / name
+        for name in ("aggregate.csv", "completion.json", "config.toml", "frames.csv", "manifest.json")
+    }
+    for name, path in required.items():
+        if path.is_symlink() or not path.is_file():
+            raise ValueError(f"PEARL {name} is not a regular file: {path}")
+
+    artifact_key = red, hydrophone, pilot
+    pinned_hashes = PEARL_ARTIFACT_SHA256.get(artifact_key)
+    if pinned_hashes is None:
+        raise ValueError(f"PEARL artifact lacks a pinned hash registry entry: {artifact_key}")
+    completion_sha = sha256(required["completion.json"])
+    frames_sha = sha256(required["frames.csv"])
+    aggregate_sha = sha256(required["aggregate.csv"])
+    manifest_sha = sha256(required["manifest.json"])
+    require_equal(
+        (completion_sha, frames_sha, aggregate_sha, manifest_sha),
+        pinned_hashes,
+        f"{root} pinned artifact hashes",
+    )
+
+    completion = read_json(completion_path)
+    manifest = read_json(required["manifest.json"])
+    payload_bits = PILOTS[pilot][1]
+    paired = pilot in ("p12", "p15")
+    artifact_receivers = (
+        ["jade_bp", PEARL_RECEIVER] if paired else [PEARL_RECEIVER]
+    )
+    total_frame_rows = len(artifact_receivers) * FRAMES_EXPECTED * len(SNRS)
+    total_aggregate_rows = len(artifact_receivers) * len(SNRS)
+    expected_frames = list(range(1, FRAMES_EXPECTED + 1))
+    expected_snrs_float = [float(snr) for snr in SNRS]
+
+    require_equal(manifest.get("schema_version"), 3, f"{root} manifest schema")
+    require_equal(
+        manifest.get("base_configuration"),
+        f"n1024-{pilot}.toml",
+        f"{root} base configuration",
+    )
+    require_equal(
+        manifest.get("base_configuration_sha256"),
+        sha256(required["config.toml"]),
+        f"{root} configuration hash",
+    )
+    require_equal(
+        manifest.get("paper_source_commit"),
+        PEARL_PAPER_SOURCE_COMMIT,
+        f"{root} paper source commit",
+    )
+    source = manifest.get("source")
+    if not isinstance(source, dict):
+        raise ValueError(f"{root} manifest source record is missing")
+    require_equal(source.get("head"), PEARL_SOURCE_COMMIT, f"{root} source commit")
+    require_equal(source.get("dirty"), False, f"{root} dirty source flag")
+    require_equal(source.get("status"), "", f"{root} source status")
+    runner_records = [
+        item
+        for item in source.get("files", [])
+        if isinstance(item, dict) and item.get("relative_path") == PEARL_RUNNER
+    ]
+    require_equal(len(runner_records), 1, f"{root} archived runner count")
+    runner_record = runner_records[0]
+    require_equal(
+        runner_record.get("sha256"), PEARL_RUNNER_SHA256, f"{root} runner declaration"
+    )
+    runner_archive = safe_result_file(
+        root, str(runner_record.get("archive", "")), f"{root} runner archive"
+    )
+    require_equal(sha256(runner_archive), PEARL_RUNNER_SHA256, f"{root} runner hash")
+
+    matrix = manifest.get("matrix")
+    if not isinstance(matrix, dict):
+        raise ValueError(f"{root} manifest matrix is missing")
+    matrix_contract = {
+        "capture": red,
+        "hydrophone": hydrophone,
+        "frames": expected_frames,
+        "population_frames": expected_frames,
+        "snr_db": expected_snrs_float,
+        "receivers": artifact_receivers,
+        "payload_bits": payload_bits,
+        "expected_rows": total_frame_rows,
+        "ldpc_method": "frame_sparse",
+        "ldpc_npc": 14,
+    }
+    for name, expected in matrix_contract.items():
+        require_equal(matrix.get(name), expected, f"{root} manifest matrix {name}")
+
+    input_record = manifest.get("input")
+    if not isinstance(input_record, dict):
+        raise ValueError(f"{root} manifest input is missing")
+    require_equal(input_record.get("capture"), red, f"{root} input capture")
+
+    graph = manifest.get("graph")
+    if not isinstance(graph, dict):
+        raise ValueError(f"{root} graph record is missing")
+    require_equal(
+        graph.get("parity_sha256"), PEARL_GRAPH_SHA256, f"{root} parity graph hash"
+    )
+
+    declared = manifest.get("declared_override")
+    if not isinstance(declared, dict):
+        raise ValueError(f"{root} declared receiver profile is missing")
+    require_equal(
+        declared.get("persistent_decoding_route"),
+        "persistent_edges",
+        f"{root} PEARL decoding route",
+    )
+    require_equal(
+        declared.get("persistent_profile"), "r2_v1", f"{root} PEARL profile"
+    )
+    require_equal(
+        declared.get("persistent_profile_parameters"),
+        PEARL_PROFILE,
+        f"{root} PEARL profile parameters",
+    )
+
+    trace_contract = manifest.get("trace_audit")
+    if not isinstance(trace_contract, dict):
+        raise ValueError(f"{root} trace contract is missing")
+    trace_expectations = {
+        "decoding_route": "persistent_edges",
+        "expected_check_rule": "normalized_min_sum",
+        "expected_fallback_used": False,
+        "expected_external_bp_calls": 0,
+        "expected_terminal_bp_calls": 0,
+        "expected_decoder_vjp_calls": 0,
+        "expected_polynomial_bit_gradient_calls": 0,
+        "expected_message_state_initializations": 1,
+        "expected_message_state_resets": 0,
+        "expected_terminal_message_sweeps": 0,
+        "expected_output_source": "persistent_belief_posterior",
+        "expected_schedule": (
+            "one_message_sweep_per_iteration_channel_gradient_every_2_iterations"
+        ),
+        "profile": "r2_v1",
+        "profile_parameters": PEARL_PROFILE,
+    }
+    for name, expected in trace_expectations.items():
+        require_equal(trace_contract.get(name), expected, f"{root} trace contract {name}")
+
+    completion_contract = {
+        "status": "complete",
+        "manifest_sha256": manifest_sha,
+        "frames_sha256": frames_sha,
+        "aggregate_sha256": aggregate_sha,
+        "graph_sha256": PEARL_GRAPH_SHA256,
+        "rows": total_frame_rows,
+        "aggregate_rows": total_aggregate_rows,
+        "frames": expected_frames,
+        "snr_db": expected_snrs_float,
+        "ldpc_method": "frame_sparse",
+        "ldpc_npc": 14,
+    }
+    for name, expected in completion_contract.items():
+        require_equal(completion.get(name), expected, f"{root} completion {name}")
+    completion_source = completion.get("source")
+    if not isinstance(completion_source, dict):
+        raise ValueError(f"{root} completion source record is missing")
+    require_equal(
+        completion_source.get("head"), PEARL_SOURCE_COMMIT, f"{root} completion source"
+    )
+    require_equal(
+        completion_source.get("dirty"), False, f"{root} completion dirty flag"
+    )
+    require_equal(
+        completion_source.get("status"), "", f"{root} completion source status"
+    )
+    trace_audit = completion.get("trace_audit")
+    if not isinstance(trace_audit, dict):
+        raise ValueError(f"{root} completion trace audit is missing")
+    require_equal(trace_audit.get("passed"), True, f"{root} trace audit result")
+    require_equal(
+        trace_audit.get("receiver"), PEARL_RECEIVER, f"{root} trace audit receiver"
+    )
+    require_equal(
+        trace_audit.get("audited_rows"),
+        FRAMES_EXPECTED * len(SNRS),
+        f"{root} trace audit row count",
+    )
+    require_equal(trace_audit.get("warmup_invocations"), 1, f"{root} trace warmup")
+    require_equal(
+        trace_audit.get("contract"), trace_contract, f"{root} trace audit contract"
+    )
+
+    with required["frames.csv"].open(newline="") as handle:
+        all_frame_rows = list(csv.DictReader(handle))
+    require_equal(len(all_frame_rows), total_frame_rows, f"{root} frame row count")
+    require_equal(
+        Counter(item["receiver"] for item in all_frame_rows),
+        Counter({receiver: FRAMES_EXPECTED * len(SNRS) for receiver in artifact_receivers}),
+        f"{root} frame receiver counts",
+    )
+    pearl_frame_rows = [
+        item for item in all_frame_rows if item["receiver"] == PEARL_RECEIVER
+    ]
+    expected_coordinates = {
+        (frame, snr) for snr in SNRS for frame in range(1, FRAMES_EXPECTED + 1)
+    }
+    seen_coordinates: set[tuple[int, int]] = set()
+    totals: dict[int, dict[str, int]] = defaultdict(lambda: defaultdict(int))
+    trace_paths: set[str] = set()
+    for index, item in enumerate(pearl_frame_rows, start=2):
+        label = f"{root} PEARL frame row {index}"
+        frame = int(item["frame"])
+        snr_float = float(item["snr_db"])
+        if not snr_float.is_integer():
+            raise ValueError(f"{label} has a non-integral SNR")
+        snr = int(snr_float)
+        coordinate = frame, snr
+        if coordinate not in expected_coordinates or coordinate in seen_coordinates:
+            raise ValueError(f"{label} has an invalid or duplicate coordinate {coordinate}")
+        seen_coordinates.add(coordinate)
+        require_equal(item["configuration"], f"n1024-{pilot}", f"{label} configuration")
+        require_equal(int(item["capture"]), red, f"{label} capture")
+        require_equal(int(item["hydrophone"]), hydrophone, f"{label} hydrophone")
+        require_equal(int(item["payload_bits"]), payload_bits, f"{label} payload bits")
+        require_equal(int(item["decoded_bits"]), payload_bits, f"{label} decoded bits")
+        require_equal(item["status"], "decoded", f"{label} status")
+        require_equal(item["error"], "", f"{label} error")
+        require_equal(parse_csv_bool(item["acquired"], label), True, f"{label} acquired")
+        require_equal(
+            parse_csv_bool(item["data_pilots_used"], label), True, f"{label} pilots"
+        )
+        bit_errors = int(item["bit_errors"])
+        if not 0 <= bit_errors <= payload_bits:
+            raise ValueError(f"{label} has invalid bit errors: {bit_errors}")
+        for hash_field in (
+            "payload_sha256",
+            "transmitted_sha256",
+            "replayed_sha256",
+            "noise_sha256",
+            "received_sha256",
+            "corrected_sha256",
+            "decoder_trace_sha256",
+            "lfm_trace_sha256",
+        ):
+            digest = item[hash_field]
+            if len(digest) != 64 or any(character not in "0123456789abcdef" for character in digest):
+                raise ValueError(f"{label} has an invalid {hash_field}")
+        for path_field, hash_field in (
+            ("decoder_trace", "decoder_trace_sha256"),
+            ("lfm_trace", "lfm_trace_sha256"),
+        ):
+            safe_result_file(root, item[path_field], f"{label} {path_field}")
+            trace_paths.add(item[path_field])
+        totals[snr]["frames"] += 1
+        totals[snr]["bit_errors"] += bit_errors
+        totals[snr]["decoded_bits"] += payload_bits
+        totals[snr]["exact_frames"] += int(bit_errors == 0)
+        totals[snr]["crc_valid_frames"] += int(parse_csv_bool(item["crc_valid"], label))
+        totals[snr]["syndrome_valid_frames"] += int(
+            parse_csv_bool(item["syndrome_valid"], label)
+        )
+        totals[snr]["strict_accepted_frames"] += int(
+            parse_csv_bool(item["strict_accepted"], label)
+        )
+    require_equal(seen_coordinates, expected_coordinates, f"{root} frame/SNR coverage")
+    require_equal(len(trace_paths), 2 * FRAMES_EXPECTED * len(SNRS), f"{root} PEARL traces")
+    trace_files = list((root / "traces").glob("*.json"))
+    if any(path.is_symlink() or not path.is_file() for path in trace_files):
+        raise ValueError(f"{root} contains a non-regular trace")
+    require_equal(
+        len(trace_files),
+        (len(artifact_receivers) + 1) * FRAMES_EXPECTED * len(SNRS),
+        f"{root} total trace file count",
+    )
+
+    with required["aggregate.csv"].open(newline="") as handle:
+        all_aggregate_rows = list(csv.DictReader(handle))
+    require_equal(
+        len(all_aggregate_rows), total_aggregate_rows, f"{root} aggregate row count"
+    )
+    require_equal(
+        Counter(item["receiver"] for item in all_aggregate_rows),
+        Counter({receiver: len(SNRS) for receiver in artifact_receivers}),
+        f"{root} aggregate receiver counts",
+    )
+    pearl_aggregate_rows = [
+        item for item in all_aggregate_rows if item["receiver"] == PEARL_RECEIVER
+    ]
+    aggregate_snrs: set[int] = set()
+    for index, item in enumerate(pearl_aggregate_rows, start=2):
+        label = f"{root} PEARL aggregate row {index}"
+        snr_float = float(item["snr_db"])
+        if not snr_float.is_integer():
+            raise ValueError(f"{label} has a non-integral SNR")
+        snr = int(snr_float)
+        if snr not in SNRS or snr in aggregate_snrs:
+            raise ValueError(f"{label} has an invalid or duplicate SNR: {snr}")
+        aggregate_snrs.add(snr)
+        total = totals[snr]
+        for field in (
+            "frames",
+            "bit_errors",
+            "decoded_bits",
+            "exact_frames",
+            "crc_valid_frames",
+            "syndrome_valid_frames",
+            "strict_accepted_frames",
+        ):
+            require_equal(int(item[field]), total[field], f"{label} {field}")
+        if not math.isclose(
+            float(item["payload_ber"]),
+            total["bit_errors"] / total["decoded_bits"],
+            rel_tol=1e-12,
+            abs_tol=1e-15,
+        ):
+            raise ValueError(f"{label} BER does not match integer counts")
+        set_available(
+            rows[key(red, hydrophone, pilot, snr, "pearl")],
+            frames=total["frames"],
+            payload_bits=payload_bits,
+            total_bits=total["decoded_bits"],
+            errors=total["bit_errors"],
+            source_receiver=PEARL_RECEIVER,
+            cohort=PEARL_COHORT,
+            data_path=source_path(required["frames.csv"]),
+            data_sha256=frames_sha,
+            evidence_path=source_path(completion_path),
+            evidence_sha256=completion_sha,
+        )
+    require_equal(aggregate_snrs, set(SNRS), f"{root} aggregate SNR coverage")
+    return True
+
+
 def validate(rows: dict[tuple, dict[str, object]]) -> None:
     expected_count = 4 * 3 * len(PILOTS) * len(SNRS) * len(RECEIVERS)
     if len(rows) != expected_count:
@@ -494,6 +1035,9 @@ def validate(rows: dict[tuple, dict[str, object]]) -> None:
 
 
 def main() -> None:
+    require_equal(
+        set(PEARL_ARTIFACT_SHA256), set(PEARL_RUNS), "PEARL run/hash registry keys"
+    )
     snapshot = datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
     rows = {
         key(red, hydrophone, pilot, snr, receiver): blank_row(
@@ -511,6 +1055,10 @@ def main() -> None:
     for (red, hydrophone, receiver), root in MODERN_RUNS.items():
         if load_modern_run(rows, red, hydrophone, receiver, root):
             completed_dynamic.append(f"red{red}/h{hydrophone}/{receiver}")
+    completed_pearl = []
+    for (red, hydrophone, pilot), root in PEARL_RUNS.items():
+        if load_pearl_run(rows, red, hydrophone, pilot, root):
+            completed_pearl.append(f"red{red}/h{hydrophone}/{pilot}/pearl")
     validate(rows)
     ordered = sorted(
         rows.values(),
@@ -530,6 +1078,7 @@ def main() -> None:
     print(f"wrote {len(ordered)} rows to {OUTPUT}")
     print(f"available={available} missing={len(ordered) - available}")
     print("complete modern roots: " + ", ".join(completed_dynamic))
+    print("complete PEARL roots: " + ", ".join(completed_pearl))
 
 
 if __name__ == "__main__":

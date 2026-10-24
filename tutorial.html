@@ -1893,21 +1893,25 @@ var Board = (function () {
 
     var freeJ = free ? f(free) : null, TJ = f(T);
     out.push({ id: 'wanderer-role', chapter: 'The Twins', title: 'Meet the Wanderer: x', layout: 'map', view: introView, dur: 5.2,
-      text: free ? 'The Wanderer’s job: find the lowest point of whatever it is asked to minimise. Asked about the land alone, it feels the slope and walks to ' + (tower ? 'the lowest point of the evidence fit and binary-end pull' : 'the valley’s floor') + ', c = ' + pair(free) + ', where J = ' + num(freeJ, 3) + '. It never looks at the law' + (freeOut ? ', and that spot is ' + (tower ? 'off the parity-polytope line' : 'outside ' + lawName) + ': no use to the King on its own.' : '.') + ' But add any pull to the land, and the Wanderer will find the new lowest point just as surely. That is the skill the King hired.' :
+      text: free ? 'The Wanderer’s job: find the lowest point of whatever it is asked to minimise. Asked about the land alone, it feels the slope and walks to ' + (tower ? 'the lowest point of the evidence fit and binary-end pull' : 'the valley’s floor') + ', x̂ = ' + pair(free) + ', where J = ' + num(freeJ, 3) + '. The letter is the Wanderer’s own x; the hat marks where it stops when nothing else pulls on it. It never looks at the law' + (freeOut ? ', and that spot is ' + (tower ? 'off the parity-polytope line' : 'outside ' + lawName) + ': no use to the King on its own.' : '.') + ' But add any pull to the land, and the Wanderer will find the new lowest point just as surely. That is the skill the King hired.' :
         'The Wanderer’s job: find the lowest point of whatever it is asked to minimise. On this land no formula gives that point, so it walks downhill in small steps, feeling the way with its staff. It never looks at the law.',
-      math: 'the Wanderer: x = argmin f(x) + (whatever pulls on it)' + (free ? at(0.6, ';  with nothing pulling: c = ' + pair(free) + (freeOut ? ', outside C' : '')) : ''),
+      math: 'the Wanderer: x = argmin f(x) + (whatever pulls on it)' + (free ? at(0.6, ';  with nothing pulling: x̂ = ' + pair(free) + (freeOut ? ', outside C' : '')) : ''),
       draw: function (g, p) {
         base(g); g.flag(x0, 1); star(g, T, 1);
         if (free) {
-          var q = seg(p, 0.1, 0.7); g.path([x0, free], 'rgba(230,233,238,0.6)', 2, q, [4, 4]); g.hero(lerp2(x0, free, q), 'tw', 1, q >= 1 ? 'c, the lowest point of all' : '');
-          if (freeOut) g.label(free, tower ? 'off the parity-polytope line' : 'outside ' + lawName, C.red, { dx: 14, dy: 16, p: seg(p, 0.75, 0.95), size: 12 });
+          // the labels go left of the Wanderer when the map's right edge leaves no room for them, so they never cover it
+          var q = seg(p, 0.1, 0.7), heroLab = 'x̂, the lowest point of all', a0 = g.P(free); g.ctx.font = '600 13px ' + g.sans;
+          var toLeft = a0[0] + 14 + g.ctx.measureText(heroLab).width + 8 > g.mapR[0] + g.mapR[2];
+          g.path([x0, free], 'rgba(230,233,238,0.6)', 2, q, [4, 4]); g.hero(lerp2(x0, free, q), 'tw', 1, q >= 1 && !toLeft ? heroLab : '');
+          if (q >= 1 && toLeft) g.label(free, heroLab, C.ink, { dx: -14, dy: -16, align: 'right', inside: true });
+          if (freeOut) g.label(free, tower ? 'off the parity-polytope line' : 'outside ' + lawName, C.red, toLeft ? { dx: -14, dy: 16, align: 'right', p: seg(p, 0.75, 0.95), size: 12, inside: true } : { dx: 14, dy: 16, p: seg(p, 0.75, 0.95), size: 12 });
         } else g.hero(x, 'tw', 1, 'the Wanderer');
       } });
 
     // ---- the Warden. On the wall (tutorial only) it takes three pages: who it is, with C and Π in words; how it finds
-    // the lawful spot nearest to c, first as a circle growing from c, then one direction at a time; and why that
+    // the lawful spot nearest to x̂, first as a circle growing from x̂, then one direction at a time; and why that
     // nearest spot is not the lowest one. Elsewhere one page shows three spots taken to their nearest lawful spots.
-    var cFace = -1;   // the one coordinate the wall changes when the Warden is handed c (2: both, -1: none)
+    var cFace = -1;   // the one coordinate the wall changes when the Warden is handed x̂ (2: both, -1: none)
     if (free && box && freeOut) for (var ci = 0; ci < 2; ci++) if (Math.abs(free[ci] - freeZ[ci]) > 1e-9) cFace = cFace < 0 ? ci : 2;
     var wardenPages = !!(cx.tutorial && box && freeOut && land.kind === 'quad' && land.A && !land.ripples && !land.holes &&
       (cFace === 0 || cFace === 1) && Math.abs(T[cFace] - freeZ[cFace]) < 1e-9);
@@ -1916,8 +1920,8 @@ var Board = (function () {
       var zJ = f(freeZ), gapTZ = len(sub(T, freeZ)), wd = box[1] - box[0];
       var SUBN = ['₁', '₂'], DIRS = ['east–west', 'north–south'], DIRC = ['East–west', 'North–south'];
       var faceName = (fi === 0 ? (wallAt >= box[1] ? 'east' : 'west') : (wallAt >= box[1] ? 'north' : 'south')) + ' wall';
-      var bLo = num(box[0], 0), bHi = num(box[1], 0), lawRule = bLo + ' ≤ x₁ ≤ ' + bHi + ' and ' + bLo + ' ≤ x₂ ≤ ' + bHi;
-      // the land's rings around c: on a quadratic land, ellipses whose long axis follows the valley
+      var bLo = num(box[0], 0), bHi = num(box[1], 0), lawRule = bLo + ' ≤ v₁ ≤ ' + bHi + ' and ' + bLo + ' ≤ v₂ ≤ ' + bHi;
+      // the land's rings around x̂: on a quadratic land, ellipses whose long axis follows the valley
       var a11 = land.A[0][0], a12 = land.A[0][1], a22 = land.A[1][1], am = (a11 + a22) / 2, ar = Math.sqrt((a11 - a22) * (a11 - a22) / 4 + a12 * a12);
       var ev = Math.abs(a12) > 1e-12 ? [a12, am - ar - a11] : a11 <= a22 ? [1, 0] : [0, 1], evAlong = scale(ev, 1 / len(ev)), evAcross = [-evAlong[1], evAlong[0]];
       var lamLo = am - ar, lamHi = am + ar, steeper = lamHi / lamLo, WORDS = { 2: 'two', 3: 'three', 4: 'four', 5: 'five', 6: 'six', 7: 'seven', 8: 'eight', 9: 'nine', 10: 'ten' };
@@ -1932,7 +1936,7 @@ var Board = (function () {
         if (!(p > 0)) return; var c = g.ctx, A0 = g.P([box[0], box[1]]), B0 = g.P([box[1], box[0]]);
         g.clip(g.mapR); c.globalAlpha = 0.16 * clamp(p, 0, 1); c.fillStyle = C.blue; c.fillRect(A0[0], A0[1], B0[0] - A0[0], B0[1] - A0[1]); c.globalAlpha = 1; c.restore();
       };
-      // spots one distance r from c: a circle, drawn as far round as p
+      // spots one distance r from x̂: a circle, drawn as far round as p
       var circle = function (g, r, col, w, p, dash) {
         if (!(p > 0) || !(r > 0)) return; var pts = []; for (var i = 0; i <= 96; i++) { var t = Math.PI + TAU * i / 96; pts.push(add(free, [r * Math.cos(t), r * Math.sin(t)])); }
         g.path(pts, col, w, p, dash);
@@ -1946,11 +1950,11 @@ var Board = (function () {
       ].map(function (s) { s.z = land.project(s.v); return s; });
       out.push({ id: 'warden-role', chapter: 'The Twins', title: 'Meet the Warden: z', layout: 'map', view: introView, dur: 6.4,
         text: 'The Warden is the Wanderer’s twin, with the opposite skill. It knows the King’s law by heart and never looks at the land. ' +
-          'The law is the wall: a spot x is lawful when ' + lawRule + '. We call the set of lawful spots C, the shaded square on the map. ' +
+          'The law is the wall: a spot v is lawful when ' + lawRule + '. We call the set of lawful spots C, the shaded square on the map. ' +
           'Hand the Warden any spot v, and it answers with the lawful spot nearest to v. A spot inside the wall is lawful already, so it stays. ' +
           'A spot outside is pulled straight back to the wall, meeting it at a right angle; a spot past a corner goes to the corner. ' +
           'We write the Warden’s answer as Π<sub>C</sub>(v), the projection of v onto C, or Π(v) for short. Π is the capital Greek letter pi. Here Π<sub>C</sub>(v) denotes the Euclidean projection of v onto C.',
-        math: 'C = {x : ' + lawRule + '}' + at(0.3, '<br>z = Π<sub>C</sub>(v), the spot of C nearest to v') +
+        math: 'C = {v : ' + lawRule + '}' + at(0.3, '<br>z = Π<sub>C</sub>(v), the spot of C nearest to v') +
           at(0.55, '<br>inside C: Π<sub>C</sub>(v) = v;  outside: on the wall'),
         draw: function (g, p) {
           base(g); lawFill(g, seg(p, 0, 0.14)); star(g, T, 1); var phone = g.mapR[2] < 430;
@@ -1967,11 +1971,11 @@ var Board = (function () {
           });
         } });
 
-      // page 2: the Warden's own problem for c, as a growing circle and then one direction at a time
+      // page 2: the Warden's own problem for x̂, as a growing circle and then one direction at a time
       var inPt = add(freeZ, fi === 0 ? [wallAt >= box[1] ? -0.55 * wd : 0.55 * wd, 0] : [0, wallAt >= box[1] ? -0.55 * wd : 0.55 * wd]);
       var stepView = around([add(free, [dWall, dWall]), add(free, [-dWall, -dWall]), inPt], 0.3, 0.3 * cx.span);
       var nlLo = Math.min(box[0], free[0], free[1]) - 0.2 * wd, nlHi = Math.max(box[1], free[0], free[1]) + 0.2 * wd;
-      // one coordinate on a number line: the lawful stretch in blue, c's value in white, and where the Warden puts it
+      // one coordinate on a number line: the lawful stretch in blue, x̂'s value in white, and where the Warden puts it
       var coordLine = function (g, x, y, w, val, to, p, q) {
         if (!(p > 0)) return; var c = g.ctx, X = function (t) { return x + (t - nlLo) / (nlHi - nlLo) * w; }, moved = Math.abs(val - to) > 1e-9;
         c.globalAlpha = clamp(p, 0, 1); c.lineCap = 'round';
@@ -1991,50 +1995,51 @@ var Board = (function () {
           num(free[k], 2) + ' is inside, so z' + SUBN[k] + ' = ' + num(freeZ[k], 2);
       };
       out.push({ id: 'warden-steps', chapter: 'The Twins', title: 'The Warden’s problem, step by step', layout: 'map+side', view: stepView, dur: 8,
-        text: 'Now hand the Warden the spot that matters most, c = ' + pair(free) + '. This c is the valley’s floor, the lowest point of the land with no wall; the Wanderer walked there on its own. ' +
-          'The Warden must find the point z in C with the smallest distance |z − c|, which is an optimisation problem of its own. ' +
-          'Spots at one distance from c lie on a circle, so let a circle grow from c. The first lawful spot it reaches is the answer. ' +
-          'For a square wall there is a shortcut, because |z − c|² = (z₁ − c₁)² + (z₂ − c₂)² and the wall limits z₁ and z₂ separately. Hence the Warden settles one direction at a time. ' +
-          DIRC[fi] + ', ' + num(free[fi], 2) + ' lies past the wall at ' + num(wallAt, 0) + ', so z' + SUBN[fi] + ' = ' + num(wallAt, 0) + '. ' +
-          DIRC[fj] + ', ' + num(free[fj], 2) + ' is already between ' + bLo + ' and ' + bHi + ', so it stays. ' +
-          'Both ways give Π(c) = ' + pair(freeZ) + ', ' + num(dWall) + ' from c.',
-        math: 'Π<sub>C</sub>(c) = the point z in C nearest to c' + at(0.5, '<br>|z − c|² = (z₁ − c₁)² + (z₂ − c₂)²') +
+        text: 'Now hand the Warden the spot that matters most, x̂ = ' + pair(free) + ': the valley’s floor, where the Wanderer stopped on its own. ' +
+          'Each symbol has one owner: x and x̂ are the Wanderer’s; z, C and Π are the Warden’s. ' +
+          'The Warden must find the point z in C with the smallest distance |z − x̂|, which is an optimisation problem of its own. ' +
+          'Spots at one distance from x̂ lie on a circle, so let a circle grow from x̂. The first lawful spot it reaches is the answer. ' +
+          'For a square wall there is a shortcut, because |z − x̂|² = (z₁ − x̂₁)² + (z₂ − x̂₂)² and the wall limits z₁ and z₂ separately. Hence the Warden settles one direction at a time. ' +
+          DIRC[fi] + ', x̂' + SUBN[fi] + ' = ' + num(free[fi], 2) + ' lies past the wall at ' + num(wallAt, 0) + ', so z' + SUBN[fi] + ' = ' + num(wallAt, 0) + '. ' +
+          DIRC[fj] + ', x̂' + SUBN[fj] + ' = ' + num(free[fj], 2) + ' is already between ' + bLo + ' and ' + bHi + ', so z' + SUBN[fj] + ' = ' + num(free[fj], 2) + '. ' +
+          'Both ways give Π(x̂) = ' + pair(freeZ) + ', ' + num(dWall) + ' from x̂.',
+        math: 'Π<sub>C</sub>(x̂) = the point z in C nearest to x̂' + at(0.5, '<br>|z − x̂|² = (z₁ − x̂₁)² + (z₂ − x̂₂)²') +
           at(0.62, '<br>z' + SUBN[fi] + ': ' + num(free[fi], 2) + ' → ' + num(wallAt, 0)) + at(0.78, ';  z' + SUBN[fj] + ': ' + num(free[fj], 2) + ' stays') +
-          at(0.88, '<br>Π<sub>C</sub>(c) = ' + pair(freeZ) + ', ' + num(dWall) + ' from c'),
+          at(0.88, '<br>Π<sub>C</sub>(x̂) = ' + pair(freeZ) + ', ' + num(dWall) + ' from x̂'),
         draw: function (g, p) {
           base(g); lawFill(g, 1); star(g, T, 1);
           var qC = seg(p, 0, 0.1), grow = seg(p, 0.12, 0.46), r = dWall * grow, touched = p >= 0.46, A0 = g.P(free), phoneMap = g.mapR[2] < 430;
           // the circle grows; the rings it passes stay behind, dashed
           [1 / 3, 2 / 3].forEach(function (k) { if (grow >= k) circle(g, k * dWall, 'rgba(169,205,246,0.6)', 1.3, 1, [4, 4]); });
           if (r > 0) circle(g, r, C.blue, 2, 1);
-          if (grow > 0.25 && p < 0.56) g.labelPx(A0[0], A0[1] - r * g.s - 14, '|z − c| = ' + num(r, 2), C.blue, { align: 'center', size: 11.5, p: seg(p, 0.14, 0.2) * (1 - seg(p, 0.5, 0.56)) });
+          if (grow > 0.25 && p < 0.56) g.labelPx(A0[0], A0[1] - r * g.s - 14, '|z − x̂| = ' + num(r, 2), C.blue, { align: 'center', size: 11.5, p: seg(p, 0.14, 0.2) * (1 - seg(p, 0.5, 0.56)) });
           if (touched) g.halo(freeZ, 10, C.blue, seg(p, 0.46, 0.5) * (1 - seg(p, 0.8, 0.86)), 2.2);
           g.label(freeZ, 'the first lawful spot it reaches', C.blue, { dx: -12, dy: -24, align: 'right', size: 11.5, p: seg(p, 0.46, 0.52) * (1 - seg(p, 0.56, 0.6)), inside: true });
-          // then one direction at a time: c's coordinate across the wall moves onto it, the other stays
+          // then one direction at a time: x̂'s coordinate across the wall moves onto it, the other stays
           var qE = seg(p, 0.6, 0.72), qN = seg(p, 0.74, 0.82), qZ = seg(p, 0.84, 0.94);
           var qELabel = qE * (1 - seg(p, 0.74, 0.8)), qNLabel = qN * (1 - seg(p, 0.84, 0.9));
           g.arrow(free, freeZ, C.blue, 2.6, qE);
           g.label(lerp2(free, freeZ, 0.5), 'z' + SUBN[fi] + ': ' + num(free[fi], 2) + ' → ' + num(wallAt, 0), C.blue, { dx: 0, dy: fi === 0 ? -20 : 0, align: 'center', size: 12, p: phoneMap ? 0 : qELabel, inside: true });
           g.label(freeZ, 'z' + SUBN[fj] + ': ' + num(free[fj], 2) + ' stays', C.blue, { dx: -12, dy: 20, align: 'right', size: 12, p: phoneMap ? 0 : qNLabel, inside: true });
           warden(g, freeZ, qZ); rightAngle(g, freeZ, free, qZ);
-          g.label(freeZ, 'Π(c) = ' + pair(freeZ), C.blue, { dx: -12, dy: -32, align: 'right', size: 12, p: qZ, inside: true });
-          g.hero(free, 'tw', qC); g.label(free, 'c, the valley’s floor', C.ink, { dx: phoneMap ? 12 : 0, dy: 24, align: phoneMap ? 'left' : 'center', size: 12, p: qC, inside: true });
+          g.label(freeZ, 'Π(x̂) = ' + pair(freeZ), C.blue, { dx: -12, dy: -32, align: 'right', size: 12, p: qZ, inside: true });
+          g.hero(free, 'tw', qC); g.label(free, 'x̂, the valley’s floor', C.ink, { dx: phoneMap ? 12 : 0, dy: 24, align: phoneMap ? 'left' : 'center', size: 12, p: qC, inside: true });
           // the side panel: the same problem, one coordinate at a time
           var R = g.sideR, compact = R[3] < 330, x = R[0] + 14, w = R[2] - 28, y = R[1] + (compact ? 36 : 40), bh = compact ? 62 : 92;
           g.panel(R, 'The Warden’s problem, step by step');
           if (!compact) {
-            g.labelPx(x, y, 'find the point z in C nearest to c', C.ink, { plain: true, size: 12, p: seg(p, 0.04, 0.1) });
-            g.labelPx(x, y + 24, '|z − c|² = (z₁ − c₁)² + (z₂ − c₂)²', C.ink, { plain: true, mono: true, size: 12, p: seg(p, 0.5, 0.56) });
+            g.labelPx(x, y, 'find the point z in C nearest to x̂', C.ink, { plain: true, size: 12, p: seg(p, 0.04, 0.1) });
+            g.labelPx(x, y + 24, '|z − x̂|² = (z₁ − x̂₁)² + (z₂ − x̂₂)²', C.ink, { plain: true, mono: true, size: 12, p: seg(p, 0.5, 0.56) });
             y += 62;
           }
           [fi, fj].forEach(function (k, n) {
             var q0 = n ? seg(p, 0.72, 0.76) : seg(p, 0.56, 0.6), q1 = n ? seg(p, 0.74, 0.82) : seg(p, 0.6, 0.72), yy = y + n * bh;
-            g.labelPx(x, yy, DIRS[k] + ':  c' + SUBN[k] + ' = ' + num(free[k], 2), C.ink, { plain: true, size: 12, p: q0 });
+            g.labelPx(x, yy, DIRS[k] + ':  x̂' + SUBN[k] + ' = ' + num(free[k], 2), C.ink, { plain: true, size: 12, p: q0 });
             coordLine(g, x + 8, yy + 24, w - 16, free[k], freeZ[k], q0, q1);
             g.labelPx(x, yy + (compact ? 50 : 56), lineText(k), C.blue, { plain: true, mono: true, size: 12, p: q1 });
           });
           var yr = y + 2 * bh + (compact ? 0 : 6);
-          g.labelPx(x, yr, 'Π(c) = ' + pair(freeZ) + ', ' + num(dWall) + ' from c', C.blue, { plain: true, mono: true, size: 12, p: qZ });
+          g.labelPx(x, yr, 'Π(x̂) = ' + pair(freeZ) + ', ' + num(dWall) + ' from x̂', C.blue, { plain: true, mono: true, size: 12, p: qZ });
           if (!compact && yr + 22 < R[1] + R[3] - 8) g.labelPx(x, yr + 22, 'the same spot the circle reached', C.ink, { plain: true, size: 12, p: seg(p, 0.9, 0.98) });
         } });
 
@@ -2051,11 +2056,11 @@ var Board = (function () {
       };
       out.push({ id: 'warden-not-lowest', chapter: 'The Twins', title: 'Nearest is not lowest', layout: 'map+side', view: farView, dur: 9,
         text: 'The Warden and the King are answering different questions. ' +
-          at(0.06, 'The Warden asks: “Which lawful point is closest to c?” Its answer, Π<sub>C</sub>(c) = ' + pair(freeZ) + ', is lawful and ' + num(dWall) + ' from c. Projection promises no more than that. ') +
-          at(0.32, 'The King asks: “Which lawful point has the lowest height J?” Its answer is x* = ' + pair(T) + '. The ranking reverses: x* is farther from c, ' + num(dStar) + ' instead of ' + num(dWall) + ', but lower in J, ' + num(TJ, 3) + ' instead of ' + num(zJ, 3) + '. ') +
-          at(0.58, 'Both answers lie on the same ' + faceName + ', ' + num(gapTZ) + ' apart. Follow the wall from Π(c) to x*: the height falls. A distance circle first touches C at Π(c). The land is ' + steeperS + ' times steeper across the valley than along it, so its equal-height rings are tilted ellipses. The first such ellipse to reach C touches x*. ') +
+          at(0.06, 'The Warden asks: “Which lawful point is closest to x̂?” Its answer, Π<sub>C</sub>(x̂) = ' + pair(freeZ) + ', is lawful and ' + num(dWall) + ' from x̂. Projection promises no more than that. ') +
+          at(0.32, 'The King asks: “Which lawful point has the lowest height J?” Its answer is x* = ' + pair(T) + '. The ranking reverses: x* is farther from x̂, ' + num(dStar) + ' instead of ' + num(dWall) + ', but lower in J, ' + num(TJ, 3) + ' instead of ' + num(zJ, 3) + '. ') +
+          at(0.58, 'Both answers lie on the same ' + faceName + ', ' + num(gapTZ) + ' apart. Follow the wall from Π(x̂) to x*: the height falls. A distance circle first touches C at Π(x̂). The land is ' + steeperS + ' times steeper across the valley than along it, so its equal-height rings are tilted ellipses. The first such ellipse to reach C touches x*. ') +
           at(0.82, 'The Warden knows C but never reads J. The Wanderer feels the slope of J but may leave C. The twins must combine these jobs to find one point that is both lawful and low.'),
-        math: 'Warden: Π<sub>C</sub>(c) = arg min<sub>z ∈ C</sub> |z − c| = ' + pair(freeZ) + ';  distance ' + num(dWall) +
+        math: 'Warden: Π<sub>C</sub>(x̂) = arg min<sub>z ∈ C</sub> |z − x̂| = ' + pair(freeZ) + ';  distance ' + num(dWall) +
           at(0.42, '<br>King: x* = arg min<sub>z ∈ C</sub> J(z) = ' + pair(T) + ';  J = ' + num(TJ, 3)) +
           at(0.7, '<br>nearest: ' + num(dWall) + ' < ' + num(dStar) + ';  lowest: ' + num(TJ, 3) + ' < ' + num(zJ, 3)),
         draw: function (g, p) {
@@ -2076,32 +2081,32 @@ var Board = (function () {
           if (phoneMap) g.labelPx(g.mapR[0] + g.mapR[2] - 10, g.mapR[1] + 52, num(gapTZ) + ' apart on the wall', C.violet, { align: 'right', size: 10.5, p: seg(p, 0.9, 1) });
           else g.label(add(lerp2(freeZ, T, 0.5), inward), num(gapTZ) + ' apart', C.violet, { dx: -10, dy: 0, align: 'right', size: 12, p: seg(p, 0.9, 1), inside: true });
           warden(g, freeZ, qW); star(g, T, seg(p, 0.54, 0.62));
-          g.label(freeZ, 'nearest: Π(c), distance ' + num(dWall), C.blue, { dx: -12, dy: phoneMap ? 30 : 20, align: 'right', size: phoneMap ? 10.5 : 12, p: seg(p, 0.18, 0.28), inside: true });
+          g.label(freeZ, 'nearest: Π(x̂), distance ' + num(dWall), C.blue, { dx: -12, dy: phoneMap ? 30 : 20, align: 'right', size: phoneMap ? 10.5 : 12, p: seg(p, 0.18, 0.28), inside: true });
           g.label(T, 'lowest: x*, J = ' + num(TJ, 3), C.gold, { dx: -12, dy: phoneMap ? -36 : -22, align: 'right', size: phoneMap ? 10.5 : 12, p: seg(p, 0.56, 0.66), inside: true });
           var stageText = p < 0.3 ? '1  Warden: which lawful point is closest?' : p < 0.62 ? '2  King: which lawful point is lowest?' : p < 0.84 ? 'same centre, different rings' : 'nearest lawful is not lowest lawful';
           g.labelPx(g.mapR[0] + 12, g.mapR[1] + 30, stageText, p < 0.3 ? C.blue : C.gold, { size: 13 });
-          g.hero(free, 'tw', 1); g.label(free, 'c', C.ink, { dx: 12, dy: -14, size: 12, inside: true });
+          g.hero(free, 'tw', 1); g.label(free, 'x̂', C.ink, { dx: 12, dy: -14, size: 12, inside: true });
           // The side cards keep the two objectives and their reversed rankings visible without asking students to read two plots.
           var R = g.sideR, h2 = (R[3] - 8) / 2, R1 = [R[0], R[1], R[2], h2], R2 = [R[0], R[1] + h2 + 8, R[2], h2];
-          questionCard(g, R1, C.blue, '1  Warden: closest to c?', 'Π_C(c) = ' + pair(freeZ), 'distance  ' + num(dWall) + ' < ' + num(dStar) + ' at x*', seg(p, 0.02, 0.08), seg(p, 0.18, 0.28), seg(p, 0.56, 0.64));
-          questionCard(g, R2, C.gold, '2  King: lowest height J?', 'x* = ' + pair(T), 'height J  ' + num(TJ, 3) + ' < ' + num(zJ, 3) + ' at Π(c)', seg(p, 0.32, 0.4), seg(p, 0.52, 0.6), seg(p, 0.56, 0.66));
+          questionCard(g, R1, C.blue, '1  Warden: closest to x̂?', 'Π_C(x̂) = ' + pair(freeZ), 'distance  ' + num(dWall) + ' < ' + num(dStar) + ' at x*', seg(p, 0.02, 0.08), seg(p, 0.18, 0.28), seg(p, 0.56, 0.64));
+          questionCard(g, R2, C.gold, '2  King: lowest height J?', 'x* = ' + pair(T), 'height J  ' + num(TJ, 3) + ' < ' + num(zJ, 3) + ' at Π(x̂)', seg(p, 0.32, 0.4), seg(p, 0.52, 0.6), seg(p, 0.56, 0.66));
         } });
     } else {
       var samples = [];
       if (free) { var dir0 = sub(free, x0), perp = [-dir0[1], dir0[0]]; samples = [add(free, scale(perp, 0.35)), lerp2(x0, free, 0.45), free].map(function (q) { return { q: q, z: noLaw ? q : land.project(q) }; }); }
       out.push({ id: 'warden-role', chapter: 'The Twins', title: 'Meet the Warden: z', layout: 'map', view: introView, dur: 5.6,
         text: noLaw ? 'The Warden’s job: given any point, step to the nearest lawful spot. With no law every spot is lawful, so the Warden simply stands where the Wanderer stands.' :
-          'The Warden’s job: given any point, step to the nearest lawful spot, ' + (tower ? 'the nearest point of the parity-polytope line' : 'the nearest spot ' + lawWord) + '. A lawful point stays where it is; a point outside is pulled straight to the law, at a right angle. ' + (free ? 'Asked about the Wanderer’s spot c, the Warden answers Π(c) = ' + pair(freeZ) + ': lawful, but J = ' + num(f(freeZ), 3) + ' there, above the spot to dig, where J = ' + num(TJ, 3) + '. ' : '') + 'The Warden never feels the slope, so on its own it cannot find the lowest lawful spot either.',
-        math: 'the Warden: z = Π<sub>C</sub>(any point), the nearest lawful spot' + (free && freeOut ? at(0.6, ';  Π<sub>C</sub>(c) = ' + pair(freeZ) + ',  J = ' + num(f(freeZ), 3) + ' > ' + num(TJ, 3)) : ''),
+          'The Warden’s job: given any point, step to the nearest lawful spot, ' + (tower ? 'the nearest point of the parity-polytope line' : 'the nearest spot ' + lawWord) + '. A lawful point stays where it is; a point outside is pulled straight to the law, at a right angle. ' + (free ? 'Asked about the Wanderer’s spot x̂, the Warden answers Π(x̂) = ' + pair(freeZ) + ': lawful, but J = ' + num(f(freeZ), 3) + ' there, above the spot to dig, where J = ' + num(TJ, 3) + '. ' : '') + 'The Warden never feels the slope, so on its own it cannot find the lowest lawful spot either.',
+        math: 'the Warden: z = Π<sub>C</sub>(any point), the nearest lawful spot' + (free && freeOut ? at(0.6, ';  Π<sub>C</sub>(x̂) = ' + pair(freeZ) + ',  J = ' + num(f(freeZ), 3) + ' > ' + num(TJ, 3)) : ''),
         draw: function (g, p) {
           base(g); star(g, T, 1);
           samples.forEach(function (s, i) {
             var q = seg(p, 0.05 + 0.24 * i, 0.3 + 0.24 * i), moved = len(sub(s.q, s.z)) > 1e-9;
             g.dot(s.q, 5, i === 2 ? '#e6e9ee' : C.ink, seg(q, 0, 0.3));
             if (moved) { g.arrow(s.q, s.z, C.blue, 2.5, seg(q, 0.3, 0.8)); rightAngle(g, s.z, s.q, seg(q, 0.8, 1)); } else g.halo(s.q, 10, C.blue, seg(q, 0.3, 0.8), 1.5);
-            warden(g, s.z, seg(q, 0.7, 1), i === 2 ? 'Π(c): lawful, not lowest' : moved ? 'nearest lawful spot' : 'already lawful: stays');
+            warden(g, s.z, seg(q, 0.7, 1), i === 2 ? 'Π(x̂): lawful, not lowest' : moved ? 'nearest lawful spot' : 'already lawful: stays');
           });
-          if (free) g.hero(free, 'tw', seg(p, 0.55, 0.65), 'c');
+          if (free) g.hero(free, 'tw', seg(p, 0.55, 0.65), 'x̂');
         } });
     }
 
@@ -2112,13 +2117,13 @@ var Board = (function () {
     var ropeView = ropeOk ? around([free, freeZ, xr, T], 0.6, 0.35 * cx.span) : view;
     out.push({ id: 'rope', chapter: 'The Twins', title: 'Tie them with a rope', layout: 'map', view: ropeView, dur: 5.8,
       text: noLaw ? 'Tie the twins with a rope of stiffness ρ = ' + num(rho, 2) + '. With no law the Warden always stands where the Wanderer stands, so the rope hangs slack and nothing changes.' :
-        'Tie the twins with a rope of stiffness ρ = ' + num(rho, 2) + '. Now the Wanderer minimises the land plus the rope’s pull toward the Warden, and the Warden steps to the nearest lawful spot to the Wanderer. Each still does only what it is good at; the rope makes them care about each other. The shading is the land as the Wanderer now feels it, with the rope tied to the Warden at z = ' + pair(freeZ) + ': the rope’s cost ρ/2·|x − z|² is added to the height. ' + (ropeOk ? 'Pulled by the rope, the Wanderer moves from c to ' + pair(xr) + '. No spot farther than r = ' + num(reachFree) + ' from the Warden can beat the Warden’s own spot: the dashed ring.' : 'On this land the Wanderer walks down that combined land in small steps.'),
+        'Tie the twins with a rope of stiffness ρ = ' + num(rho, 2) + '. Now the Wanderer minimises the land plus the rope’s pull toward the Warden, and the Warden steps to the nearest lawful spot to the Wanderer. Each still does only what it is good at; the rope makes them care about each other. The shading is the land as the Wanderer now feels it, with the rope tied to the Warden at z = ' + pair(freeZ) + ': the rope’s cost ρ/2·|x − z|² is added to the height. ' + (ropeOk ? 'Pulled by the rope, the Wanderer moves from x̂ to ' + pair(xr) + '. No spot farther than r = ' + num(reachFree) + ' from the Warden can beat the Warden’s own spot: the dashed ring.' : 'On this land the Wanderer walks down that combined land in small steps.'),
       math: 'the Wanderer now minimises f(x) + ρ/2·|x − z|²,  ρ = ' + num(rho, 2) + at(0.6, ';  the Warden takes Π<sub>C</sub>(x)'),
       draw: function (g, p) {
         if (!ropeOk) { base(g); g.hero(x, 'tw', 1, 'the Wanderer'); warden(g, z, 1, 'the Warden'); spring(g, x, z, seg(p, 0.2, 0.5)); return; }
         base(g); g.land(ropeFree, { id: 'ropeFree', rings: 10, alpha: seg(p, 0.3, 0.55) }); law(g, 1); star(g, T, 1);
         g.dot(freeZ, 7, C.blue, 1); g.label(freeZ, 'the Warden, z', C.blue, { dx: -12, dy: -14, align: 'right', size: 12 }); var q = seg(p, 0.55, 0.9), at2 = lerp2(free, xr, q);
-        spring(g, at2, freeZ, seg(p, 0.05, 0.3)); g.hero(at2, 'tw', 1, q >= 1 ? 'pulled to ' + pair(xr) : q <= 0 ? 'the Wanderer at c' : '');
+        spring(g, at2, freeZ, seg(p, 0.05, 0.3)); g.hero(at2, 'tw', 1, q >= 1 ? 'pulled to ' + pair(xr) : q <= 0 ? 'the Wanderer at x̂' : '');
         if (reachFree > 0) g.halo(freeZ, reachFree * g.s, C.ink, seg(p, 0.7, 0.9), 1.2, [5, 4]);
       } });
 
@@ -2168,7 +2173,7 @@ var Board = (function () {
           if (Fp) g.land(Fp, { id: idOf(o.aPrev), rings: 10 }); else g.land(cx.J, cx.shade);
           g.land(Fd, { id: idOf(a), rings: 10, alpha: q1 });
           g.axes(); law(g, 1); star(g, T, 1);
-          if (o.showC && free) { g.dot(free, 4, C.ink, 1); g.label(free, 'c, the valley floor', C.ink, { dx: 10, dy: -12, size: 11.5, inside: true }); }
+          if (o.showC && free) { g.dot(free, 4, C.ink, 1); g.label(free, 'x̂, the valley floor', C.ink, { dx: 10, dy: -12, size: 11.5, inside: true }); }
           if (o.trail && o.trail.length) { if (o.trail.length > 1) g.path(o.trail, 'rgba(242,245,248,0.35)', 1.5, 1, [3, 3]); o.trail.forEach(function (q) { g.dot(q, 2.5, 'rgba(242,245,248,0.6)', 1); }); }
           // where today's rope is tied: the Warden's spot (rope alone), or the aim, the Warden's spot moved back by the book
           if (book) {
@@ -2237,7 +2242,7 @@ var Board = (function () {
           'The Wanderer’s spot x' + sd + ' is outside the wall, so the Warden stops at the wall, z' + sd + ' = ' + pair(zd) + ', and a gap of ' + num(len(sub(xd, zd))) + ' opens.';
         if (d === 1) return 'Here are the first ' + ropeDays + ' days, one move at a time. Each day is built from the day before. On day 1 the rope is tied to the Warden’s spot at the start, z₀ = ' + pair(zp) + '. ' +
           'So the Wanderer’s land today is the valley plus a bowl around z₀: F₁(x) = f(x) + ρ/2·|x − z₀|². ' +
-          'Its lowest point is x₁ = ' + pair(xd) + ': the valley pulls the Wanderer toward its floor c, and the rope holds it back. The Wanderer walks there. Then the Warden moves. ' + wardenS + ' Tomorrow the rope is tied to z₁.';
+          'Its lowest point is x₁ = ' + pair(xd) + ': the valley pulls the Wanderer toward its floor x̂, and the rope holds it back. The Wanderer walks there. Then the Warden moves. ' + wardenS + ' Tomorrow the rope is tied to z₁.';
         if (d === 2) return 'Day 2 starts from day 1’s result. The rope is re-tied to z₁ = ' + pair(zp) + ', so the bowl moves with it. ' +
           'Today’s land, F₂(x) = f(x) + ρ/2·|x − z₁|², is a different function from yesterday’s. Its lowest point is x₂ = ' + pair(xd) + ', another step toward the valley floor. ' + wardenS;
         return 'Day ' + d + ' repeats the recipe with z' + sp + ' = ' + pair(zp) + ': F' + sd + '(x) = f(x) + ρ/2·|x − z' + sp + '|². The Wanderer reaches x' + sd + ' = ' + pair(xd) + '. ' + wardenS +
@@ -2496,18 +2501,18 @@ var Board = (function () {
       var Aw = land.A, cw = land.c, Mw = [[Aw[0][0] + rho, Aw[0][1]], [Aw[1][0], Aw[1][1] + rho]], rhsW = [Aw[0][0] * cw[0] + Aw[0][1] * cw[1] + rho * v[0], Aw[1][0] * cw[0] + Aw[1][1] * cw[1] + rho * v[1]];
       var eq = function (r) { return num(Mw[r][0]) + '·x₁ ' + (Mw[r][1] < 0 ? '− ' : '+ ') + num(Math.abs(Mw[r][1])) + '·x₂ = ' + num(rhsW[r]); };
       balText = 'Where does the walk stop? Where the new land is flat, so the two pulls on the Wanderer cancel. ' +
-        'The land pulls it downhill, out toward the valley floor c; the rope pulls it back toward the aim v' + sk + '. ' +
+        'The land pulls it downhill, out toward the valley floor x̂; the rope pulls it back toward the aim v' + sk + '. ' +
         'At x' + sk1 + ' the land pulls with ' + pair(landPull) + ' and the rope with ' + pair(ropePull) + ': equal and opposite. ' +
-        'On this valley there is a shortcut. “The pulls cancel” is one equation for each direction of the map: A(x − c) + ρ(x − v) = 0. So the Wanderer can solve two equations for its two numbers, x₁ and x₂, instead of walking. ' +
+        'On this valley there is a shortcut. “The pulls cancel” is one equation for each direction of the map: A(x − x̂) + ρ(x − v) = 0. So the Wanderer can solve two equations for its two numbers, x₁ and x₂, instead of walking. ' +
         'That is what it does each day on this land: one solve, and the same spot the walk reaches.';
-      balMath = 'flat:  ∇f(x) + ρ(x − v) = 0,  with ∇f(x) = A(x − c)' + at(0.55, '<br>' + eq(0) + ',  ' + eq(1)) + at(0.85, '<br>solved: x' + sk1 + ' = ' + pair(xn));
+      balMath = 'flat:  ∇f(x) + ρ(x − v) = 0,  with ∇f(x) = A(x − x̂)' + at(0.55, '<br>' + eq(0) + ',  ' + eq(1)) + at(0.85, '<br>solved: x' + sk1 + ' = ' + pair(xn));
       balSide = function (g, p) {
         var R = g.sideR, tall = R[3] > 300, rh = tall ? 30 : 21, x0 = R[0] + 14; g.panel(R, 'The pulls cancel: two equations');
         var rows = [
-          { t: 'the land’s pull   −A(x' + sk1 + ' − c) = ' + pair(landPull), col: C.orange, mono: true, at: 0.15 },
+          { t: 'the land’s pull   −A(x' + sk1 + ' − x̂) = ' + pair(landPull), col: C.orange, mono: true, at: 0.15 },
           { t: 'the rope’s pull    ρ(v' + sk + ' − x' + sk1 + ') = ' + pair(ropePull), col: C.violet, mono: true, at: 0.4 },
           { t: 'their sum = ' + pair(sumPull), col: C.gold, mono: true, at: 0.55 },
-          { t: 'so A(x − c) + ρ(x − v) = 0: one equation', col: C.dim, at: 0.62 },
+          { t: 'so A(x − x̂) + ρ(x − v) = 0: one equation', col: C.dim, at: 0.62 },
           { t: 'for each direction of the map', col: C.dim, at: 0.62 },
           { t: eq(0), col: C.ink, mono: true, at: 0.7 },
           { t: eq(1), col: C.ink, mono: true, at: 0.75 },
@@ -2532,7 +2537,7 @@ var Board = (function () {
       text: balText, math: balMath,
       draw: function (g, p) {
         base(g);
-        if (quadExact) { g.dot(land.c, 5, C.ink, seg(p, 0, 0.15)); g.label(land.c, 'c, the valley floor', C.ink, { dx: 10, dy: -16, p: seg(p, 0, 0.2), size: 12, inside: true }); }
+        if (quadExact) { g.dot(land.c, 5, C.ink, seg(p, 0, 0.15)); g.label(land.c, 'x̂, the valley floor', C.ink, { dx: 10, dy: -16, p: seg(p, 0, 0.2), size: 12, inside: true }); }
         g.dot(v, 6, C.violet, 1); g.label(v, 'the aim v' + sk, C.violet, { dx: -10, dy: -16, align: 'right', size: 12, inside: true });
         spring(g, xn, v, 0.55); g.hero(xn, 'tw', 1);
         // the arrows stop short of the aim; the rope's label and x's label sit on the side away from the aim and the land's pull
@@ -2819,7 +2824,7 @@ var Board = (function () {
 
   // ------------------------------------------------------------ the course
   var Wc = world('canyon'), Wlong = world('canyon', { alpha: 0.22 }), Ww = world('wall'), Wm = world('misty');
-  var out = [], CH = { land: 'The King’s land', feel: 'Feeling the slope', pg: 'The Pilgrim: gradient descent', lb: 'The Cartographer: L-BFGS', tw: 'The Twins: ADMM and the King’s law', light: 'The self-checking light board', cajode: 'From the light board to CAJODE', misty: 'The misty hills', end: 'What we learned' };
+  var out = [], CH = { land: 'The King’s land', feel: 'Feeling the slope', pg: 'The Pilgrim: gradient descent', lb: 'The Cartographer: L-BFGS', tw: 'The Twins: ADMM and the King’s law', light: 'The self-checking light board', cajode: 'From the light board to SAPPHIRE', misty: 'The misty hills', end: 'What we learned' };
   var T = Wc.T, x0 = Wc.x0, A = Wc.land.A, c = Wc.land.c, pc = Wc.p;
 
   // 1. the King's land
@@ -2834,8 +2839,8 @@ var Board = (function () {
   var probe = [[-0.15, 1.1], [0.25, 0.9], [0.55, 0.62], [0.95, 0.35], [1.15, -0.1]];
   function along(pts, t) { var n = pts.length - 1, s = clamp(t, 0, 1) * n, k = Math.min(Math.floor(s), n - 1); return lerp2(pts[k], pts[k + 1], s - k); }
   out.push({ id: 'land', chapter: CH.land, title: 'The land is a formula', layout: 'map', view: Wc.view, dur: 4.6,
-    text: 'Every spot on the map is a pair of numbers, x = (x₁, x₂), and every spot has a height, J(x), given by the King’s formula. On the map, colour shows height, dark low and warm high, and each ring joins spots of the same height. Watch a probe read the height as it crosses the land.',
-    math: 'J(x) = ½(x − c)ᵀA(x − c),  c = ' + pair(c, 2),
+    text: 'Every spot on the map is a pair of numbers, x = (x₁, x₂), and every spot has a height, J(x), given by the King’s formula. In the formula, x̂ (read “x-hat”) is a fixed spot: the bottom of the valley, where J = 0. On the map, colour shows height, dark low and warm high, and each ring joins spots of the same height. Watch a probe read the height as it crosses the land.',
+    math: 'J(x) = ½(x − x̂)ᵀA(x − x̂),  x̂ = ' + pair(c, 2),
     draw: function (g, p) {
       base(g, Wc); var q = along(probe, seg(p, 0.1, 0.95));
       g.ring(Wc.land.J(q), C.gold, 2, seg(p, 0.1, 0.2)); g.dot(q, 6, C.gold, seg(p, 0.05, 0.15));
@@ -2929,11 +2934,12 @@ var Board = (function () {
   var twEnd = wtw[wtw.length - 1], twPrev = wtw[Math.max(0, wtw.length - 2)], uEnd = twEnd.u, gStar = Ww.land.grad(Tw), uTheory = [-gStar[0] / Ww.p.rho, -gStar[1] / Ww.p.rho];
   var primalEnd = len(sub(twEnd.x, twEnd.z)), dualEnd = Ww.p.rho * len(sub(twEnd.z, twPrev.z)), wallView = [-0.3, 1.8, -0.55, 1.55];
   out.push({ id: 'wall', chapter: CH.tw, title: 'The kingdom wall', layout: 'map', view: wallView, dur: 4.6,
-    text: 'On this land the King adds a law: the treasure must lie inside the wall, the square from 0 to 1 on each side. The bottom of the valley, c = ' + pair(cw, 2) + ', lies outside it, so the lowest lawful spot is on the wall itself, at x* = ' + pair(Tw) + '. In the words of optimisation the wall is a constraint: minimise J(x) with x in the set C.',
+    text: 'On this land the King adds a law: the treasure must lie inside the wall, the square from 0 to 1 on each side. The bottom of the valley, x̂ = ' + pair(cw, 2) + ', lies outside it, so the lowest lawful spot is on the wall itself, at x* = ' + pair(Tw) + '. In the words of optimisation the wall is a constraint: minimise J(x) with x in the set C.',
     math: 'minimise J(x) subject to x ∈ C = [0, 1]²;  x* = ' + at(0.8, pair(Tw)),
     draw: function (g, p) {
-      base(g, Ww, { lawP: seg(p, 0.1, 0.45) }); g.dot(cw, 6, C.violet, seg(p, 0.45, 0.6)); g.label(cw, 'c, outside the wall', C.violet, { dx: 10, dy: 14, p: seg(p, 0.5, 0.65) });
-      g.ring(Ww.land.J(Tw), C.gold, 2, seg(p, 0.6, 0.8)); star(g, Tw, seg(p, 0.75, 0.95), 'x*, on the wall');
+      // the ring through x* is drawn first, so that it passes under the label of the valley's bottom, not over it
+      base(g, Ww, { lawP: seg(p, 0.1, 0.45) }); g.ring(Ww.land.J(Tw), C.gold, 2, seg(p, 0.6, 0.8));
+      g.dot(cw, 6, C.violet, seg(p, 0.45, 0.6)); g.label(cw, 'x̂, outside the wall', C.violet, { dx: 10, dy: 14, p: seg(p, 0.5, 0.65) }); star(g, Tw, seg(p, 0.75, 0.95), 'x*, on the wall');
     } });
   out.push({ id: 'pgwall', chapter: CH.tw, title: 'The Pilgrim at the wall', layout: 'map', view: wallView, dur: 5.4,
     text: 'The Pilgrim keeps its rule and adds one more: when a stride carries it outside the wall, it is set back to the nearest spot inside. That is projected gradient descent. It comes within 0.001 of the treasure on day ' + dPg + '; on ' + clipped + ' of those days the wall set it back.',
@@ -3053,7 +3059,7 @@ var Board = (function () {
         'b₅ = ' + num(trace.b[4], 2) + '  ·  R2 keeps ' + num(trace.z[1][1], 2) + '  ·  C2 keeps ' + num(trace.z[4][1], 2), C.gold,
         { align: 'center', plain: true, mono: true, size: narrow ? 8.5 : 10.5, p: seg(p, 0.43, 0.54) });
 
-      // The second half zooms into one parity step. A clean q = 111 example makes the nearest fractional point visible;
+      // The second half zooms into one parity step.  A clean q = 111 example makes the nearest fractional point visible;
       // the next page then opens the full cube and the computed round-4 R2 projection.
       var change = seg(p, 0.52, 0.61);
       if (change > 0) { c.save(); c.globalAlpha = change; c.fillStyle = C.bg; c.fillRect(R[0], R[1], R[2], R[3]); c.restore(); }
@@ -3073,9 +3079,9 @@ var Board = (function () {
       corners.forEach(function (a, ia) { corners.forEach(function (b2, ib) { if (ia < ib && Math.abs(a[0] - b2[0]) + Math.abs(a[1] - b2[1]) + Math.abs(a[2] - b2[2]) === 1) { var A = P3(a), Bq = P3(b2); c.beginPath(); c.moveTo(A[0], A[1]); c.lineTo(Bq[0], Bq[1]); c.stroke(); } }); });
       c.restore();
       var solidP = seg(p, 0.6, 0.72) * change;
-      var faces = [[0, 1, 2], [0, 1, 3], [0, 2, 3], [1, 2, 3]].map(function (face) { var pts = face.map(function (j) { return even[j]; }); return { pts: pts, depth: pts.reduce(function (sum, v) { return sum + P3(v)[2]; }, 0) }; });
+      var faces = [[0, 1, 2], [0, 1, 3], [0, 2, 3], [1, 2, 3]].map(function (f) { var pts = f.map(function (j) { return even[j]; }); return { pts: pts, depth: pts.reduce(function (sum, v) { return sum + P3(v)[2]; }, 0) }; });
       faces.sort(function (a, b2) { return b2.depth - a.depth; });
-      faces.forEach(function (face) { if (!(solidP > 0)) return; c.save(); c.globalAlpha = solidP; c.beginPath(); face.pts.forEach(function (v, j) { var A = P3(v); if (j) c.lineTo(A[0], A[1]); else c.moveTo(A[0], A[1]); }); c.closePath(); c.fillStyle = 'rgba(169,205,246,0.15)'; c.fill(); c.strokeStyle = C.blue; c.lineWidth = 1.8; c.stroke(); c.restore(); });
+      faces.forEach(function (f) { if (!(solidP > 0)) return; c.save(); c.globalAlpha = solidP; c.beginPath(); f.pts.forEach(function (v, j) { var A = P3(v); if (j) c.lineTo(A[0], A[1]); else c.moveTo(A[0], A[1]); }); c.closePath(); c.fillStyle = 'rgba(169,205,246,0.15)'; c.fill(); c.strokeStyle = C.blue; c.lineWidth = 1.8; c.stroke(); c.restore(); });
       corners.forEach(function (v) {
         var pass = (v[0] + v[1] + v[2]) % 2 === 0, A = P3(v), q = seg(p, pass ? 0.59 : 0.63, pass ? 0.69 : 0.73) * change;
         if (!(q > 0)) return; c.save(); c.globalAlpha = q; c.beginPath(); c.arc(A[0], A[1], pass ? 5.5 : 4.5, 0, TAU); c.fillStyle = pass ? C.blue : C.bg; c.fill(); c.strokeStyle = pass ? C.blue : C.red; c.lineWidth = 1.7; c.stroke(); c.restore();
@@ -3284,10 +3290,10 @@ var Board = (function () {
       g.labelPx(GR[0] + GR[2] / 2, GR[1] + GR[3] - 9, 'circles: shared bits   squares: local checks', C.dim, { align: 'center', plain: true, size: narrow ? 9 : 10.5, p: seg(p, 0.75, 0.95) });
     } });
 
-  // The light board fixes its channel evidence.  These final pages state exactly what full CAJODE adds, and keep
+  // The light board fixes its channel evidence.  These final pages state exactly what full SAPPHIRE adds, and keep
   // acceptance of a decoded word separate from convergence of its continuous optimisation variables.
-  out.push({ id: 'cajode-circuit', chapter: CH.cajode, title: 'One full CAJODE circuit', layout: 'side', dur: 5.6,
-    text: 'The light-board trace held its channel LLRs fixed. Full CAJODE also estimates the channel that produced the bit evidence. One circuit computes one robust weight for each received sample, updates all shared bit variables, recomputes those weights, updates the channel coefficients, projects each check’s replica vector onto its parity polytope, and then updates every scaled dual variable.',
+  out.push({ id: 'cajode-circuit', chapter: CH.cajode, title: 'One full SAPPHIRE circuit', layout: 'side', dur: 5.6,
+    text: 'The light-board trace held its channel LLRs fixed. Full SAPPHIRE also estimates the channel that produced the bit evidence. One circuit computes one robust weight for each received sample, updates all shared bit variables, recomputes those weights, updates the channel coefficients, projects each check’s replica vector onto its parity polytope, and then updates every scaled dual variable.',
     math: 'weights → shared bits → weights → channel → parity-polytope projections → scaled dual variables',
     draw: function (g, p) {
       var R = g.sideR, rows = ['1  one weight per received sample', '2  all shared variables bᵢ', '3  recompute those weights', '4  all channel coefficients', '5  every check projection', '6  every scaled dual variable'];
@@ -3299,7 +3305,7 @@ var Board = (function () {
       });
     } });
   out.push({ id: 'cajode-done', chapter: CH.cajode, title: 'Two different meanings of “done”', layout: 'side', dur: 5.2,
-    text: 'After a complete circuit, CAJODE forms a binary word. It may accept the first decoded word that satisfies every parity check and passes the CRC. Accepting that word is not proof that the continuous variables converged: the primal and dual residuals can still be nonzero, and stationarity is not established. The wall teaches the ADMM pattern; CAJODE applies it to a nonconvex optimization problem, so the wall’s standard convergence story does not transfer automatically.',
+    text: 'After a complete circuit, SAPPHIRE forms a binary word. It may accept the first decoded word that satisfies every parity check and passes the CRC. Accepting that word is not proof that the continuous variables converged: the primal and dual residuals can still be nonzero, and stationarity is not established. The wall teaches the ADMM pattern; SAPPHIRE applies it to a nonconvex optimization problem, so the wall’s standard convergence story does not transfer automatically.',
     math: 'accepted word: parity checks + CRC   ≠   continuous convergence or stationarity',
     draw: function (g, p) {
       var R = g.sideR, mid = R[0] + R[2] / 2;
@@ -3390,7 +3396,7 @@ var Board = (function () {
 </script>
 <script>
 // The roads of King’s Land Descent.  Six pages share one player (board.js): the game, the tale “Three heroes
-// downhill”, the CAJODE receiver tutorial and three case studies.  This file joins them.  A road starts on a step where
+// downhill”, the SAPPHIRE receiver tutorial and three case studies.  This file joins them.  A road starts on a step where
 // the reader has just met an idea that another page uses, and it is offered in a card under that step’s formula.
 // Taking it opens the other page with a short interlude played by the same player: the map of the King’s land with the
 // road walked, a scene that sets up the new place, and a key of what changes name.  A bar at the top of every page lists
@@ -3411,12 +3417,12 @@ var Realm = (function () {
   var PLACES = {
     game:     { file: 'index.html', name: 'King’s Land Descent', bar: 'The game', sub: 'walk the land yourself', q: [1.7, 3.95], icon: 'flag' },
     tutorial: { file: 'tutorial.html', name: 'Three heroes downhill', bar: 'Three heroes downhill', sub: 'gradient descent, L-BFGS, ADMM', q: [3.6, 6.15], icon: 'castle' },
-    soldiers: { file: 'bp_and_cajode.html', name: 'Counting soldiers', bar: 'BP and CAJODE', sub: 'belief propagation and CAJODE', q: [1.25, 7.0], icon: 'soldiers' },
-    keep:     { file: 'jade_keep_tutorial.html', name: 'CAJODE', bar: 'CAJODE receiver', sub: 'joint OFDM demodulation and decoding', q: [9.55, 6.3], icon: 'keep' },
+    soldiers: { file: 'bp_and_cajode.html', name: 'Counting soldiers', bar: 'BP and SAPPHIRE', sub: 'belief propagation and SAPPHIRE', q: [1.25, 7.0], icon: 'soldiers' },
+    keep:     { file: 'jade_keep_tutorial.html', name: 'SAPPHIRE', bar: 'SAPPHIRE receiver', sub: 'joint OFDM data detection and decoding', q: [9.55, 6.3], icon: 'keep' },
     coach:    { file: 'the_coach_and_the_physio.html', name: 'The Coach and the Physio', bar: 'Coach and Physio', sub: 'a training plan', q: [4.75, 2.15], icon: 'track' },
     dive:     { file: 'localization_is_decoding.html', name: 'The inspection dive', bar: 'Inspection dive', sub: 'localization at a monopile', q: [7.55, 3.15], icon: 'pile' },
     net:      { file: 'finding_the_tear.html', name: 'Finding the tear', bar: 'Finding the tear', sub: 'a fish-farm net', q: [10.45, 1.95], icon: 'pen' },
-    red:      { file: 'five_receivers_on_red.html', name: 'The Red recordings', bar: 'Red BER table', sub: 'five receivers, measured bit errors', q: [11.15, 4.3], icon: 'buoy' }
+    red:      { file: 'five_receivers_on_red.html', name: 'The Red recordings', bar: 'Red BER table', sub: 'six receivers, measured bit errors', q: [11.15, 4.3], icon: 'buoy' }
   };
   var ORDER = ['game', 'tutorial', 'soldiers', 'keep', 'coach', 'dive', 'net', 'red'];
 
@@ -3845,7 +3851,7 @@ var Realm = (function () {
   // Two coupled blocks that take turns, in the receiver and on the net.
   SCENES.twoBlocks = function (o) {
     var rows = o.rows || [
-      { name: 'the CAJODE receiver', a: 'response C', b: 'bits b', ca: 'hold the bits, solve the response', cb: 'hold the response, update the bits', first: 'b' },
+      { name: 'the SAPPHIRE receiver', a: 'response C', b: 'bits b', ca: 'hold the bits, solve the response', cb: 'hold the response, update the bits', first: 'b' },
       { name: 'the net inspection', a: 'knot positions p', b: 'twine states b', ca: 'hold the twines, move the knots', cb: 'hold the knots, re-read every twine', first: 'a' }];
     return { layout: 'side', dur: 7, draw: function (g, p) {
       var R = g.sideR, c = g.ctx, T1 = seg(p, 0.1, 0.42), T2 = seg(p, 0.48, 0.8), rowH = (R[3] - 44) / rows.length;
@@ -3924,7 +3930,7 @@ var Realm = (function () {
       g.label(inn, 'inside: stays', C.blue, { dy: 20, align: 'center', p: inR(0.55, 0.7), size: 12 }); g.label(outF, 'the nearest allowed point', C.blue, { dx: 14, dy: 6, p: inR(0.75, 0.92), size: 12 });
     } };
   };
-  // The miniature receiver of the CAJODE tutorial: two pilots, two data positions, two bits, one check, c₀ and c₁.
+  // The miniature receiver of the SAPPHIRE tutorial: two pilots, two data positions, two bits, one check, c₀ and c₁.
   SCENES.receiverMini = function () {
     return { layout: 'side', dur: 7, draw: function (g, p) {
       var R = g.sideR, c = g.ctx, w = Math.min(R[2] * 0.15, 96), hgt = 46, ys = R[1] + R[3] * 0.42, top = ys - hgt / 2, names = ['pilot', 'data', 'data', 'pilot'];
@@ -4107,7 +4113,7 @@ var Realm = (function () {
       scenes: [M('From the two-bit land to the light board', 'The two-bit land is the smallest parity check. Three heroes downhill draws it as two lamps that must agree, then builds a board of nine lamps with a check on every row and column.'),
         K('The game’s words in the tale', 'The tale writes 0 for a lamp that is off and 1 for a lamp that is on.',
           [[['lamps2', 'two signed values, −1 or +1'], ['lamps2', 'two lamps, off (0) or on (1)']], [['check', 'even parity: the signs agree'], ['check', 'an even number of lit lamps']], [['glow', 'the fixed evidence'], ['glow', 'the glow of each lamp']], [['wall', '(+, −) fails the law'], ['lamps4', '01 and 10 fail the check']]],
-          'New here: a syndrome, a replica for every check, and the step to CAJODE.')] },
+          'New here: a syndrome, a replica for every check, and the step to SAPPHIRE.')] },
     { id: 'game-ridge', from: 'game', onLand: 'ridge', to: 'tutorial', land: 'misty', sign: 'Why a hero stops behind a ridge', hook: 'The misty hills show the limit of local measurements in its plainest form.', who: 'you', carry: [],
       scenes: [M('From behind the ridge to the misty hills', 'Behind a ridge, both walkers stop in a shallow hollow whose endpoint fails parity, while the best passing pattern lies over the ridge. The misty hills of the tale show the same limit of local measurements, with haze and three narrow pits.'),
         K('The game’s words in the tale', 'No hero can see past the ground it measures.',
@@ -4120,14 +4126,14 @@ var Realm = (function () {
           'New here: a summary of the three heroes at the end of the tale.')] },
     // ---- from the tale to the receiver and the case studies
     twinsToCoach('twins-coach', 'tutorial', ['wall-tw-again', 'end']),
-    { id: 'light-keep', from: 'tutorial', at: ['light-ldpc', 'end'], to: 'keep', land: 'received-grid', sign: 'Inside the CAJODE receiver', hook: 'Where the glows come from: an OFDM frame, a channel to estimate, and the same parity checks.', who: 'you', carry: ['the light board'],
+    { id: 'light-keep', from: 'tutorial', at: ['light-ldpc', 'end'], to: 'keep', land: 'received-grid', sign: 'Inside the SAPPHIRE receiver', hook: 'Where the glows come from: an OFDM frame, a channel to estimate, and the same parity checks.', who: 'you', carry: ['the light board'],
       scenes: [M('Across the water to the receiver', 'The light board took its glows as given. A receiver must earn them. Its coded bits travel on the carriers of an orthogonal frequency-division multiplexing (OFDM) frame, and the channel that bends them is estimated from the same received samples.'),
         S('lampsToCarriers', {}, 'Lamps become carriers', 'Each lamp becomes a coded bit, and the bits ride on the carriers of the frame. Gold slots are pilots, symbols the receiver knows in advance. Residual Doppler leaks every carrier into its neighbours, so one received sample mixes several bits. This is intercarrier interference (ICI).', 'one carrier sample ≈ c₀ · its own symbol + c₁ · its neighbours’ symbols + noise'),
         K('What the light board becomes', 'The parity bookkeeping is unchanged. What is new sits in front of the checks: the frame, the pilots and a response estimated together with the bits. FFT is the fast Fourier transform, and an LLR is a log-likelihood ratio.',
           [[['lamp', 'a lamp, off or on'], ['bit', 'a coded bit b in [0, 1]']], [['glow', 'a glow yᵢ'], ['carrier', 'a carrier observation after the FFT']], [['glow', 'a channel LLR, given'], ['wave', 'a fit with an estimated response C']], [['checks', 'row and column checks'], ['check', 'the code’s parity checks']], [['book', 'a replica and duals per check'], ['book', 'the same replicas and duals']]],
           'New here: pilots, a response that couples neighbouring carriers, and robust weights for poor observations.')] },
     { id: 'tale-done', from: 'tutorial', at: ['cajode-done'], to: 'keep', land: 'milestones', sign: 'Compare the receiver’s three milestones', hook: 'A candidate can match before replica agreement and before the full toy state settles.', who: 'you', carry: ['the zero syndrome'],
-      scenes: [M('From the light board to the receiver’s timeline', 'On the light board every check passed before the residuals vanished. The CAJODE tutorial measures the same separation numerically: the toy candidate, replica agreement and the full-state threshold occur at different iterations.'),
+      scenes: [M('From the light board to the receiver’s timeline', 'On the light board every check passed before the residuals vanished. The SAPPHIRE tutorial measures the same separation numerically: the toy candidate, replica agreement and the full-state threshold occur at different iterations.'),
         K('What the light board’s tests become', 'The receiver toy separates three numerical milestones. Its hidden-truth oracle is an evaluation aid, not a real cyclic redundancy check (CRC).',
           [[['board', 'zero syndrome on the board'], ['check', 'every parity check passes']], [['seal', 'no further test'], ['seal', 'configured bits and the CRC pass']], [['gauge', 'primal and dual residuals'], ['gauge', 'r and s, reported apart']], [['days', 'pass at round 3, settle at 8'], ['days', 'stop at the first word that passes']]],
           'New here: bits fixed by the receiver configuration must keep their values.')] },
@@ -4160,11 +4166,11 @@ var Realm = (function () {
           [[['bit', 'the shared bits b'], ['wanderer', 'the Wanderer x']], [['check', 'a check’s replica z'], ['warden', 'the Warden z']], [['book', 'the scaled dual u'], ['book', 'the Warden’s book u']], [['wall', 'the parity polytope P'], ['wall', 'the kingdom wall']], [['rope', 'the penalty ρ'], ['rope', 'the rope’s stiffness ρ']]],
           'New here: what happens with the rope alone, and why the book fixes it.')] },
     { id: 'keep-net-robust', from: 'keep', at: ['robust-weights'], to: 'net', land: 'robust', sign: 'The same weights on a fish-farm net', hook: 'Finding the tear limits a doubtful knot detection with the same smooth penalty.', who: 'you', carry: ['the weights'],
-      scenes: [M('From the receiver to the fish farm', 'CAJODE gives every received sample a weight, so one poor observation cannot dominate the fit. A fish-farm inspection meets the same trouble with a knot detector. Most detections are good, and a few are false.'),
+      scenes: [M('From the receiver to the fish farm', 'SAPPHIRE gives every received sample a weight, so one poor observation cannot dominate the fit. A fish-farm inspection meets the same trouble with a knot detector. Most detections are good, and a few are false.'),
         S('netIntro', {}, 'The net inspection', NET_INTRO), S('scales', { outlier: 'a false detection' }, 'The same weight in both places', WEIGHT, 'w(E) = 1/√(1 + E/δ²);  E: a normalized squared error'),
         K('What the weights act on', 'On the net the weight limits a doubtful pairing; it cannot tell which pairing is right.', KEEP_NET_W, 'New here: a detection can switch from one knot to its neighbour between rounds.')] },
     { id: 'keep-net-blocks', from: 'keep', at: ['why-alternate', 'channel-solve'], to: 'net', land: 'coupling', sign: 'Two coupled blocks on a net', hook: 'Knot positions and twine states pull on each other as the channel and the bits do.', who: 'you', carry: ['two blocks'],
-      scenes: [M('From the receiver to the fish farm', 'CAJODE alternates because the channel and the bits are coupled through one prediction. Finding the tear has the same shape with other unknowns: where the knots are, and which twines are torn.'),
+      scenes: [M('From the receiver to the fish farm', 'SAPPHIRE alternates because the channel and the bits are coupled through one prediction. Finding the tear has the same shape with other unknowns: where the knots are, and which twines are torn.'),
         S('netIntro', {}, 'The net inspection', NET_INTRO), S('twoBlocks', {}, 'Take turns', 'The receiver holds the response and updates the bits, then holds the bits and solves the response. The net holds the twine states and moves the knots, then holds the knots and re-reads every twine. Each turn changes what the other block sees.'),
         K('What the two blocks become', 'On the net the copies and duals belong to the knot positions. Each twine state is a separate threshold with no copy.', KEEP_NET_B, 'New here: moving a knot changes which pixels a twine reads.')] },
     { id: 'keep-net-done', from: 'keep', at: ['milestones'], to: 'net', land: 'stopping', sign: 'Four meanings of done, on a net', hook: 'Finding the tear keeps geometry, consensus, motion and acceptance apart.', who: 'you', carry: ['three milestones'],
@@ -4177,12 +4183,12 @@ var Realm = (function () {
           [[['bit', 'the shared bits b'], ['coach', 'the plan x = (day, load)']], [['check', 'a check’s replica zₐ'], ['physio', 'the Physio’s copy z']], [['book', 'a scaled dual uₐ'], ['book', 'the planning log u']], [['wall', 'a parity polytope'], ['polygon', 'a polygon of safe plans']], [['seal', 'parity checks and the CRC'], ['curve', 'the athlete’s next measurement']]],
           'New here: an outer loop, in which the body’s response moves after every session.')] },
     { id: 'keep-dive', from: 'keep', at: ['takeaway'], to: 'dive', land: 'job', sign: 'Consensus copies at a monopile', hook: 'Photo positions are copied per reading, as bits are copied per check.', who: 'you', carry: ['four moves'],
-      scenes: [M('From the receiver to the wind farm', 'At an offshore monopile the shared unknowns are photo positions instead of bits. Each reading defines a local allowed set with its own replica and scaled dual, as each parity check does in CAJODE.'),
+      scenes: [M('From the receiver to the wind farm', 'At an offshore monopile the shared unknowns are photo positions instead of bits. Each reading defines a local allowed set with its own replica and scaled dual, as each parity check does in SAPPHIRE.'),
         K('What the receiver becomes', 'The image match cost has several equally good headings, so the allowed sets do real work.',
           [[['bit', 'the shared bits b'], ['photo', 'the shared photo positions']], [['check', 'the parity checks'], ['ring', 'standoff, range and step sets']], [['book', 'replicas zₐ, duals uₐ'], ['book', 'one replica and dual per set']], [['wave', 'a response C fitted jointly'], ['photo', 'an image match cost, fixed']]],
           'New here: sets that carry a stated sensor allowance.')] },
     { id: 'keep-net', from: 'keep', at: ['takeaway'], to: 'net', land: 'job', sign: 'Positions and binary states on a net', hook: 'Knot positions and twine states are estimated together, like the channel and the bits.', who: 'you', carry: ['two blocks'],
-      scenes: [M('From the receiver to the fish farm', 'A fish-farm net inspection is a joint problem like CAJODE. Continuous knot positions and binary twine states are coupled through the camera image, and every mesh rule keeps local copies of its knots.'),
+      scenes: [M('From the receiver to the fish farm', 'A fish-farm net inspection is a joint problem like SAPPHIRE. Continuous knot positions and binary twine states are coupled through the camera image, and every mesh rule keeps local copies of its knots.'),
         K('What the receiver becomes', 'The net is small enough that hidden truth can grade every step. Its close-up plays the part of the cyclic redundancy check (CRC), with a narrower reach.',
           [[['wave', 'the response C'], ['knot', 'the knot positions p']], [['bit', 'the bits b'], ['twine', 'the twine states b']], [['pilot', 'the pilots'], ['ropeline', 'the side rope and the tag']], [['check', 'parity replicas'], ['net', 'mesh-rule copies of knots']], [['seal', 'the CRC'], ['lens', 'a targeted close-up']]],
           'New here: the binary states are thresholded and have no copies of their own.')] },
@@ -4191,10 +4197,10 @@ var Realm = (function () {
         K('The receiver’s words in the game', 'Follow the Wanderer under View and press N to live one day; B works out the day step by step.',
           [[['bit', 'b in [0, 1]'], ['lamps2', 'x = 2b − 1 in [−1, +1]']], [['check', 'the parity set z₁ = z₂'], ['wall', 'the Warden’s line x₁ = x₂']], [['bit', 'the shared bits b'], ['wanderer', 'the Wanderer']], [['check', 'the check’s replica z'], ['warden', 'the Warden']]],
           'New here: a land with no channel, and lesson 7 of the trial on the light board.')] },
-    // ---- the counting soldiers: belief propagation beside CAJODE’s circuit
+    // ---- the counting soldiers: belief propagation beside SAPPHIRE’s circuit
     { id: 'light-soldiers', from: 'tutorial', at: ['light-replicas'], to: 'soldiers', land: 'count', who: 'you', carry: ['one replica per check'],
       scenes: [M('From the light board to the soldiers', 'The light board ran the note-taking circuit on nine lamps. The soldier slides tell that circuit with soldiers and set beside it the BP soldier, from belief propagation (BP), whose junctions reply instead of projecting. Both decode one small tree and one loop.'),
-        S('soldierTree', {}, 'Six bits, three connected checks', 'Bits 2 and 4 join neighbouring checks into one open chain. Bit 0 has the only wrong channel decision, so c₂ is violated. BP and the CAJODE constraint circuit both decode it, by different mechanisms.'),
+        S('soldierTree', {}, 'Six bits, three connected checks', 'Bits 2 and 4 join neighbouring checks into one open chain. Bit 0 has the only wrong channel decision, so c₂ is violated. BP and the SAPPHIRE constraint circuit both decode it, by different mechanisms.'),
         K('What the light board becomes', 'The lamps and checks keep their meaning; only the drawing changes. An LLR is a log-likelihood ratio.',
           [[['lamp', 'a lamp'], ['soldier', 'a soldier']], [['checks', 'a row or column check'], ['junction', 'a junction']], [['glow', 'observed glow → channel LLR'], ['glow', 'received sample → channel LLR']], [['book', 'a replica vector z'], ['junction', 'a record vector']], [['book', 'an edge dual u'], ['book', 'a note per edge']]],
           'New here: the BP soldier, whose junctions reply from the other soldiers.')] },
@@ -4210,13 +4216,13 @@ var Realm = (function () {
           [[['soldier', 'a card b'], ['wanderer', 'the Wanderer x']], [['junction', 'a record z'], ['warden', 'the Warden z']], [['book', 'a note u'], ['book', 'the Warden’s book u']], [['check', 'a junction’s valid patterns'], ['wall', 'the kingdom wall']]],
           'New here: the rope alone fails first, which is why the book is needed.')] },
     { id: 'keep-soldiers', from: 'keep', at: ['separate-chain'], to: 'soldiers', land: 'count', who: 'you', carry: ['records', 'notes'],
-      scenes: [M('From the receiver to the soldiers', 'CAJODE calls no belief-propagation (BP) decoder. The soldier slides show what it does instead, on six soldiers. The BP soldier passes replies, and the note-taking soldier, CAJODE’s circuit with the channel known, keeps records and notes.'),
-        S('soldierTree', {}, 'Six bits, three connected checks', 'Bits 2 and 4 join neighbouring checks into one open chain. Bit 0 has the only wrong channel decision, so c₂ is violated. The tutorial decodes this tree first with BP, then with the CAJODE constraint circuit.'),
+      scenes: [M('From the receiver to the soldiers', 'SAPPHIRE calls no belief-propagation (BP) decoder. The soldier slides show what it does instead, on six soldiers. The BP soldier passes replies, and the note-taking soldier, SAPPHIRE’s circuit with the channel known, keeps records and notes.'),
+        S('soldierTree', {}, 'Six bits, three connected checks', 'Bits 2 and 4 join neighbouring checks into one open chain. Bit 0 has the only wrong channel decision, so c₂ is violated. The tutorial decodes this tree first with BP, then with the SAPPHIRE constraint circuit.'),
         K('What the receiver becomes', 'The channel is known on these pages, so the officer’s map stays still until the last chapter.',
           [[['bit', 'the shared bits b'], ['soldier', 'a card per soldier']], [['check', 'a replica vector z per check'], ['junction', 'a record vector per junction']], [['book', 'a scaled dual per edge'], ['book', 'a note per edge']], [['wall', 'a parity polytope'], ['junction', 'a junction’s valid patterns']], [['wave', 'the response C'], ['officer', 'the officer’s map']]],
           'New here: the BP soldier, whose replies leave their recipient out.')] },
     { id: 'soldiers-keep', from: 'soldiers', at: ['officer', 'carry'], to: 'keep', land: 'received-grid', who: 'you', carry: ['cards', 'records', 'notes'],
-      scenes: [M('From the soldiers to the receiver', 'The soldiers decoded with the officer’s map held still. The CAJODE tutorial restores the map: an orthogonal frequency-division multiplexing (OFDM) frame, pilots, and a response estimated inside every circuit.'),
+      scenes: [M('From the soldiers to the receiver', 'The soldiers decoded with the officer’s map held still. The SAPPHIRE tutorial restores the map: an orthogonal frequency-division multiplexing (OFDM) frame, pilots, and a response estimated inside every circuit.'),
         S('receiverMini', {}, 'The receiver in miniature', MINI),
         K('What the soldiers become', 'The records and notes keep their meaning; the cards now also fit the received samples.',
           [[['soldier', 'a card per soldier'], ['bit', 'the shared bits b']], [['junction', 'a record vector per junction'], ['check', 'a replica vector z per check']], [['book', 'a note per edge'], ['book', 'a scaled dual per edge']], [['officer', 'the officer’s map'], ['wave', 'the response C']], [['glow', 'a received sample'], ['carrier', 'a carrier observation']]],
@@ -4235,8 +4241,8 @@ var Realm = (function () {
       scenes: [M('From the training ground to the monopile', 'The Physio’s step, the nearest safe plan, is a projection. An inspection dive uses the same move on bands: each copy of a vehicle position steps to the nearest position that its reading allows.'),
         S('diveIntro', {}, 'The inspection dive', DIVE_INTRO), S('bandProject', {}, 'Two projections side by side', 'On the left the Physio drops a plan onto the nearest rule line, at a right angle. On the right a copy outside the standoff band moves along the radius to the nearer edge. In both, a point already allowed stays where it is.'),
         K('What the Physio becomes', 'The dive has no single Physio. Every reading keeps its own copy and its own ledger.', COACH_DIVE, 'New here: an odometry pair moves both of its endpoints toward the allowance.')] },
-    { id: 'coach-keep', from: 'coach', at: ['bridge'], to: 'keep', land: 'local-copies', sign: 'From four rules to many checks', hook: 'CAJODE gives every parity check its own copy of its bits and its own scaled duals.', who: 'you', carry: ['the Physio’s copy'],
-      scenes: [M('From the training ground to the receiver', 'The Physio kept one set of rules for one plan. A decoder keeps many bits under many parity checks, and one bit can sit in several checks at once. CAJODE gives every check its own copy of its bits and its own scaled duals.'),
+    { id: 'coach-keep', from: 'coach', at: ['bridge'], to: 'keep', land: 'local-copies', sign: 'From four rules to many checks', hook: 'SAPPHIRE gives every parity check its own copy of its bits and its own scaled duals.', who: 'you', carry: ['the Physio’s copy'],
+      scenes: [M('From the training ground to the receiver', 'The Physio kept one set of rules for one plan. A decoder keeps many bits under many parity checks, and one bit can sit in several checks at once. SAPPHIRE gives every check its own copy of its bits and its own scaled duals.'),
         S('oneToMany', { left: { title: 'one plan, one Physio', node: 'the plan (day, load)', sets: ['the four rules'] }, right: { title: 'one bit, several checks', node: 'one shared bit bᵢ', sets: ['check a', 'check b', 'check c'] } },
           'One copy per check', 'One plan with one Physio and one log becomes one shared bit in several checks. Every check keeps a replica z of its bits, and every check–bit edge keeps a scaled dual u. The shared bit hears from all of its checks at once.'),
         K('What the training plan becomes', 'The receiver also estimates the channel, which the training plan does not have.',
@@ -4254,32 +4260,32 @@ var Realm = (function () {
         K('What the training plan becomes', 'The moves are the same; the set is a junction’s valid patterns.',
           [[['coach', 'the plan x'], ['soldier', 'a card per soldier']], [['physio', 'the Physio’s copy z'], ['junction', 'a record per junction']], [['book', 'the planning log u'], ['book', 'a note per edge']], [['polygon', 'four safety rules'], ['check', 'a junction’s valid patterns']]],
           'New here: the BP soldier, which decodes the same bits by replies alone.')] },
-    // ---- the Red recordings: five receivers counted on recorded frames
-    { id: 'keep-red', from: 'keep', at: ['full-frame'], to: 'red', land: 'question', who: 'you', carry: ['CAJODE’s update'],
-      scenes: [M('From the receiver to the Red recordings', 'The CAJODE tutorial followed one frame through its updates. The Red table counts the payload bits that five receivers, CAJODE among them, get wrong on recorded frames.'),
+    // ---- the Red recordings: six receivers counted on recorded frames
+    { id: 'keep-red', from: 'keep', at: ['full-frame'], to: 'red', land: 'question', who: 'you', carry: ['SAPPHIRE’s update'],
+      scenes: [M('From the receiver to the Red recordings', 'The SAPPHIRE tutorial followed one frame through its updates. The Red table counts the payload bits that six receivers, SAPPHIRE among them, get wrong on recorded frames.'),
         K('What the receiver becomes', 'One decoded frame becomes one of the 47 frames behind each point of the table.',
-          [[['bit', 'the accepted hard word'], ['key:E', 'bit errors, counted']], [['carrier', 'one received frame'], ['key:47', 'forty-seven frames per point']], [['key:C', 'CAJODE alone'], ['key:5', 'five receivers side by side']]],
+          [[['bit', 'the accepted hard word'], ['key:E', 'bit errors, counted']], [['carrier', 'one received frame'], ['key:47', 'forty-seven frames per point']], [['key:C', 'SAPPHIRE alone'], ['key:6', 'six receivers side by side']]],
           'New here: the bit error rate (BER), measured on recorded frames.')] },
     { id: 'red-keep', from: 'red', at: ['cajode'], to: 'keep', land: 'separate-chain', who: 'you', carry: ['the BER table'],
-      scenes: [M('From the Red recordings to the receiver', 'The table counts the bits CAJODE gets wrong but does not show how it decodes. The CAJODE tutorial opens one frame and follows each update, from the received carriers to an accepted word.'),
+      scenes: [M('From the Red recordings to the receiver', 'The table counts the bits SAPPHIRE gets wrong but does not show how it decodes. The SAPPHIRE tutorial opens one frame and follows each update, from the received carriers to an accepted word.'),
         S('receiverMini', {}, 'The receiver in miniature', MINI),
         K('What the table becomes', 'One point of the table becomes one frame, decoded step by step.',
           [[['key:47', 'forty-seven frames per point'], ['carrier', 'one received frame']], [['key:E', 'bit errors, counted'], ['bit', 'the shared bits b']], [['key:50', 'at most 50 updates'], ['book', 'one update after another']]],
           'New here: the channel response, estimated inside every update.')] },
     { id: 'soldiers-red', from: 'soldiers', at: ['officer'], to: 'red', land: 'question', who: 'you', carry: ['the BP soldier', 'the note-taking soldier'],
-      scenes: [M('From the soldiers to the Red recordings', 'The soldiers decoded six bits with the channel known. The Red table counts the bits that JADE and CAJODE get wrong on recorded frames, beside three other receivers.'),
+      scenes: [M('From the soldiers to the Red recordings', 'The soldiers decoded six bits with the channel known. The Red table counts the bits that JADE and SAPPHIRE get wrong on recorded frames, beside four other receivers.'),
         K('What the soldiers become', 'Six soldiers become thousands of bits in each recorded frame, and the channel must be estimated.',
           [[['soldier', 'six soldiers'], ['key:E', 'bit errors in 47 frames']], [['officer', 'the officer’s map, held still'], ['key:dB', 'a recorded channel and an SNR']], [['junction', 'a junction’s checks'], ['key:¼', 'a code of rate one quarter']]],
-          'New here: measured bit error rate (BER) curves for five receivers.')] },
+          'New here: measured bit error rate (BER) curves for six receivers.')] },
     { id: 'red-soldiers', from: 'red', at: ['jade'], to: 'soldiers', land: 'count', who: 'you', carry: ['JADE’s BP decoder'],
-      scenes: [M('From the Red recordings to the soldiers', 'JADE’s decoder passes belief-propagation (BP) messages, and CAJODE projects onto parity checks. The soldier slides show both on six soldiers, with the channel held still.'),
-        S('soldierTree', {}, 'Six bits, three connected checks', 'Bits 2 and 4 join neighbouring checks into one open chain. Bit 0 has the only wrong channel decision, so c₂ is violated. The tutorial decodes this tree first with BP, then with the CAJODE constraint circuit.'),
+      scenes: [M('From the Red recordings to the soldiers', 'JADE’s decoder passes belief-propagation (BP) messages, and SAPPHIRE projects onto parity checks. The soldier slides show both on six soldiers, with the channel held still.'),
+        S('soldierTree', {}, 'Six bits, three connected checks', 'Bits 2 and 4 join neighbouring checks into one open chain. Bit 0 has the only wrong channel decision, so c₂ is violated. The tutorial decodes this tree first with BP, then with the SAPPHIRE constraint circuit.'),
         K('What the receivers become', 'Thousands of bits become six soldiers, so every message can be drawn.',
-          [[['key:BP', 'JADE’s BP decoder'], ['soldier', 'the BP soldier']], [['key:C', 'CAJODE’s update'], ['junction', 'the note-taking soldier']], [['key:E', 'bit errors in 47 frames'], ['bit', 'six bits, one wrong']]],
+          [[['key:BP', 'JADE’s BP decoder'], ['soldier', 'the BP soldier']], [['key:C', 'SAPPHIRE’s update'], ['junction', 'the note-taking soldier']], [['key:E', 'bit errors in 47 frames'], ['bit', 'six bits, one wrong']]],
           'New here: messages that leave their recipient out.')] },
     // ---- from the dive
     { id: 'dive-light', from: 'dive', at: ['analogy'], to: 'tutorial', land: 'light-patterns', sign: 'The exact rule behind the likeness', hook: 'A light board shows a parity check pruning patterns, then grows it into a code.', who: 'you', carry: ['four headings'],
-      scenes: [M('From the monopile to the light board', 'The range band resembles a parity check. Three heroes downhill shows the exact rule with lamps: two lamps, four patterns, two that pass. Its next pages grow the check into nine lamps and connect it to CAJODE.'),
+      scenes: [M('From the monopile to the light board', 'The range band resembles a parity check. Three heroes downhill shows the exact rule with lamps: two lamps, four patterns, two that pass. Its next pages grow the check into nine lamps and connect it to SAPPHIRE.'),
         S('checksToBands', { reverse: true }, 'Four headings, four patterns', 'The bands keep one of four headings. On the light board the check keeps two of four patterns, and it does so exactly, with no allowance. A code is built from many such exact checks.'),
         K('What the bands become', 'The tale holds its evidence fixed and draws every check as lamps.', flip([[['lamps2', 'two lamps'], ['photo', 'one photo’s position']], [['lamps4', 'four patterns'], ['ring4', 'four headings that fit']], [['check', 'the parity check'], ['ring', 'standoff and range bands']], [['lamp', 'the patterns that pass'], ['star', 'the heading inside both']]]),
           'New here: a syndrome, the list of checks that fail.')] },
@@ -4296,8 +4302,8 @@ var Realm = (function () {
         K('Who is who at the wall', 'One wall and one copy keep every number on the map.',
           [[['photo', 'the shared positions x'], ['wanderer', 'the Wanderer x']], [['ring', 'a replica z per allowed set'], ['warden', 'the Warden z']], [['book', 'the scaled dual u'], ['book', 'the Warden’s book u']], [['aim', 'the target v = z − u'], ['aim', 'the aim past the Warden']]],
           'New here: the rope-only run, in which the gap never closes.')] },
-    { id: 'dive-keep', from: 'dive', at: ['cajode_adds'], to: 'keep', land: 'iteration-order', sign: 'See CAJODE’s complete update order', hook: 'Weights, bits and the channel, solved around the same projection and scaled dual.', who: 'you', carry: ['the projection', 'the ledger'],
-      scenes: [M('From the monopile to the receiver', 'The dive and CAJODE share the replica projection and the scaled-dual update. The receiver tutorial’s chapter on alternating channel and bits shows what surrounds them, in a receiver small enough to draw.'),
+    { id: 'dive-keep', from: 'dive', at: ['cajode_adds'], to: 'keep', land: 'iteration-order', sign: 'See SAPPHIRE’s complete update order', hook: 'Weights, bits and the channel, solved around the same projection and scaled dual.', who: 'you', carry: ['the projection', 'the ledger'],
+      scenes: [M('From the monopile to the receiver', 'The dive and SAPPHIRE share the replica projection and the scaled-dual update. The receiver tutorial’s chapter on alternating channel and bits shows what surrounds them, in a receiver small enough to draw.'),
         S('receiverMini', {}, 'The receiver in miniature', MINI),
         K('What the dive becomes', 'The receiver fits the channel between the bit step and the projections; the dive had nothing to fit there.',
           [[['photo', 'the shared positions x'], ['bit', 'the shared bits b in [0, 1]']], [['ring', 'allowed sets'], ['check', 'parity polytopes']], [['photo', 'an image match cost'], ['scales', 'a robust fit with weights']], [['ring4', 'no channel'], ['wave', 'response coefficients c₀ and c₁']]],
@@ -4308,12 +4314,12 @@ var Realm = (function () {
           [[['photo', 'seven photo positions'], ['knot', 'thirty-six knot positions']], [['ring', 'allowed sets'], ['net', 'a parallelogram rule per mesh']], [['photo', 'an image match cost'], ['twine', 'evidence along each twine']], [['beacon', 'the range beacon'], ['tag', 'the side rope and the tag']]],
           'New here: binary twine states and a close-up that verifies the report.')] },
     // ---- from the net
-    { id: 'net-keep-robust', from: 'net', at: ['robust'], to: 'keep', land: 'robust-weights', sign: 'The same weights inside a receiver', hook: 'CAJODE weights every received sample with the same pseudo-Huber penalty.', who: 'you', carry: ['the weights'],
-      scenes: [M('From the fish farm to the receiver', 'The smooth penalty is not special to nets. The CAJODE receiver puts it on every received sample, so that one corrupted observation cannot dominate the channel and bit estimates.'),
+    { id: 'net-keep-robust', from: 'net', at: ['robust'], to: 'keep', land: 'robust-weights', sign: 'The same weights inside a receiver', hook: 'SAPPHIRE weights every received sample with the same pseudo-Huber penalty.', who: 'you', carry: ['the weights'],
+      scenes: [M('From the fish farm to the receiver', 'The smooth penalty is not special to nets. The SAPPHIRE receiver puts it on every received sample, so that one corrupted observation cannot dominate the channel and bit estimates.'),
         S('receiverMini', {}, 'The receiver in miniature', MINI), S('scales', { outlier: 'a poor observation' }, 'The same weight in both places', WEIGHT, 'w(E) = 1/√(1 + E/δ²);  E: a normalized squared error'),
         K('What the weights act on', 'In the receiver the weights are computed before the bit step and again before the channel solve.', flip(KEEP_NET_W), 'New here: pilots that anchor the response, and a parity check on the bits.')] },
-    { id: 'net-keep-blocks', from: 'net', at: ['coupling'], to: 'keep', land: 'why-alternate', sign: 'The same coupling in a receiver', hook: 'CAJODE alternates between the channel response and the bit variables.', who: 'you', carry: ['two blocks'],
-      scenes: [M('From the fish farm to the receiver', 'Moving a knot changes what its twines read, and a torn twine changes what pulls on its knots. The CAJODE receiver has the same coupling between its channel response and its bits, through one prediction of every received sample.'),
+    { id: 'net-keep-blocks', from: 'net', at: ['coupling'], to: 'keep', land: 'why-alternate', sign: 'The same coupling in a receiver', hook: 'SAPPHIRE alternates between the channel response and the bit variables.', who: 'you', carry: ['two blocks'],
+      scenes: [M('From the fish farm to the receiver', 'Moving a knot changes what its twines read, and a torn twine changes what pulls on its knots. The SAPPHIRE receiver has the same coupling between its channel response and its bits, through one prediction of every received sample.'),
         S('receiverMini', {}, 'The receiver in miniature', MINI), S('twoBlocks', {}, 'Take turns', 'The net holds the twine states and moves the knots, then holds the knots and re-reads every twine. The receiver holds the response and updates the bits, then holds the bits and solves the response. Each turn changes what the other block sees.'),
         K('What the two blocks become', 'In the receiver the copies and duals belong to the bits, through the parity checks.', flip(KEEP_NET_B), 'New here: the bits have copies of their own, one per parity check.')] },
     { id: 'net-misty', from: 'net', at: ['difficulty'], to: 'tutorial', land: 'misty', sign: 'What local moves cannot see', hook: 'In the misty hills three heroes settle in hollows, and none finds the deepest pit.', who: 'you', carry: ['a chosen start'],
@@ -4328,7 +4334,7 @@ var Realm = (function () {
         K('The net’s words in the game', 'Press F to tap the ground and W to walk; lesson 8 of the trial sets the land up for you.',
           [[['knot', 'the knot positions p'], ['you', 'your own spot x']], [['net', 'registration basins'], ['pits', 'hollows and narrow pits']], [['photo', 'kinks of the sampled image'], ['staff', 'haze on every tap']], [['tag', 'the start from the tag'], ['flag', 'the start flag']]],
           'New here: three heroes on the same land, to follow and compare.')] },
-    { id: 'net-keep-done', from: 'net', at: ['stopping', 'verification'], to: 'keep', land: 'acceptance', sign: 'Acceptance inside a receiver', hook: 'CAJODE accepts a word that passes every parity check and the CRC; convergence is a separate question.', who: 'you', carry: ['the close-up'],
+    { id: 'net-keep-done', from: 'net', at: ['stopping', 'verification'], to: 'keep', land: 'acceptance', sign: 'Acceptance inside a receiver', hook: 'SAPPHIRE accepts a word that passes every parity check and the CRC; convergence is a separate question.', who: 'you', carry: ['the close-up'],
       scenes: [M('From the fish farm to the receiver', 'The net accepts its report when a targeted close-up agrees. A receiver accepts a decoded word when it passes every parity check and a cyclic redundancy check (CRC), and it keeps that test apart from convergence as well.'),
         S('gauges', { gauges: [{ name: 'agreement: r, the primal residual', t0: 0.15, t1: 0.9, end: 0.2 }, { name: 'motion: s, the dual residual', t0: 0.25, t1: 0.95, end: 0.3, col: C.blue }, { name: 'every parity check passes', stamp: true, at: 0.42 }, { name: 'the CRC passes', stamp: true, at: 0.52 }] },
           'Several meanings of done', 'In a receiver, a hard word can pass every parity check and the CRC while both residuals are still nonzero. The tests of the word decide acceptance; the residuals describe the continuous state.'),
@@ -4338,8 +4344,8 @@ var Realm = (function () {
         K('Who is who at the wall', 'One knot and one rule shrink to one Wanderer and one Warden.',
           [[['knot', 'a shared knot pₙ'], ['wanderer', 'the Wanderer x']], [['net', 'a rule’s copy zᵣₙ'], ['warden', 'the Warden z']], [['book', 'the scaled dual u'], ['book', 'the Warden’s book u']], [['aim', 'the target v = z − u'], ['aim', 'the aim past the Warden']]],
           'New here: the first entry, written on the day the Wanderer first leaves the wall.')] },
-    { id: 'net-keep-copies', from: 'net', at: ['bridge'], to: 'keep', land: 'local-copies', sign: 'Copies per check in a receiver', hook: 'CAJODE copies bits per parity check, as the net copies knots per mesh rule.', who: 'you', carry: ['the copies'],
-      scenes: [M('From the fish farm to the receiver', 'An interior knot belongs to four mesh rules, and each rule keeps its own copy. A bit in an LDPC code belongs to several parity checks, and CAJODE gives each check its own copy and scaled duals. LDPC stands for low-density parity-check.'),
+    { id: 'net-keep-copies', from: 'net', at: ['bridge'], to: 'keep', land: 'local-copies', sign: 'Copies per check in a receiver', hook: 'SAPPHIRE copies bits per parity check, as the net copies knots per mesh rule.', who: 'you', carry: ['the copies'],
+      scenes: [M('From the fish farm to the receiver', 'An interior knot belongs to four mesh rules, and each rule keeps its own copy. A bit in an LDPC code belongs to several parity checks, and SAPPHIRE gives each check its own copy and scaled duals. LDPC stands for low-density parity-check.'),
         S('oneToMany', { left: { title: 'one knot, four mesh rules', node: 'a shared knot pₙ', sets: ['mesh 1', 'mesh 2', 'mesh 3', 'mesh 4'] }, right: { title: 'one bit, several checks', node: 'one shared bit bᵢ', sets: ['check a', 'check b', 'check c'] } },
           'One copy per rule, one copy per check', 'Each mesh rule moves only its own copy of a knot, and each parity check moves only its own copy of a bit. The shared variable hears from all of them through the targets z − u.'),
         K('What the copies become', 'The sets change from geometry to parity; the bookkeeping does not.',
@@ -4349,8 +4355,8 @@ var Realm = (function () {
       scenes: [M('From the fish farm to the monopile', 'A repeating net made a sliding grid fit at every mesh. A repeating steel pile does the same to a single photo, which fits four headings. A range reading keeps one, as the rope and the tag keep one patch.'),
         S('diveIntro', {}, 'The inspection dive', DIVE_INTRO),
         K('What the aliases become', 'Both pages break a symmetry with something the evidence alone does not give.', flip(ALIASES), 'New here: allowed sets with stated allowances, one replica each.')] },
-    { id: 'net-keep-circuit', from: 'net', at: ['learned'], to: 'keep', land: 'iteration-order', sign: 'One complete CAJODE iteration', hook: 'The receiver’s own order of updates, after the net’s.', who: 'you', carry: ['the net’s round'],
-      scenes: [M('From the fish farm to the receiver', 'The net’s round has its own order: associate, move the knots, re-read the twines, project, update the duals and verify. The CAJODE receiver puts a different order around the same projection and scaled dual, and that page lists it.'),
+    { id: 'net-keep-circuit', from: 'net', at: ['learned'], to: 'keep', land: 'iteration-order', sign: 'One complete SAPPHIRE iteration', hook: 'The receiver’s own order of updates, after the net’s.', who: 'you', carry: ['the net’s round'],
+      scenes: [M('From the fish farm to the receiver', 'The net’s round has its own order: associate, move the knots, re-read the twines, project, update the duals and verify. The SAPPHIRE receiver puts a different order around the same projection and scaled dual, and that page lists it.'),
         S('receiverMini', {}, 'The receiver in miniature', MINI),
         K('What the net’s round becomes', 'Each step of the net has a counterpart, but the order differs. The receiver updates its bits before its channel and recomputes its weights in between. CRC stands for cyclic redundancy check.',
           [[['scales', 'frozen detection weights'], ['scales', 'a pseudo-Huber weight per sample']], [['knot', 'the knot sweep'], ['wave', 'an exact sparse channel solve']], [['twine', 'a threshold on every twine'], ['bit', 'a majorized step on the bits']], [['net', 'mesh projections'], ['check', 'parity projections']], [['book', 'a dual per copy'], ['book', 'a dual per check–bit edge']], [['lens', 'the close-up'], ['seal', 'parity, configured bits, CRC']]],
@@ -4388,19 +4394,19 @@ var Realm = (function () {
 
   var ROAD_COPY = {
     'keep-red': {
-      sign: 'See CAJODE’s measured bit error rate', hook: 'A results table counts what CAJODE and four other receivers get wrong on recorded frames.', cta: 'Read the Red BER table →',
-      same: 'CAJODE runs the same updates on every recorded frame.', different: 'One frame becomes 47 frames per point, at five pilot ratios and sixteen SNR values.'
+      sign: 'See SAPPHIRE’s measured bit error rate', hook: 'A results table counts what SAPPHIRE and five other receivers get wrong on recorded frames.', cta: 'Read the Red BER table →',
+      same: 'SAPPHIRE runs the same updates on every recorded frame.', different: 'One frame becomes 47 frames per point, at five pilot ratios and sixteen SNR values.'
     },
     'red-keep': {
-      sign: 'Open one CAJODE decode', hook: 'Follow one frame from the received carriers to an accepted word, update by update.', cta: 'Follow one CAJODE decode →',
+      sign: 'Open one SAPPHIRE decode', hook: 'Follow one frame from the received carriers to an accepted word, update by update.', cta: 'Follow one SAPPHIRE decode →',
       same: 'The same receiver that the table counts.', different: 'One frame, seen from inside, instead of error counts over many.'
     },
     'soldiers-red': {
-      sign: 'See JADE and CAJODE on recorded frames', hook: 'A results table counts their bit errors, beside three other receivers.', cta: 'Read the Red BER table →',
-      same: 'JADE’s decoder passes BP messages; CAJODE keeps records and notes.', different: 'The channel is unknown and estimated, and errors are counted over thousands of bits.'
+      sign: 'See JADE and SAPPHIRE on recorded frames', hook: 'A results table counts their bit errors, beside four other receivers.', cta: 'Read the Red BER table →',
+      same: 'JADE’s decoder passes BP messages; SAPPHIRE keeps records and notes.', different: 'The channel is unknown and estimated, and errors are counted over thousands of bits.'
     },
     'red-soldiers': {
-      sign: 'See BP messages on six soldiers', hook: 'The soldier slides show JADE’s kind of decoder and CAJODE’s circuit on one small tree.', cta: 'Watch the BP soldier →',
+      sign: 'See BP messages on six soldiers', hook: 'The soldier slides show JADE’s kind of decoder and SAPPHIRE’s circuit on one small tree.', cta: 'Watch the BP soldier →',
       same: 'A parity code and its checks.', different: 'Six bits and a known channel replace thousands of bits and an estimated one.'
     },
     'light-soldiers': {
@@ -4408,8 +4414,8 @@ var Realm = (function () {
       same: 'Each check still keeps its own view of the bits it touches.', different: 'A BP reply leaves its recipient out; a record takes in every card, and a note keeps the disagreement.'
     },
     'keep-soldiers': {
-      sign: 'Compare CAJODE’s circuit with a BP decoder', hook: 'Six soldiers decode one tree twice: the BP soldier passes replies, and the note-taking soldier runs CAJODE’s circuit with records and notes.', cta: 'Compare the two soldiers →',
-      same: 'Both decode the same codeword from the same readings.', different: 'BP passes support from the other bits; CAJODE projects onto each check and keeps the disagreement.'
+      sign: 'Compare SAPPHIRE’s circuit with a BP decoder', hook: 'Six soldiers decode one tree twice: the BP soldier passes replies, and the note-taking soldier runs SAPPHIRE’s circuit with records and notes.', cta: 'Compare the two soldiers →',
+      same: 'Both decode the same codeword from the same readings.', different: 'BP passes support from the other bits; SAPPHIRE projects onto each check and keeps the disagreement.'
     },
     'soldiers-twins': {
       sign: 'See a note as the Warden’s book', hook: 'At the kingdom wall one Warden keeps one book, and the rope fails without it.', cta: 'Watch the rope fail before the book →',
@@ -4421,9 +4427,9 @@ var Realm = (function () {
       offers: { carry: { role: 'chooser', badge: 'Overlapping checks', direct: true, order: 1, sign: 'Grow one check into a light board', hook: 'See every bit in two checks, each with its own replica and notes.', cta: 'Build the self-checking board →' } }
     },
     'soldiers-keep': {
-      sign: 'Follow the circuit inside an OFDM receiver', hook: 'Restore the officer’s map: an OFDM frame, pilots and a response estimated inside every circuit.', cta: 'Apply the circuit to CAJODE →',
+      sign: 'Follow the circuit inside an OFDM receiver', hook: 'Restore the officer’s map: an OFDM frame, pilots and a response estimated inside every circuit.', cta: 'Apply the circuit to SAPPHIRE →',
       same: 'Cards, records and notes keep their roles as bits, replicas and scaled dual variables.', different: 'The readings come from received samples through an estimated channel response.',
-      offers: { carry: { role: 'chooser', badge: 'Actual OFDM receiver', recommended: true, direct: true, order: 0, sign: 'Follow CAJODE from carriers to a candidate word', hook: 'Move from soldiers with a known channel to joint OFDM demodulation and decoding.', cta: 'Continue to the CAJODE receiver →' } }
+      offers: { carry: { role: 'chooser', badge: 'Actual OFDM receiver', recommended: true, direct: true, order: 0, sign: 'Follow SAPPHIRE from carriers to a candidate word', hook: 'Move from soldiers with a known channel to joint OFDM data detection and decoding.', cta: 'Continue to the SAPPHIRE receiver →' } }
     },
     'soldiers-coach': {
       badge: 'Simplest ADMM recap', direct: true, order: 2, sign: 'Plan one safe training session', hook: 'See the same four moves with one visible day-and-load plan.', cta: 'Review the moves on a training plan →',
@@ -4462,9 +4468,9 @@ var Realm = (function () {
       offers: { end: { role: 'chooser', badge: 'First application', recommended: true, direct: true, order: 0, sign: 'Plan one safe training session', hook: 'Learn the four ADMM moves with one visible day-and-load plan.', cta: 'Start with the Coach and Physio →' } }
     },
     'light-keep': {
-      sign: 'Put the light board inside an OFDM receiver', hook: 'Trace how post-FFT carrier observations, pilots, the channel response and coded bits create the evidence constrained by the checks.', cta: 'Apply the checks to CAJODE →',
+      sign: 'Put the light board inside an OFDM receiver', hook: 'Trace how post-FFT carrier observations, pilots, the channel response and coded bits create the evidence constrained by the checks.', cta: 'Apply the checks to SAPPHIRE →',
       same: 'Shared bits, per-check replicas and scaled dual variables keep the same roles.', different: 'The glows now come from received samples through an estimated channel response.',
-      offers: { end: { role: 'chooser', badge: 'Actual OFDM receiver', direct: true, order: 1, sign: 'Follow CAJODE from carriers to a candidate word', hook: 'Move from the light-board abstraction to joint OFDM demodulation and decoding.', cta: 'Continue to the CAJODE receiver →' } }
+      offers: { end: { role: 'chooser', badge: 'Actual OFDM receiver', direct: true, order: 1, sign: 'Follow SAPPHIRE from carriers to a candidate word', hook: 'Move from the light-board abstraction to joint OFDM data detection and decoding.', cta: 'Continue to the SAPPHIRE receiver →' } }
     },
     'tale-done': {
       sign: 'Compare the receiver’s three milestones', hook: 'A candidate can match before replica agreement and before the full toy state settles.', cta: 'See the numerical timeline →',
@@ -4487,7 +4493,7 @@ var Realm = (function () {
       same: 'x is shared, z is lawful, u stores signed disagreement, and ρ weights agreement.', different: 'One wall and two points replace the receiver’s many bits and checks.'
     },
     'keep-coach': {
-      badge: 'Simplest ADMM recap', direct: true, order: 1, sign: 'Strip CAJODE down to one visible plan', hook: 'Keep x, z, u, v and projection; remove the channel, CRC and thousands of bits.', cta: 'Review the four moves on a training plan →',
+      badge: 'Simplest ADMM recap', direct: true, order: 1, sign: 'Strip SAPPHIRE down to one visible plan', hook: 'Keep x, z, u, v and projection; remove the channel, CRC and thousands of bits.', cta: 'Review the four moves on a training plan →',
       same: 'The scaled ADMM circuit and nearest-set projection remain.', different: 'The objective scores training benefit and the feasible set is one polygon.'
     },
     'keep-dive': {
@@ -4495,7 +4501,7 @@ var Realm = (function () {
       same: 'Each local set keeps a replica and scaled dual variable.', different: 'The shared unknown is continuous position; no parity candidate or channel block is present.'
     },
     'keep-net': {
-      badge: 'Closest structural analogue', recommended: true, direct: true, order: 0, sign: 'Carry the joint-block idea to a torn net', hook: 'Estimate continuous knot positions and binary twine states from the same image while mesh rules keep local copies.', cta: 'Compare CAJODE with the torn net →',
+      badge: 'Closest structural analogue', recommended: true, direct: true, order: 0, sign: 'Carry the joint-block idea to a torn net', hook: 'Estimate continuous knot positions and binary twine states from the same image while mesh rules keep local copies.', cta: 'Compare SAPPHIRE with the torn net →',
       same: 'A continuous block and a binary block change one another’s evidence.', different: 'The copies enforce mesh geometry, and targeted follow-up is not CRC acceptance.'
     },
     'coach-twins': {
@@ -4516,8 +4522,8 @@ var Realm = (function () {
       same: 'Repeated visual structure creates several plausible registrations until an external anchor is added.', different: 'The pile repeats by rotation; the net repeats by translation.'
     },
     'dive-keep': {
-      sign: 'See CAJODE’s complete update order', hook: 'Place robust weights, the bit update, channel solve, parity projections, scaled-dual updates and candidate test in sequence.', cta: 'Open one complete CAJODE iteration →',
-      same: 'Projection and the scaled-dual update are the shared consensus steps.', different: 'CAJODE adds robust weights, bounded bits and a jointly fitted channel response.'
+      sign: 'See SAPPHIRE’s complete update order', hook: 'Place robust weights, the bit update, channel solve, parity projections, scaled-dual updates and candidate test in sequence.', cta: 'Open one complete SAPPHIRE iteration →',
+      same: 'Projection and the scaled-dual update are the shared consensus steps.', different: 'SAPPHIRE adds robust weights, bounded bits and a jointly fitted channel response.'
     },
     'dive-net-next': {
       badge: 'Next: add binary decisions', recommended: true, direct: true, order: 0, sign: 'Add torn-or-intact twines to the position problem', hook: 'Keep continuous geometry, then add binary states whose image evidence depends on the current knot positions.', cta: 'Continue to the torn net →',
@@ -4532,7 +4538,7 @@ var Realm = (function () {
       same: 'Every local rule keeps its own replica and scaled dual variable on each incidence.', different: 'Affine mesh geometry becomes a parity polytope on bits.'
     },
     'net-keep-circuit': {
-      badge: 'Return to the actual receiver', recommended: true, sign: 'Compare the net round with one CAJODE iteration', hook: 'Line up the corresponding updates, then see where the receiver recomputes weights and changes the order.', cta: 'Compare the full update schedules →',
+      badge: 'Return to the actual receiver', recommended: true, sign: 'Compare the net round with one SAPPHIRE iteration', hook: 'Line up the corresponding updates, then see where the receiver recomputes weights and changes the order.', cta: 'Compare the full update schedules →',
       same: 'Both alternate coupled blocks around local projections and persistent scaled dual variables.', different: 'The copied variables, update order, robust-weight timing and acceptance tests differ.'
     }
   };
@@ -4564,7 +4570,7 @@ var Realm = (function () {
   // the whole map, from wherever the reader stands
   function mapStep(here, onPage) {
     var lit = ROADS.filter(function (r) { return r.from === here || r.to === here; }).map(function (r) { return ORDER.indexOf(r.from) < ORDER.indexOf(r.to) ? r.from + '|' + r.to : r.to + '|' + r.from; });
-    var mine = ROADS.filter(function (r) { return r.from === here; }), html = 'Eight places teach one set of moves. Three heroes find the lowest spot of a land in fog; the Twins add a law with two copies, a rope and a book. Counting soldiers set those copies beside belief propagation. The same copies decode bits in CAJODE, plan a training session, tag photos at a monopile and find a tear in a net. The Red recordings count the bits that five receivers get wrong on recorded frames.<br><br>';
+    var mine = ROADS.filter(function (r) { return r.from === here; }), html = 'Eight places teach one set of moves. Three heroes find the lowest spot of a land in fog; the Twins add a law with two copies, a rope and a book. Counting soldiers set those copies beside belief propagation. The same copies decode bits in SAPPHIRE, plan a training session, tag photos at a monopile and find a tear in a net. The Red recordings count the bits that six receivers get wrong on recorded frames.<br><br>';
     html += ORDER.map(function (k) { var P0 = PLACES[k]; return (k === here ? '<b>' + P0.name + '</b> (you are here)' : '<a href="' + P0.file + '" data-realm-go="1">' + P0.name + '</a>') + ', ' + P0.sub; }).join('<br>');
     if (mine.length) {
       function roadLine(r) {
@@ -4656,6 +4662,15 @@ var Realm = (function () {
       html += k === page ? '<span class="' + cls + '" aria-current="page" aria-label="' + esc(label) + '">' + P0.bar + mark + '</span>' : '<a class="' + cls + '" aria-label="' + esc(label) + '" href="' + P0.file + '" data-realm-go="1">' + P0.bar + mark + '</a>';
     });
     barEl.innerHTML = html;
+    // On a narrow screen the sticky “more →” cue occupies the right edge.  Scroll only this navigation strip so
+    // the current label is visible; scrollIntoView would also move the document horizontally on some page shells.
+    try {
+      var current = barEl.querySelector && barEl.querySelector('[aria-current="page"]');
+      if (current && window.matchMedia && window.matchMedia('(max-width: 680px)').matches) {
+        var centreCurrent = function () { barEl.scrollLeft = Math.max(0, current.offsetLeft - (barEl.clientWidth - current.offsetWidth) / 2); };
+        if (window.requestAnimationFrame) window.requestAnimationFrame(centreCurrent); else centreCurrent();
+      }
+    } catch (e) { /* scrolling is only a visual convenience */ }
   }
   function predictionFor(r) {
     var key = null; for (var j = r.scenes.length - 1; j >= 0; j--) if (r.scenes[j].kind === 'key') { key = r.scenes[j]; break; }

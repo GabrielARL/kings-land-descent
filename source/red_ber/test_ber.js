@@ -1,4 +1,4 @@
-// Data, model, wording, drawing and generated-page checks for "Five receivers on the Red recordings".
+// Data, model, wording, drawing and generated-page checks for "Six receivers on the Red recordings".
 // Run from anywhere with Node 12 or later:  node source/red_ber/test_ber.js
 var fs = require('fs'), path = require('path'), vm = require('vm'), cp = require('child_process'), crypto = require('crypto');
 var D = require('./ber_data.js'), M = require('./ber.js');
@@ -15,32 +15,46 @@ if (fs.existsSync(CSV)) {
   var bad = 0;
   rows.forEach(function (r) {
     var e = D.errors[r.receiver][+r.red - 1][+r.hydrophone - 1], pi = M.pilotIndex(+r.pilot_ratio_percent), si = M.snrIndex(+r.snr_db);
-    if (r.status === 'missing') { if (e !== null) bad++; return; }
-    if (!e || e[pi][si] !== +r.total_bit_errors || M.bits(pi) !== +r.total_payload_bits) bad++;
+    if (r.status === 'missing') { if (!e || e[pi] !== null) bad++; return; }
+    if (!e || !e[pi] || e[pi][si] !== +r.total_bit_errors || M.bits(pi) !== +r.total_payload_bits) bad++;
   });
-  check('every one of the 4,800 rows matches the data file: counts, bits and missing channels', bad === 0, bad + ' mismatches');
+  check('every one of the 5,760 rows matches the data file: counts, bits and pilot-specific missing conditions', bad === 0, bad + ' mismatches');
 } else check('the CSV is absent; the committed data file is used as it is', true);
 
 // ---------------------------------------------------------------- 2. the model
 var cov = M.coverage();
-check('coverage: 4,480 available and 320 missing rows, as in the table’s README',
-  cov.reduce(function (s, q) { return s + q.available; }, 0) === 4480 && cov.reduce(function (s, q) { return s + q.missing; }, 0) === 320 &&
-  cov.map(function (q) { return q.available; }).join(',') === '960,960,800,960,800');
-check('ten cases have all five receivers: Red 1 through Red 3 on every hydrophone, plus Red 4 hydrophone 1',
-  M.COMMON.map(function (c) { return c.key; }).join(' ') === 'R1h1 R1h2 R1h3 R2h1 R2h2 R2h3 R3h1 R3h2 R3h3 R4h1');
+check('six receiver records include PEARL with its frozen cohort',
+  M.IDS.join(',') === 'ofdm+fec,pfft+fec,jade,coral,cajode,pearl' && D.receivers.filter(function (r) { return r.id === 'pearl' && r.name === 'PEARL' && r.cohort === 'persistent_r2_v1'; }).length === 1);
+check('the legacy evidence identity is presented publicly as SAPPHIRE',
+  D.receivers.filter(function (r) { return r.id === 'cajode' && r.name === 'CAJODE' && r.cohort === 'modern_r3_ber'; }).length === 1 &&
+  M.NAME.cajode === 'SAPPHIRE' && cov.filter(function (r) { return r.id === 'cajode' && r.name === 'SAPPHIRE'; }).length === 1);
+check('coverage: 4,720 available and 1,040 missing rows, including 240 PEARL rows',
+  cov.reduce(function (s, q) { return s + q.available; }, 0) === 4720 && cov.reduce(function (s, q) { return s + q.missing; }, 0) === 1040 &&
+  cov.map(function (q) { return q.available; }).join(',') === '960,960,800,960,800,240');
+check('the five established receivers have ten complete base cases',
+  M.BASE_COMMON.map(function (c) { return c.key; }).join(' ') === 'R1h1 R1h2 R1h3 R2h1 R2h2 R2h3 R3h1 R3h2 R3h3 R4h1');
+check('the fixed six-receiver plot scope is four cases complete for PEARL at 7.5%, 12% and 15%',
+  M.COMMON === M.PLOT_SCOPE && M.COMMON.map(function (c) { return c.key; }).join(' ') === 'R1h1 R1h2 R1h3 R2h1' &&
+  [7.5, 12, 15].every(function (ratio) { var pi = M.pilotIndex(ratio); return M.COMMON.every(function (c) { return M.has('pearl', c, pi); }); }));
 // pooled BER is the sum of errors over the sum of bits, read here straight from the CSV rows
 function pooledFromRows(rec, ratio, snr) {
-  var E = 0, N = 0; rows.forEach(function (r) { if (r.receiver === rec && +r.pilot_ratio_percent === ratio && +r.snr_db === snr && M.COMMON.some(function (c) { return c.red === +r.red && c.hyd === +r.hydrophone; })) { E += +r.total_bit_errors; N += +r.total_payload_bits; } });
-  return { E: E, N: N };
+  var E = 0, N = 0; rows.forEach(function (r) { if (r.status === 'available' && r.receiver === rec && +r.pilot_ratio_percent === ratio && +r.snr_db === snr && M.COMMON.some(function (c) { return c.red === +r.red && c.hyd === +r.hydrophone; })) { E += +r.total_bit_errors; N += +r.total_payload_bits; } });
+  return N ? { E: E, N: N } : null;
 }
 if (rows) {
   var okPool = true;
-  M.IDS.forEach(function (k) { [2.5, 7.5, 15].forEach(function (ratio) { [0, 12, 30].forEach(function (snr) { var a = pooledFromRows(k, ratio, snr), b = M.pooled(k, M.pilotIndex(ratio), M.snrIndex(snr)); if (!b || a.E !== b.errors || a.N !== b.bits) okPool = false; }); }); });
-  check('pooled points add errors and bits over the ten common cases before dividing', okPool);
+  M.IDS.forEach(function (k) { [2.5, 7.5, 15].forEach(function (ratio) { [0, 12, 30].forEach(function (snr) { var a = pooledFromRows(k, ratio, snr), b = M.pooled(k, M.pilotIndex(ratio), M.snrIndex(snr)); if ((!a) !== (!b) || a && (a.E !== b.errors || a.N !== b.bits)) okPool = false; }); }); });
+  check('pooled points add errors and bits over the same four cases before dividing, or remain null', okPool);
 }
 var z = M.point('jade', M.COMMON[0], M.pilotIndex(15), M.snrIndex(30));
 check('a point with no error seen keeps BER 0 and is plotted at 0.5 / bits', z.zero && z.ber === 0 && Math.abs(z.plot - 0.5 / z.bits) < 1e-18);
-check('a missing channel gives no point and no pooled value', M.point('jade', M.CHANNELS[11], 0, 0) === null && M.pooled('jade', 0, 0, M.CHANNELS) === null);
+check('PEARL is null at queued 2.5% and 5% conditions, and available at 7.5%, 12% and 15%',
+  [2.5, 5].every(function (r) { return M.curve('pearl', M.pilotIndex(r)).every(function (q) { return q === null; }); }) &&
+  [7.5, 12, 15].every(function (r) { return M.curve('pearl', M.pilotIndex(r)).every(function (q) { return q !== null; }); }));
+check('availability and missing reasons are pilot-specific',
+  !M.has('pearl', M.COMMON[0]) && !M.has('pearl', M.COMMON[0], M.pilotIndex(2.5)) && M.has('pearl', M.COMMON[0], M.pilotIndex(7.5)) &&
+  !!M.missingOf('pearl', M.COMMON[0], M.pilotIndex(2.5)) && M.missingOf('pearl', M.COMMON[0], M.pilotIndex(7.5)) === null);
+check('a missing pilot condition gives no point or pooled value', M.point('jade', M.CHANNELS[11], 0, 0) === null && M.pooled('pearl', M.pilotIndex(2.5), 0) === null && M.lowest(M.curve('pearl', M.pilotIndex(2.5))) === null);
 
 // ---------------------------------------------------------------- 3. the course in a browser-less sandbox
 function sandbox(width, height) {
@@ -78,8 +92,10 @@ try { sb = sandbox(960, 660); course = sb.course; } catch (e) { err = e && e.sta
 check('the course builds in the sandbox', !!course, err);
 if (course) {
   var steps = course.steps, ids = steps.map(function (q) { return q.id; });
-  var expected = ['question', 'grid', 'pilots', 'pooled', 'zero', 'routes', 'pilot-only', 'jade', 'coral', 'cajode', 'cohorts', 'missing', 'common', 'one-curve-predict', 'one-curve', 'channels', 'p75-predict', 'p75', 'thresholds', 'zeros', 'sweep', 'snapshot', 'supports', 'synthesis'];
-  check('the course has the intended 24 steps in 5 chapters', steps.length === 24 && course.chapters.length === 5 && ids.join(',') === expected.join(','), steps.length + ' steps: ' + ids.join(','));
+  var expected = ['question', 'grid', 'pilots', 'pooled', 'zero', 'routes', 'pilot-only', 'jade', 'pearl', 'coral', 'cajode', 'cohorts', 'missing', 'common', 'one-curve-predict', 'one-curve', 'channels', 'p75-predict', 'p75', 'thresholds', 'zeros', 'sweep', 'snapshot', 'supports', 'synthesis'];
+  check('the six-receiver course has the intended 25 steps in 5 chapters', steps.length === 25 && course.chapters.length === 5 && ids.join(',') === expected.join(','), steps.length + ' steps: ' + ids.join(','));
+  check('the drawing key gives PEARL a red hexagon after SAPPHIRE',
+    sb.BerParts.ORDER.join(',') === 'ofdm+fec,pfft+fec,jade,coral,cajode,pearl' && sb.BerParts.RX.pearl.name === 'PEARL' && sb.BerParts.RX.pearl.col === '#ff9a8a' && sb.BerParts.RX.pearl.shape === 'hexagon');
   var drawn = 0, errs = [];
   [[960, 660], [420, 900]].forEach(function (size) {
     var s2 = size[0] === 960 ? sb : sandbox(size[0], size[1]);
@@ -94,44 +110,43 @@ if (course) {
 
   // the pages' statements, recomputed here from the CSV rows
   if (rows) {
-    function firstAtMost(rec, ratio) { for (var s = 0; s <= 30; s += 2) { var a = pooledFromRows(rec, ratio, s); if (a.E / a.N <= 1e-3) return s; } return null; }
-    function zeroFrom(rec, ratio) { var from = null; for (var s = 30; s >= 0; s -= 2) { if (pooledFromRows(rec, ratio, s).E === 0) from = s; else break; } return from; }
+    function firstAtMost(rec, ratio) { for (var s = 0; s <= 30; s += 2) { var a = pooledFromRows(rec, ratio, s); if (a && a.E / a.N <= 1e-3) return s; } return null; }
+    function zeroFrom(rec, ratio) { var from = null; for (var s = 30; s >= 0; s -= 2) { var a = pooledFromRows(rec, ratio, s); if (a && a.E === 0) from = s; else break; } return from; }
     var t75 = {}; M.IDS.forEach(function (k) { t75[k] = firstAtMost(k, 7.5); });
-    check('the 7.5% page quotes the first sampled SNR at 10⁻³ of each pooled curve',
-      new RegExp('JADE first reaches a pooled BER of 10⁻³ or less at ' + t75.jade + ' dB, and CAJODE at ' + t75.cajode + ' dB').test(text('p75')) &&
-      new RegExp('first do so at ' + t75['ofdm+fec'] + ' dB and ' + t75['pfft+fec'] + ' dB').test(text('p75')) && (t75.coral === null ? /does not reach 10⁻³ on this grid/.test(text('p75')) : true), JSON.stringify(t75));
+    check('the 7.5% page exposes all six recomputed sampled thresholds', M.IDS.every(function (k) { return text('p75').indexOf(M.NAME[k] + ': ' + (t75[k] == null ? 'never' : t75[k] + ' dB')) >= 0; }), JSON.stringify(t75));
     var table = [2.5, 5, 7.5, 12, 15].map(function (r) { return M.IDS.map(function (k) { return firstAtMost(k, r); }); });
     check('the threshold grid matches the CSV at every pilot ratio', [2.5, 5, 7.5, 12, 15].every(function (r, i) { return M.IDS.every(function (k, j) { return course.ber.first[k][i] === table[i][j]; }); }), JSON.stringify(table));
-    check('the zero runs on the zeros page start where the CSV’s pooled zeros start', [12, 15].every(function (r) { var i = M.pilotIndex(r); return M.IDS.every(function (k) { return course.ber.zero[k][i] === zeroFrom(k, r); }); }) &&
-      /At 12% pilots the hollow run starts from JADE at 14 dB and CAJODE at 14 dB/.test(text('zeros')));
+    check('the zero runs on the zeros page start where the CSV’s pooled zeros start', [12, 15].every(function (r) { var i = M.pilotIndex(r); return M.IDS.every(function (k) { return course.ber.zero[k][i] === zeroFrom(k, r); }); }));
     var coralZeros = rows.filter(function (r) { return r.receiver === 'coral' && r.zero_observed_errors === 'true'; }).length;
     check('CORAL shows an error at every available receiver result', coralZeros === 0 && /CORAL shows errors at every one of its 960 receiver results/.test(text('zeros')));
-    var at25 = Infinity; M.IDS.forEach(function (k) { for (var s = 0; s <= 30; s += 2) { var a = pooledFromRows(k, 2.5, s); at25 = Math.min(at25, a.E / a.N); } });
-    var at25Text = (at25 * 1e3).toFixed(1) + '×10⁻³';
-    check('at 2.5% pilots the page quotes the lowest pooled point', at25 >= 1e-3 && at25 < 1e-2 && text('sweep').indexOf('no pooled curve falls below ' + at25Text) >= 0, at25.toExponential(3));
-    var lead = [5, 7.5, 12, 15].every(function (r) { return ['jade', 'cajode'].every(function (k) { var s = firstAtMost(k, r); return s !== null && ['ofdm+fec', 'pfft+fec', 'coral'].every(function (o) { var t = firstAtMost(o, r); return t === null || t > s; }); }); });
-    check('the supported statement about JADE and CAJODE sampling 10⁻³ first holds from 5% to 15% pilots', lead && course.ber.support.some(function (s) { return /JADE and CAJODE first sample 10⁻³ at a lower SNR than the other three/.test(s); }));
+    var at25 = Infinity; M.BASE_IDS.forEach(function (k) { for (var s = 0; s <= 30; s += 2) { var a = pooledFromRows(k, 2.5, s); if (a) at25 = Math.min(at25, a.E / a.N); } });
+    var at25Text = at25 >= 0.01 ? at25.toFixed(at25 >= 0.1 ? 2 : 3) : (at25 * 1e3).toFixed(1) + '×10⁻³';
+    check('at 2.5% pilots the page quotes the lowest of the five available pooled curves', at25 >= 1e-3 && text('sweep').indexOf('none of the five available pooled curves falls below ' + at25Text) >= 0, at25.toExponential(3));
+    check('the course keeps PEARL absent at the two queued pilot ratios', [2.5, 5].every(function (r) { return course.ber.curves.pearl[M.pilotIndex(r)].every(function (q) { return q === null; }); }) && /PEARL appears at 7.5%, 12% and 15%/.test(text('sweep')));
     var ex = rows.filter(function (r) { return r.receiver === 'ofdm+fec' && r.red === '1' && r.hydrophone === '1' && r.pilot_ratio_percent === '7.5' && r.snr_db === '10'; })[0];
     check('the one-point page quotes that point’s integers', text('pooled').indexOf(ex.total_bit_errors.replace(/\B(?=(\d{3})+(?!\d))/g, ',') + ' of ' + ex.total_payload_bits.replace(/\B(?=(\d{3})+(?!\d))/g, ',')) >= 0, ex.total_bit_errors + '/' + ex.total_payload_bits);
-    var reasons = {}; rows.forEach(function (r) { if (r.status === 'missing') reasons[r.receiver + ' R' + r.red + 'h' + r.hydrophone] = r.missing_reason; });
-    check('the missing page names every missing case with its reason', /JADE has no result for Red 4, hydrophone 2 \(controller stopped before science\) and Red 4, hydrophone 3 \(blocked by predecessor failure\)/.test(text('missing')) &&
-      /CAJODE has none for Red 4, hydrophone 2 \(controller stopped before science\) and Red 4, hydrophone 3 \(blocked by predecessor failure\)/.test(text('missing')) && Object.keys(reasons).length === 4, Object.keys(reasons).join(' '));
+    var reasons = {}; rows.forEach(function (r) { if (r.status === 'missing') reasons[r.receiver + ' R' + r.red + 'h' + r.hydrophone + ' ' + r.pilot_id] = r.missing_reason; });
+    check('all 65 missing channel/pilot conditions retain reasons and the page identifies PEARL’s queued ratios', Object.keys(reasons).length === 65 && /PEARL has complete curves at 7.5%, 12% and 15%/.test(text('missing')) && /2.5% and 5% jobs are queued/.test(text('missing')), Object.keys(reasons).length + ' missing conditions');
   }
-  check('the mechanism map distinguishes complete receiver routes from decoder components', /Belief propagation is a decoder component/.test(text('routes')) && /estimate from pilots and then decode once/.test(text('routes')) && /scaled dual variables/.test(text('routes')));
+  check('the mechanism map distinguishes complete receiver routes from decoder components', /Belief propagation is a decoder component/.test(text('routes')) && /estimate from pilots and then decode once/.test(text('routes')) && /scaled dual variables/.test(text('routes')) && /parity polytopes\|as constraints/.test(courseSrc) && /ADMM blocks\|of one problem/.test(courseSrc));
+  check('PEARL is expanded consistently with the retained receiver name', /PEARL is the Persistent-Edge Alternating Receiver Loop/.test(text('routes')) && /PEARL is the Persistent-Edge Alternating Receiver Loop/.test(text('pearl')));
   check('the receivers are described in the series’ sourced wording', /one-tap equalizer/.test(text('pilot-only')) && /partial FFT outputs/.test(text('pilot-only')) && /nothing flows back from the decoder/.test(text('pilot-only')) &&
     /a posteriori LLR/.test(text('jade')) && /extrinsic information/.test(text('jade')) && /normalized min-sum message-passing iterations/.test(text('jade')) && /hyperbolic tangent function/.test(text('jade')) &&
+    /frozen R2-V1 receiver profile/.test(text('pearl')) && /check-to-variable/.test(text('pearl')) && /variable-to-check/.test(text('pearl')) && /at most 80 iterations/.test(text('pearl')) &&
     /name, not an expanded acronym/.test(text('coral')) && /jcade_regularized_power/.test(text('coral')) && /modifies the parity component/.test(text('coral')) && /objective function decreases/.test(text('coral')) &&
     !/every update is a gradient step|changes it only by gradient steps|Coded One-scalar Relaxation/.test(text('coral')) &&
-    /ADMM: one weight per observation → b → weights → C → z → u/.test(text('cajode')) && /accepts the resulting bits only when parity, configured bits, and cyclic redundancy check/.test(text('cajode')) && /at most 50 ADMM iterations/.test(text('cajode')));
-  check('CAJODE separates its constrained problem, ADMM iteration and post-threshold checks',
-    /constrained optimization problem/.test(cajodeCopy) && /objective function/.test(cajodeCopy) && /ADMM iteration, not a decoder iteration/.test(cajodeCopy) && /checks applied after thresholding b/.test(cajodeCopy));
-  check('CAJODE is not rendered with the feedback-pipeline primitive', ca >= 0 && cb > ca && !/P\.pipeline\s*\(/.test(cajodeSrc) && !/\bback\s*:/.test(cajodeSrc));
-  check('the CAJODE accessible description preserves the three-part distinction', /objective function/.test(cajodeStep && cajodeStep.a11y || '') && /ADMM iteration/.test(cajodeStep && cajodeStep.a11y || '') && /checks applied after thresholding b/.test(cajodeStep && cajodeStep.a11y || '') && /no arrow from a decoder back to the channel estimator/.test(cajodeStep && cajodeStep.a11y || ''));
-  check('the two cohorts and the common-coverage boundary are explicit', /authenticated four-receiver Red replay/.test(text('cohorts')) && /older jade_bp output/.test(text('cohorts')) && /newer R3 BER campaign/.test(text('cohorts')) &&
-    /do not establish identical received samples, payloads, or noise draws/.test(text('cohorts')) && /common-coverage descriptive comparison/.test(text('common')) && /do not make the two cohorts a paired experiment/.test(text('common')));
+    /ADMM: one weight per observation → b → weights → C → z → u/.test(text('cajode')) && /thresholds b to form a candidate/.test(text('cajode')) && /Parity checks, configured bits, and the cyclic redundancy check/.test(text('cajode')) && /at most 50 ADMM iterations/.test(text('cajode')));
+  check('SAPPHIRE separates its constrained problem, ADMM solver iteration and candidate test',
+    /constrained optimization problem/.test(cajodeCopy) && /objective function/.test(cajodeCopy) && /repeats block updates within that same problem/.test(cajodeCopy) && /does not exchange outputs between a separate detector and decoder/.test(cajodeCopy) && /thresholds b to form a candidate/.test(cajodeCopy) && /acceptance.*separate from ADMM convergence/.test(cajodeCopy));
+  check('SAPPHIRE is not rendered with the feedback-pipeline primitive', ca >= 0 && cb > ca && !/P\.pipeline\s*\(/.test(cajodeSrc) && !/\bback\s*:/.test(cajodeSrc));
+  check('the SAPPHIRE accessible description preserves the three-part distinction', /constrained optimization problem/.test(cajodeStep && cajodeStep.a11y || '') && /ADMM solver iteration within that problem/.test(cajodeStep && cajodeStep.a11y || '') && /thresholds b to form one candidate/.test(cajodeStep && cajodeStep.a11y || '') && /Candidate acceptance is separate from ADMM convergence/.test(cajodeStep && cajodeStep.a11y || ''));
+  check('CAJODE appears in reader copy only as an explicit legacy evidence label', (all.match(/CAJODE/g) || []).length === 1 && /legacy receiver key cajode and source label CAJODE/.test(text('cajode')));
+  check('the three cohorts and the fixed four-case boundary are explicit', /authenticated four-receiver Red replay/.test(text('cohorts')) && /older jade_bp output/.test(text('cohorts')) && /newer R3 BER campaign/.test(text('cohorts')) && /frozen persistent R2-V1 campaign/.test(text('cohorts')) &&
+    /does not establish identical payload bits, transmitted waveforms, received samples, or noise realizations across all three campaigns/.test(text('cohorts')) && /same four recording–hydrophone labels/.test(text('common')) && /2.5% and 5%/.test(text('common')));
   check('zero observations and missing results are stated without a false bound', /It is not a measured BER/.test(text('zero')) && /A missing result is never drawn as zero/.test(text('missing')) &&
     /plotted at 0.5 \/ N/.test(text('one-curve')) && !/upper bound/i.test(all));
-  check('result language refers to sampled thresholds and does not claim monotonic pilot improvement', /first sampled SNR/.test(text('thresholds')) && /do not obey a pointwise rule/.test(text('sweep')) && !/all five curves fall earlier and lower/.test(all));
+  check('the 5% case map distinguishes queued PEARL cases from absent source results', /four fixed plot-scope cases are queued/.test(text('channels')) && /other eight have no complete source result/.test(text('channels')));
+  check('result language refers to sampled thresholds and does not claim monotonic pilot improvement', /first sampled SNR/.test(text('thresholds')) && /do not obey a pointwise rule/.test(text('sweep')) && !/all (five|six) curves fall earlier and lower/.test(all));
   check('the experimental units have stable names', /recording–hydrophone case/.test(text('grid')) && /test condition/.test(text('grid')) && /receiver result/.test(text('pooled')) && /pooled curve point/.test(text('common')));
   check('Red, SNR and the pilot-ratio denominator are introduced', /measured shallow-water channel recordings/.test(text('question')) && /near Singapore at a 25 kHz carrier/.test(text('question')) && /sample signal power in the replay divided by the expected noise power added during replay, not E_b\/N_0/.test(text('question')) && /pilot ratio uses the low-density parity-check codeword length/.test(text('pilots')));
   check('no ranking or speed claim beyond the table', !/\b(outperform|superior|best receiver|faster|slower|beats)\b/i.test(all) && course.ber.not.some(function (s) { return /no timing/.test(s); }));
@@ -141,7 +156,7 @@ if (course) {
     !/about [0-9]|falls steeply|no error is observed/.test(text('one-curve-predict')) && !/does not reach|lowest sampled pooled BER/.test(text('p75-predict')));
   var dense = ['missing', 'common', 'one-curve', 'channels', 'thresholds', 'p75', 'zeros', 'sweep', 'supports'];
   check('data-dense canvases have equivalent plain-text summaries', dense.every(function (id) { var q = steps[ids.indexOf(id)]; return q && typeof q.a11y === 'string' && q.a11y.length > 80; }), dense.filter(function (id) { var q = steps[ids.indexOf(id)]; return !q || !q.a11y || q.a11y.length <= 80; }).join(', '));
-  check('the worked five-way curve leads to the main threshold grid before the supporting sweep, and the lesson ends in synthesis', ids.indexOf('channels') < ids.indexOf('p75') && ids.indexOf('p75') < ids.indexOf('thresholds') && ids.indexOf('thresholds') < ids.indexOf('sweep') && ids.indexOf('snapshot') < ids.indexOf('supports') && ids[ids.length - 1] === 'synthesis');
+  check('the worked six-way curve leads to the main threshold grid before the supporting sweep, and the lesson ends in synthesis', ids.indexOf('channels') < ids.indexOf('p75') && ids.indexOf('p75') < ids.indexOf('thresholds') && ids.indexOf('thresholds') < ids.indexOf('sweep') && ids.indexOf('snapshot') < ids.indexOf('supports') && ids[ids.length - 1] === 'synthesis');
   // the house rules for wording
   var BANNED = /\b(novel|state-of-the-art|framework|paradigm|leverage|utili[sz]e|in order to|crucial|vital|clearly|obviously|natural(ly)?|elegant|principled|lifting)\b|It is worth noting/i, CONTRACTION = /\b\w+(n’t|n't)\b|\b(it|that|there|let|we|you|they|he|she|what|who)(’|')(s|re|ll|ve|d)\b/i;
   var badw = [];
@@ -153,6 +168,9 @@ if (course) {
 }
 
 // ---------------------------------------------------------------- 4. the generated standalone page
+var shell = fs.readFileSync(path.join(__dirname, 'five_receivers.html'), 'utf8');
+check('the stable page filename presents the six-receiver title in metadata and on screen',
+  /<title>Six receivers on the Red recordings<\/title>/.test(shell) && /<h1 id="board-title">Six receivers on the Red recordings<\/h1>/.test(shell));
 var buildCheck = '';
 try { buildCheck = cp.execFileSync('python3', ['-B', path.join(__dirname, 'build_ber.py'), '--check'], { encoding: 'utf8' }); }
 catch (e) { buildCheck = String(e.stdout || '') + String(e.stderr || e.message || e); }

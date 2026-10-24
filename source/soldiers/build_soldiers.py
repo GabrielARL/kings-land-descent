@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""Build bp_and_cajode.html, the tutorial "The BP protocol and the CAJODE constraint circuit": belief propagation and
-CAJODE’s circuit on the soldier slides’ tree and loop, told with the player of the King’s Land tutorials.
+"""Build bp_and_cajode.html, the tutorial "The BP protocol and the SAPPHIRE constraint circuit": belief propagation and
+SAPPHIRE’s circuit on the soldier slides’ tree and loop, told with the player of the King’s Land tutorials.
 
     python3 -B source/soldiers/build_soldiers.py          (from the repository)
     node source/soldiers/test_soldiers.js

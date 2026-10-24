@@ -49,7 +49,7 @@
   d.odo.forEach(function (q, i) { maxOdoErr = Math.max(maxOdoErr, D.norm(sub(q, sub(truth[i + 1], truth[i])))); });
 
   var out = [], CH = { job: 'The job', reference: 'The reference', image: 'Image likelihood', sets: 'Allowed sets',
-    lens: 'The decoding lens', admm: 'Consensus ADMM', run: 'The run', cajode: 'Back to CAJODE', learned: 'What we learned' };
+    lens: 'The decoding lens', admm: 'Consensus ADMM', run: 'The run', cajode: 'Back to SAPPHIRE', learned: 'What we learned' };
 
   // ------------------------------------------------------------ 1. the job
   out.push({ id: 'job', chapter: CH.job, title: 'Tag every photo with where it was taken', layout: 'map', view: VIEW, dur: 6,
@@ -210,7 +210,7 @@
 
   var aimsView = around([d.photoOnly[T4], fit4.x].concat(aims4), 0.6, 3.5);
   out.push({ id: 'fit', chapter: CH.admm, title: 'Fit: image cost plus consensus targets', layout: 'map+side', view: aimsView, dur: 6.5,
-    text: 'For one position, the fit step combines its image cost with a quadratic term to every derived target v. The fixed ADMM penalty parameter is ρ = ' + num(p.rhoAdmm, 0) + '; it controls this numerical coupling, not sensor confidence. The code tests all 720 half-degree headings, keeps the best sample, then locally polishes inside that sample’s neighbourhood. This is an approximate nonlinear update, not CAJODE’s channel linear-system solve.',
+    text: 'For one position, the fit step combines its image cost with a quadratic term to every derived target v. The fixed ADMM penalty parameter is ρ = ' + num(p.rhoAdmm, 0) + '; it controls this numerical coupling, not sensor confidence. The code tests all 720 half-degree headings, keeps the best sample, then locally polishes inside that sample’s neighbourhood. This is an approximate nonlinear update, not SAPPHIRE’s channel linear-system solve.',
     math: 'x(t) ≈ arg min over x of  c_t(x) + sum over f of (ρ/2)‖x − v(f,t)‖²;   720 samples + local polish',
     draw: function (g, pr) {
       g.land(function (x) { var val = D.costAt(d.costs[T4], D.heading(x)); for (var k = 0; k < aims4.length; k++) { var dx = x[0] - aims4[k][0], dy = x[1] - aims4[k][1]; val += p.rhoAdmm / 2 * (dx * dx + dy * dy); } return val; }, { id: 'fit4', rings: 10, alpha: 0.6 });
@@ -307,9 +307,9 @@
       ['global optimum', 'NOT ESTABLISHED'], ['field accuracy', 'NOT ESTABLISHED']
     ], pr, 'Termination report', { head: ['question', 'answer from this run'], leftW: 210, leftCol: C.gold }); } });
 
-  // ------------------------------------------------------------ 8. the exact bridge to CAJODE
-  out.push({ id: 'shared_structure', chapter: CH.cajode, title: 'The part the dive and CAJODE genuinely share', layout: 'side', dur: 7,
-    text: 'Both methods use consensus ADMM where a shared quantity appears in several local constraint sets. The dive shares positions across geometric sets; CAJODE shares bit variables across parity checks. Each local set keeps replicas z, projects them, and updates scaled dual variables u. CAJODE’s channel C is fitted jointly, but parity checks do not keep channel replicas.',
+  // ------------------------------------------------------------ 8. the exact bridge to SAPPHIRE
+  out.push({ id: 'shared_structure', chapter: CH.cajode, title: 'The part the dive and SAPPHIRE genuinely share', layout: 'side', dur: 7,
+    text: 'Both methods use consensus ADMM where a shared quantity appears in several local constraint sets. The dive shares positions across geometric sets; SAPPHIRE shares bit variables across parity checks. Each local set keeps replicas z, projects them, and updates scaled dual variables u. SAPPHIRE’s channel C is fitted jointly, but parity checks do not keep channel replicas.',
     math: 'shared pattern: shared variable → local replicas → projection → scaled-dual update',
     draw: function (g, pr) {
       var R = P.split(g.sideR, 0.5);
@@ -318,23 +318,23 @@
         { text: 'project onto geometric set', col: C.violet }, { text: 'extra fitted state: none', col: C.dim }], pr, 'Inspection dive', { rowH: 38 });
       P.lines(g, R[1], [{ text: 'shared: bit variable b_i', col: C.gold }, { text: 'set: one parity polytope', col: C.ink },
         { text: 'replica z per check', col: C.blue }, { text: 'scaled dual u', col: C.orange },
-        { text: 'project onto parity polytope', col: C.violet }, { text: 'channel C: fitted, not copied', col: JADE }], pr, 'CAJODE', { rowH: 38 });
+        { text: 'project onto parity polytope', col: C.violet }, { text: 'channel C: fitted, not copied', col: JADE }], pr, 'SAPPHIRE', { rowH: 38 });
     } });
 
-  out.push({ id: 'cajode_adds', chapter: CH.cajode, title: 'What CAJODE adds to that shared skeleton', layout: 'side', dur: 7,
-    text: 'CAJODE is a joint channel-and-bit receiver, so one update is richer than this dive. It chooses pseudo-Huber observation weights, updates the bounded bit variables, chooses the weights again, solves all channel coefficients together, projects each check replica onto its parity polytope, and then updates the scaled dual variables. The exact shared lines are the replica projection and scaled-dual update; the earlier fitted-variable update is application-specific.',
-    math: 'CAJODE: weights → bits → weights → channel → parity replicas → scaled duals',
+  out.push({ id: 'cajode_adds', chapter: CH.cajode, title: 'What SAPPHIRE adds to that shared skeleton', layout: 'side', dur: 7,
+    text: 'SAPPHIRE is a joint channel-and-bit receiver, so one update is richer than this dive. It chooses pseudo-Huber observation weights, updates the bounded bit variables, chooses the weights again, solves all channel coefficients together, projects each check replica onto its parity polytope, and then updates the scaled dual variables. The exact shared lines are the replica projection and scaled-dual update; the earlier fitted-variable update is application-specific.',
+    math: 'SAPPHIRE: weights → bits → weights → channel → parity replicas → scaled duals',
     draw: function (g, pr) {
       var R = P.split(g.sideR, 0.4);
       P.lines(g, R[0], [{ text: '1  sampled image cost', col: C.gold }, { text: '2  search and polish positions', col: JADE },
         { text: '3  project geometric replicas', col: C.violet }, { text: '4  update scaled duals', col: C.orange }], pr, 'This dive', { rowH: 42 });
       P.lines(g, R[1], [{ text: '1  weight each observation', col: C.blue }, { text: '2  update bit variables b', col: C.gold },
         { text: '3  choose weights again', col: C.blue }, { text: '4  solve channel coefficients C', col: JADE },
-        { text: '5  project parity replicas z', col: C.violet }, { text: '6  update scaled duals u', col: C.orange }], pr, 'One CAJODE update', { rowH: 38 });
+        { text: '5  project parity replicas z', col: C.violet }, { text: '6  update scaled duals u', col: C.orange }], pr, 'One SAPPHIRE update', { rowH: 38 });
     } });
 
-  out.push({ id: 'cajode_doorway', chapter: CH.cajode, title: 'The exact doorway from CAJODE to a decoder', layout: 'side', dur: 7,
-    text: 'With a known unit channel, unit observation weights and no channel update, CAJODE’s bit step reduces to the penalized ADMM decoder run on the bit LLRs. Full CAJODE restores the unknown channel, the pseudo-Huber weights and the joint updates. The dive reports primal and dual residuals; CAJODE accepts the first parity-valid hard word that passes its CRC. CRC acceptance does not prove continuous convergence, stationarity or a global optimum.',
+  out.push({ id: 'cajode_doorway', chapter: CH.cajode, title: 'The exact doorway from SAPPHIRE to a decoder', layout: 'side', dur: 7,
+    text: 'With a known unit channel, unit observation weights and no channel update, SAPPHIRE’s bit step reduces to the penalized ADMM decoder run on the bit LLRs. Full SAPPHIRE restores the unknown channel, the pseudo-Huber weights and the joint updates. The dive reports primal and dual residuals; SAPPHIRE accepts the first parity-valid hard word that passes its CRC. CRC acceptance does not prove continuous convergence, stationarity or a global optimum.',
     math: 'known unit channel + unit weights + no channel step ⇒ penalized ADMM decoder;   parity + CRC is a different finish line',
     draw: function (g, pr) {
       var R = P.split(g.sideR, 0.5);
@@ -342,13 +342,13 @@
         { text: 'no channel update', col: C.dim }, { text: 'g_i becomes the bit LLR', col: C.gold },
         { text: 'penalized ADMM decoder', col: JADE }], pr, 'Exact reduction', { rowH: 42 });
       P.lines(g, R[1], [{ text: 'dive: primal residual', col: C.blue }, { text: 'dive: dual residual', col: C.blue },
-        { text: 'CAJODE: parity-valid word', col: C.violet }, { text: 'CAJODE: CRC passes', col: C.gold },
+        { text: 'SAPPHIRE: parity-valid word', col: C.violet }, { text: 'SAPPHIRE: CRC passes', col: C.gold },
         { text: 'does not prove convergence', col: C.red }, { text: 'or a global optimum', col: C.red }], pr, 'Different finish lines', { rowH: 38 });
     } });
 
   // ------------------------------------------------------------ 9. what we learned
   var KEY = [['ADMM-LP decoder', 'bit LLR objective + parity polytopes'],
-    ['CAJODE', 'joint channel/bit objective + parity replicas'],
+    ['SAPPHIRE', 'joint channel/bit objective + parity replicas'],
     ['monopile dive', 'image likelihood + geometric allowed sets'],
     ['shared machinery', 'replicas, projections, scaled dual variables'],
     ['application-specific', 'local updates, stopping tests, guarantees']];
@@ -358,7 +358,7 @@
     draw: function (g, pr) { P.table(g, g.sideR, KEY, pr, 'Same architecture, different mathematics', { leftW: 180 }); } });
 
   out.push({ id: 'end', chapter: CH.learned, title: 'The dive, in one sentence', layout: 'map', view: VIEW, dur: 5,
-    text: T + ' ambiguous photos, ' + rangeTs.length + ' sparse ranges and ' + (T - 1) + ' odometry readings were joined through local allowed sets and consensus copies; in this seeded simulation, the final tags lie within ' + cm(d.errSolved.max) + ' of hidden truth. Revisit “Four symbols” for x, z, u and v, or “The exact doorway” for the CAJODE connection.',
+    text: T + ' ambiguous photos, ' + rangeTs.length + ' sparse ranges and ' + (T - 1) + ' odometry readings were joined through local allowed sets and consensus copies; in this seeded simulation, the final tags lie within ' + cm(d.errSolved.max) + ' of hidden truth. Revisit “Four symbols” for x, z, u and v, or “The exact doorway” for the SAPPHIRE connection.',
     math: 'image likelihood proposes; allowed sets reject; consensus ADMM coordinates',
     draw: function (g, pr) { mapBase(g, { standoffBand: true }); truth.forEach(function (x) { P.star(g, x, 1); }); var up = seg(pr, 0.1, 0.9) * (T - 1), q = path(g, sol.x, up, JADE, 2); P.vehicle(g, q, 1); } });
 

@@ -774,7 +774,7 @@ var KeepParts = (function () {
   // One solver round in its actual order. o: { p, title, steps [string|{tag,label,col}], active, loop,
   // footnote }.  The numbered tags make the sequence independent of colour.
   function updateLoop(g, R, o) {
-    o = o || {}; var c = g.ctx, p = partProgress(o), title = o.title || 'One CAJODE update round'; g.panel(R, title);
+    o = o || {}; var c = g.ctx, p = partProgress(o), title = o.title || 'One SAPPHIRE update round'; g.panel(R, title);
     var steps = o.steps || [
       { tag: '1', label: 'robust weights', col: C.blue },
       { tag: '2', label: 'majorized bit step', col: JADE },

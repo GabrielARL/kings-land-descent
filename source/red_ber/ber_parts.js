@@ -1,6 +1,6 @@
-// Drawings for "Five receivers on the Red recordings": bit error rate (BER) plots on a logarithmic axis, one colour and
+// Drawings for "Six receivers on the Red recordings": bit error rate (BER) plots on a logarithmic axis, one colour and
 // marker per receiver, receiver pipelines, the twelve channels, the coverage map and a heat map.  Uses the kit of
-// board.js.  The colours follow the soldier tutorial: JADE blue, CAJODE orange, CORAL green.
+// board.js.  The colours follow the soldier tutorial: JADE blue, SAPPHIRE orange, CORAL green.
 (function () {
   'use strict';
   var B = window.Board; if (!B) return;
@@ -10,9 +10,10 @@
     'pfft+fec': { name: 'Partial FFT + FEC', col: C.violet, shape: 'square' },
     'jade': { name: 'JADE', col: C.blue, shape: 'triangle' },
     'coral': { name: 'CORAL', col: C.green, shape: 'diamond' },
-    'cajode': { name: 'CAJODE', col: C.orange, shape: 'pentagon' }
+    'cajode': { name: 'SAPPHIRE', col: C.orange, shape: 'pentagon' },
+    'pearl': { name: 'PEARL', col: C.red, shape: 'hexagon' }
   };
-  var ORDER = ['ofdm+fec', 'pfft+fec', 'jade', 'coral', 'cajode'], MISSING = 'rgba(242,245,248,0.28)';
+  var ORDER = ['ofdm+fec', 'pfft+fec', 'jade', 'coral', 'cajode', 'pearl'], MISSING = 'rgba(242,245,248,0.28)';
   // berColour records the unrounded value behind each returned colour. Dense matrices can then print a BER-decade
   // cue instead of relying on hue alone; the course's accessible HTML table carries the full values.
   var BER_FILL_META = Object.create(null);
@@ -43,7 +44,7 @@
     if (shape === 'circle') c.arc(x, y, r, 0, TAU);
     else if (shape === 'square') c.rect(x - r * 0.88, y - r * 0.88, r * 1.76, r * 1.76);
     else {
-      var n = shape === 'triangle' ? 3 : shape === 'diamond' ? 4 : 5, rr = shape === 'triangle' ? r * 1.25 : shape === 'diamond' ? r * 1.2 : r * 1.1;
+      var n = shape === 'triangle' ? 3 : shape === 'diamond' ? 4 : shape === 'hexagon' ? 6 : 5, rr = shape === 'triangle' ? r * 1.25 : shape === 'diamond' ? r * 1.2 : r * 1.1;
       for (var i = 0; i < n; i++) { var a = -Math.PI / 2 + i * TAU / n; if (i) c.lineTo(x + rr * Math.cos(a), y + rr * Math.sin(a)); else c.moveTo(x + rr * Math.cos(a), y + rr * Math.sin(a)); }
       c.closePath();
     }
@@ -165,17 +166,17 @@
     return yb + 26;
   }
 
-  // CAJODE is one constrained optimization problem with an internal ADMM schedule.  It deliberately does not use
+  // SAPPHIRE is one constrained optimization problem with an internal ADMM schedule.  It deliberately does not use
   // pipeline(): a receiver-style return arrow would make the numerical iteration look like decoder feedback.
   function cajodeSolver(g, R, o) {
     o = o || {}; var c = g.ctx, p = o.p == null ? 1 : o.p, col = o.col || RX.cajode.col, narrow = R[2] < 560;
-    g.panel(R, narrow ? 'CAJODE: objective + ADMM iteration' : 'one objective function and one ADMM iteration');
+    g.panel(R, narrow ? 'SAPPHIRE: one problem, solved by ADMM' : 'one constrained problem, solved by ADMM');
 
     var margin = narrow ? 11 : 14, x = R[0] + margin, w = R[2] - 2 * margin, top = R[1] + 36;
     var oh = narrow ? 124 : 142, qo = seg(p, 0, 0.24);
     c.save(); c.globalAlpha = qo; c.fillStyle = 'rgba(255,176,113,0.055)'; c.strokeStyle = col; c.lineWidth = 1.5;
     c.beginPath(); rrect(c, x, top, w, oh, 9); c.fill(); c.stroke(); c.restore();
-    g.labelPx(x + 12, top + (narrow ? 14 : 16), 'ONE OBJECTIVE FUNCTION AND ITS CONSTRAINTS', col, { plain: true, size: narrow ? 10.5 : 12, p: qo });
+    g.labelPx(x + 12, top + (narrow ? 14 : 16), 'ONE CONSTRAINED PROBLEM', col, { plain: true, size: narrow ? 10.5 : 12, p: qo });
     g.labelPx(x + w / 2, top + (narrow ? 37 : 42), 'min over C, b, {zₐ}   J(C, b)', C.ink, { plain: true, size: narrow ? 14 : 17, align: 'center', p: qo });
 
     if (narrow) {
@@ -196,7 +197,7 @@
     }
 
     var headingY = top + oh + (narrow ? 18 : 20), qh = seg(p, 0.2, 0.34);
-    g.labelPx(x, headingY, 'ONE ADMM ITERATION — NOT A DECODER ITERATION', col, { plain: true, size: narrow ? 10.5 : 12, p: qh });
+    g.labelPx(x, headingY, 'ONE ADMM SOLVER ITERATION', col, { plain: true, size: narrow ? 10.5 : 12, p: qh });
     var labels = ['1  one weight|per observation', '2  relaxed bits b|majorization–minimization', '3  recompute weights|after b moves',
                   '4  channel response C|solve its linear system', '5  local copies zₐ|project onto Pₐ', '6  scaled duals uₐ|uₐ ← uₐ + b_N(a) − zₐ'];
     var cols = narrow ? 2 : 3, gapX = narrow ? 12 : 16, gapY = narrow ? 7 : 13, bh = narrow ? 39 : 55;
@@ -229,7 +230,7 @@
     var ay = gridBottom + (narrow ? 28 : 34), ah = narrow ? 64 : 61, qa = seg(p, 0.8, 1);
     c.save(); c.globalAlpha = qa; c.fillStyle = 'rgba(255,210,122,0.055)'; c.strokeStyle = C.gold; c.lineWidth = 1.35;
     c.beginPath(); rrect(c, x, ay, w, ah, 8); c.fill(); c.stroke(); c.restore();
-    g.labelPx(x + 11, ay + 15, 'AFTER THE ITERATION: CHECK THE THRESHOLDED BITS', C.gold, { plain: true, size: narrow ? 9.7 : 11.5, p: qa });
+    g.labelPx(x + 11, ay + 15, 'AFTER THE ITERATION: TEST ONE CANDIDATE', C.gold, { plain: true, size: narrow ? 9.7 : 11.5, p: qa });
     g.labelPx(x + w / 2, ay + (narrow ? 34 : 35), 'threshold b → parity → configured fixed bits → CRC', C.ink, { plain: true, size: narrow ? 10.2 : 12, align: 'center', p: qa });
     g.labelPx(x + w / 2, ay + (narrow ? 54 : 53), 'passing these checks ≠ ADMM convergence; at most 50 iterations here', C.dim, { plain: true, size: narrow ? 9.1 : 10.8, align: 'center', p: qa });
   }

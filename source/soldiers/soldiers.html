@@ -1,7 +1,7 @@
-<!-- The tutorial page "The BP protocol and the CAJODE constraint circuit"; build_soldiers.py inlines its scripts and adds the document's html, head and
+<!-- The tutorial page "The BP protocol and the SAPPHIRE constraint circuit"; build_soldiers.py inlines its scripts and adds the document's html, head and
      body tags.  Everything above the body marker goes into the head.  The styles and the player are those of the
      King's Land tutorials (source/simulator/tutorial.html and board.js). -->
-<title>The BP protocol and the CAJODE constraint circuit</title>
+<title>The BP protocol and the SAPPHIRE constraint circuit</title>
 <meta name="kings-land-page" content="soldiers">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -85,8 +85,8 @@ button:focus-visible, summary:focus-visible { outline: 3px solid var(--accent); 
 <main class="course" id="board">
   <header class="course-head">
     <div>
-      <div class="eyebrow">Counting soldiers · belief propagation and CAJODE</div>
-      <h1 id="board-title">The BP protocol and the CAJODE constraint circuit</h1>
+      <div class="eyebrow">Counting soldiers · belief propagation and SAPPHIRE</div>
+      <h1 id="board-title">The BP protocol and the SAPPHIRE constraint circuit</h1>
     </div>
     <span class="count" id="board-count"></span>
   </header>
@@ -159,7 +159,7 @@ button:focus-visible, summary:focus-visible { outline: 3px solid var(--accent); 
         }
       }
       lane(top, 'JADE: feedback between joint steps', ['channel LLR Lch', 'BP posterior Lpost', 'Lext = Lpost − Lch', 'Lch + α Lext', 'tanh map', 'next joint step'], P.BP, 'the joint step produces the next channel estimate', H.seg(p, 0.05, 0.47));
-      lane(top + laneH + between, 'CAJODE: variables in one ADMM iteration', ['weights', 'relaxed bits', 'weights', 'channel', 'replica variables', 'scaled dual variables'], P.NOTE, 'one ADMM iteration under one objective', H.seg(p, 0.5, 0.95));
+      lane(top + laneH + between, 'SAPPHIRE: one constrained problem', ['weights', 'relaxed bits', 'weights', 'channel', 'replica variables', 'scaled dual variables'], P.NOTE, 'repeat ADMM blocks of that problem', H.seg(p, 0.5, 0.95));
     };
     officer.narrowDrawInstalled = true;
     // A deep link is rendered before this shell enhancement runs and debug mode deliberately stops repainting.
