@@ -462,7 +462,8 @@
     var wardenPages = !!(cx.tutorial && box && freeOut && land.kind === 'quad' && land.A && !land.ripples && !land.holes &&
       (cFace === 0 || cFace === 1) && Math.abs(T[cFace] - freeZ[cFace]) < 1e-9);
     if (wardenPages) {
-      var fi = cFace, fj = 1 - cFace, wallAt = freeZ[fi], dWall = len(sub(free, freeZ)), zJ = f(freeZ), gapTZ = len(sub(T, freeZ)), wd = box[1] - box[0];
+      var fi = cFace, fj = 1 - cFace, wallAt = freeZ[fi], dWall = len(sub(free, freeZ)), dStar = len(sub(free, T));
+      var zJ = f(freeZ), gapTZ = len(sub(T, freeZ)), wd = box[1] - box[0];
       var SUBN = ['₁', '₂'], DIRS = ['east–west', 'north–south'], DIRC = ['East–west', 'North–south'];
       var faceName = (fi === 0 ? (wallAt >= box[1] ? 'east' : 'west') : (wallAt >= box[1] ? 'north' : 'south')) + ' wall';
       var bLo = num(box[0], 0), bHi = num(box[1], 0), lawRule = bLo + ' ≤ x₁ ≤ ' + bHi + ' and ' + bLo + ' ≤ x₂ ≤ ' + bHi;
@@ -476,16 +477,10 @@
         for (var i = 0; i <= 120; i++) { var t = TAU * i / 120; pts.push(add(add(free, scale(evAlong, ra * Math.cos(t))), scale(evAcross, rc * Math.sin(t)))); }
         return pts;
       };
-      // the lawful set C, lightly filled; and the lawful spots inside one of the land's rings
+      // the lawful set C, lightly filled
       var lawFill = function (g, p) {
         if (!(p > 0)) return; var c = g.ctx, A0 = g.P([box[0], box[1]]), B0 = g.P([box[1], box[0]]);
         g.clip(g.mapR); c.globalAlpha = 0.16 * clamp(p, 0, 1); c.fillStyle = C.blue; c.fillRect(A0[0], A0[1], B0[0] - A0[0], B0[1] - A0[1]); c.globalAlpha = 1; c.restore();
-      };
-      var lowerInside = function (g, h, p) {
-        if (!(p > 0)) return; var c = g.ctx, A0 = g.P([box[0], box[1]]), B0 = g.P([box[1], box[0]]);
-        g.clip(g.mapR); c.beginPath(); c.rect(A0[0], A0[1], B0[0] - A0[0], B0[1] - A0[1]); c.clip();
-        c.beginPath(); landRing(h).forEach(function (q, i) { var a = g.P(q); if (i) c.lineTo(a[0], a[1]); else c.moveTo(a[0], a[1]); }); c.closePath();
-        c.globalAlpha = 0.34 * clamp(p, 0, 1); c.fillStyle = C.gold; c.fill(); c.globalAlpha = 1; c.restore();
       };
       // spots one distance r from c: a circle, drawn as far round as p
       var circle = function (g, r, col, w, p, dash) {
@@ -593,68 +588,53 @@
           if (!compact && yr + 22 < R[1] + R[3] - 8) g.labelPx(x, yr + 22, 'the same spot the circle reached', C.ink, { plain: true, size: 12, p: seg(p, 0.9, 0.98) });
         } });
 
-      // page 3: the nearest lawful spot is not the lowest one
-      var ringT = landRing(TJ), ringZ = landRing(zJ), farView = around(ringT.concat([add(free, [-dWall, -dWall]), add(free, [dWall, dWall]), inPt]), 0.12, 0.3 * cx.span);
-      var alongWall = function (t) { var q = freeZ.slice(); q[fj] = t; return q; };
-      var distAlong = function (t) { return len(sub(alongWall(t), free)); }, heightAlong = function (t) { return f(alongWall(t)); };
-      var dMax = Math.max(distAlong(box[0]), distAlong(box[1])) * 1.12, hMax = Math.max(heightAlong(box[0]), heightAlong(box[1])) * 1.12;
-      // a small plot of one function along the wall, with marks at the Warden's spot and at the spot to dig
-      var wallPlot = function (g, Rr, fn, vmax, col, title, marks, p, ticks) {
-        var c = g.ctx, L = Rr[0] + 42, Rt = Rr[0] + Rr[2] - 14, Tp = Rr[1] + 28, Bt = Rr[1] + Rr[3] - (ticks ? 24 : 10);
-        var X = function (t) { return L + (t - box[0]) / wd * (Rt - L); }, Y = function (v) { return Bt - v / vmax * (Bt - Tp); };
-        g.panel(Rr); c.font = '600 12px ' + g.sans; c.fillStyle = col; c.textAlign = 'left'; c.textBaseline = 'top'; c.fillText(title, Rr[0] + 10, Rr[1] + 8);
-        c.strokeStyle = C.faint; c.lineWidth = 1; c.beginPath(); c.moveTo(L, Tp); c.lineTo(L, Bt); c.lineTo(Rt, Bt); c.stroke();
-        c.font = '11px ' + g.mono; c.fillStyle = C.dim; c.textAlign = 'right'; c.textBaseline = 'middle';
-        var vt = H.nice(vmax / 2); for (var v = 0; v <= vmax + 1e-9; v += vt) c.fillText(num(v, 1), L - 5, Y(v));
-        if (ticks) {
-          c.textAlign = 'center'; c.textBaseline = 'top'; [box[0], box[0] + wd / 2, box[1]].forEach(function (t) { c.fillText(num(t, Math.abs(t - Math.round(t)) < 1e-9 ? 0 : 1), X(t), Bt + 5); });
-          c.font = '600 12px ' + g.sans; c.fillStyle = C.ink; c.textAlign = 'left'; c.fillText('x' + SUBN[fj] + ' →', Rr[0] + 6, Bt + 9);
-        }
-        marks.forEach(function (m) { if (!(m.p > 0)) return; c.globalAlpha = 0.6 * clamp(m.p, 0, 1); c.strokeStyle = m.col; c.lineWidth = 1; c.setLineDash([3, 3]); c.beginPath(); c.moveTo(X(m.t), Tp); c.lineTo(X(m.t), Bt); c.stroke(); c.setLineDash([]); c.globalAlpha = 1; });
-        if (p > 0) {
-          c.save(); c.beginPath(); c.rect(L, Tp - 4, Rt - L, Bt - Tp + 8); c.clip(); c.strokeStyle = col; c.lineWidth = 2.2; c.lineJoin = 'round'; c.beginPath();
-          for (var i = 0, n = Math.round(80 * clamp(p, 0, 1)); i <= n; i++) { var t = box[0] + wd * i / 80; if (i) c.lineTo(X(t), Y(fn(t))); else c.moveTo(X(t), Y(fn(t))); }
-          c.stroke(); c.restore();
-        }
-        marks.forEach(function (m) {
-          if (!(m.p > 0) || !m.dot) return; var px = X(m.t), py = Y(fn(m.t));
-          c.globalAlpha = clamp(m.p, 0, 1); c.beginPath(); c.arc(px, py, 5, 0, TAU); c.fillStyle = m.col; c.fill(); c.lineWidth = 2; c.strokeStyle = C.bg; c.stroke(); c.globalAlpha = 1;
-          g.labelPx(px + (m.below ? 0 : m.left ? -10 : 10), py + (m.below ? 16 : -13), m.text, m.col, { align: m.below ? 'center' : m.left ? 'right' : 'left', size: 11.5, p: m.p });
-        });
+      // page 3: two different questions rank the same lawful points in opposite orders
+      var ringT = landRing(TJ), farView = around(ringT.concat([add(free, [-dWall, -dWall]), add(free, [dWall, dWall]), inPt]), 0.12, 0.3 * cx.span);
+      var questionCard = function (g, Rr, col, title, answer, comparison, qTitle, qAnswer, qComparison) {
+        var c = g.ctx, compact = Rr[3] < 130, x = Rr[0] + 14;
+        var yAnswer = Rr[1] + (compact ? 32 : Rr[3] * 0.43), yComparison = Rr[1] + (compact ? 53 : Rr[3] * 0.68);
+        g.panel(Rr);
+        c.save(); c.globalAlpha = clamp(qTitle, 0, 1); c.fillStyle = col; c.fillRect(Rr[0] + 3, Rr[1] + 8, 3, Rr[3] - 16); c.restore();
+        g.labelPx(x, Rr[1] + 10, title, col, { plain: true, size: compact ? 10.5 : 12.5, p: qTitle });
+        g.labelPx(x, yAnswer, answer, col, { plain: true, mono: true, size: compact ? 9.5 : 13, p: qAnswer });
+        g.labelPx(x, yComparison, comparison, C.ink, { plain: true, mono: true, size: compact ? 9.2 : 12, p: qComparison });
       };
-      var lowLeft = T[fj] < freeZ[fj];
-      out.push({ id: 'warden-not-lowest', chapter: 'The Twins', title: 'Nearest is not lowest', layout: 'map+side', view: farView, dur: 8,
-        text: 'Is the Warden’s answer the spot to dig? Read the height there: J = ' + num(zJ, 3) + ' at Π(c). The spot to dig, x* = ' + pair(T) + ', is lower, at J = ' + num(TJ, 3) + '. ' +
-          'It lies on the same ' + faceName + ', ' + num(gapTZ) + ' away from Π(c) along the wall; both plots follow that wall. ' +
-          'The Warden minimises distance, so its rings around c are circles. The King minimises the height J. The land’s equal-height rings around c are long, tilted ellipses: an equal move raises J ' + steeperS + ' times more across the valley than along it. ' +
-          'Grow the land’s rings from c, and the first lawful spot they reach is x*, not Π(c). Every lawful spot in the gold patch is no higher than Π(c). ' +
-          'The Warden never feels the slope, so on its own it cannot find the spot to dig. The Wanderer feels the slope but ignores the wall. Each twin has half of the skill the job needs.',
-        math: 'nearest: Π<sub>C</sub>(c) = ' + pair(freeZ) + ',  J = ' + num(zJ, 3) +
-          at(0.5, '<br>lowest: x* = ' + pair(T) + ',  J = ' + num(TJ, 3)) +
-          at(0.8, '<br>the Warden minimises |z − c|;  the King minimises J(z)'),
+      out.push({ id: 'warden-not-lowest', chapter: 'The Twins', title: 'Nearest is not lowest', layout: 'map+side', view: farView, dur: 9,
+        text: 'The Warden and the King are answering different questions. ' +
+          at(0.06, 'The Warden asks: “Which lawful point is closest to c?” Its answer, Π<sub>C</sub>(c) = ' + pair(freeZ) + ', is lawful and ' + num(dWall) + ' from c. Projection promises no more than that. ') +
+          at(0.32, 'The King asks: “Which lawful point has the lowest height J?” Its answer is x* = ' + pair(T) + '. The ranking reverses: x* is farther from c, ' + num(dStar) + ' instead of ' + num(dWall) + ', but lower in J, ' + num(TJ, 3) + ' instead of ' + num(zJ, 3) + '. ') +
+          at(0.58, 'Both answers lie on the same ' + faceName + ', ' + num(gapTZ) + ' apart. Follow the wall from Π(c) to x*: the height falls. A distance circle first touches C at Π(c). The land is ' + steeperS + ' times steeper across the valley than along it, so its equal-height rings are tilted ellipses. The first such ellipse to reach C touches x*. ') +
+          at(0.82, 'The Warden knows C but never reads J. The Wanderer feels the slope of J but may leave C. The twins must combine these jobs to find one point that is both lawful and low.'),
+        math: 'Warden: Π<sub>C</sub>(c) = arg min<sub>z ∈ C</sub> |z − c| = ' + pair(freeZ) + ';  distance ' + num(dWall) +
+          at(0.42, '<br>King: x* = arg min<sub>z ∈ C</sub> J(z) = ' + pair(T) + ';  J = ' + num(TJ, 3)) +
+          at(0.7, '<br>nearest: ' + num(dWall) + ' < ' + num(dStar) + ';  lowest: ' + num(TJ, 3) + ' < ' + num(zJ, 3)),
         draw: function (g, p) {
           base(g); lawFill(g, 1);
-          var qW = seg(p, 0.06, 0.28), qL = seg(p, 0.32, 0.62), qR = seg(p, 0.66, 0.8), qB = seg(p, 0.84, 0.96);
-          // the Warden's circle through Π(c), then the land's rings growing from c until one first reaches the wall
+          var qW = seg(p, 0.04, 0.28), qK = seg(p, 0.32, 0.58), qE = seg(p, 0.62, 0.82), qB = seg(p, 0.84, 0.96), phoneMap = g.mapR[2] < 430;
+          // First replay the Warden's answer. Then visibly walk down the same wall until the King reaches x*.
           circle(g, dWall, C.blue, 2, qW);
-          if (qL > 0) g.path(landRing(freeJ + (TJ - freeJ) * qL), C.gold, 2.2, 1);
-          lowerInside(g, zJ, qR); g.path(ringZ, C.orange, 1.8, qR, [6, 4]);
-          // how far apart the two answers are along the wall, drawn just inside it
+          var wallNow = lerp2(freeZ, T, ease(qK));
+          if (qK > 0) {
+            g.path([freeZ, wallNow], C.gold, 2.8, 1);
+            g.dot(wallNow, 5.5, C.gold, 1);
+            g.label(wallNow, 'along the wall: J = ' + num(f(wallNow), 3), C.gold, { dx: 12, dy: 18, size: 11.5, p: seg(p, 0.34, 0.4) * (1 - seg(p, 0.54, 0.6)), inside: true });
+          }
+          // Once the lower point is visible, grow the land's equal-height ellipse to its first wall contact.
+          if (qE > 0) g.path(landRing(freeJ + (TJ - freeJ) * qE), C.gold, 2.2, 1);
           var inward = fi === 0 ? [wallAt >= box[1] ? -0.05 * wd : 0.05 * wd, 0] : [0, wallAt >= box[1] ? -0.05 * wd : 0.05 * wd];
           g.path([freeZ, add(freeZ, inward), add(T, inward), T], C.violet, 1.6, qB);
-          g.label(add(lerp2(freeZ, T, 0.5), inward), num(gapTZ) + ' apart', C.violet, { dx: -10, dy: 0, align: 'right', size: 12, p: seg(p, 0.9, 1), inside: true });
-          warden(g, freeZ, qW); star(g, T, seg(p, 0.56, 0.66));
-          g.label(freeZ, 'nearest: Π(c), J = ' + num(zJ, 3), C.blue, { dx: -12, dy: lowLeft ? -20 : 20, align: 'right', size: 12, p: seg(p, 0.2, 0.3), inside: true });
-          g.label(T, 'lowest: x*, J = ' + num(TJ, 3), C.gold, { dx: -12, dy: lowLeft ? 22 : -22, align: 'right', size: 12, p: seg(p, 0.6, 0.68), inside: true });
-          g.labelPx(g.mapR[0] + 12, g.mapR[1] + 30, p < 0.3 ? 'the Warden’s rings: circles' : p < 0.64 ? 'the land’s equal-height rings: ellipses' : p < 0.82 ? 'gold: lawful and no higher than Π(c)' : 'two answers on one wall', p < 0.3 ? C.blue : C.gold, { size: 13 });
+          if (phoneMap) g.labelPx(g.mapR[0] + g.mapR[2] - 10, g.mapR[1] + 52, num(gapTZ) + ' apart on the wall', C.violet, { align: 'right', size: 10.5, p: seg(p, 0.9, 1) });
+          else g.label(add(lerp2(freeZ, T, 0.5), inward), num(gapTZ) + ' apart', C.violet, { dx: -10, dy: 0, align: 'right', size: 12, p: seg(p, 0.9, 1), inside: true });
+          warden(g, freeZ, qW); star(g, T, seg(p, 0.54, 0.62));
+          g.label(freeZ, 'nearest: Π(c), distance ' + num(dWall), C.blue, { dx: -12, dy: phoneMap ? 30 : 20, align: 'right', size: phoneMap ? 10.5 : 12, p: seg(p, 0.18, 0.28), inside: true });
+          g.label(T, 'lowest: x*, J = ' + num(TJ, 3), C.gold, { dx: -12, dy: phoneMap ? -36 : -22, align: 'right', size: phoneMap ? 10.5 : 12, p: seg(p, 0.56, 0.66), inside: true });
+          var stageText = p < 0.3 ? '1  Warden: which lawful point is closest?' : p < 0.62 ? '2  King: which lawful point is lowest?' : p < 0.84 ? 'same centre, different rings' : 'nearest lawful is not lowest lawful';
+          g.labelPx(g.mapR[0] + 12, g.mapR[1] + 30, stageText, p < 0.3 ? C.blue : C.gold, { size: 13 });
           g.hero(free, 'tw', 1); g.label(free, 'c', C.ink, { dx: 12, dy: -14, size: 12, inside: true });
-          // the side panel: distance and height along the wall, each with its own lowest point
+          // The side cards keep the two objectives and their reversed rankings visible without asking students to read two plots.
           var R = g.sideR, h2 = (R[3] - 8) / 2, R1 = [R[0], R[1], R[2], h2], R2 = [R[0], R[1] + h2 + 8, R[2], h2];
-          wallPlot(g, R1, distAlong, dMax, C.blue, 'distance from c at each ' + faceName + ' point', [
-            { t: freeZ[fj], col: C.blue, dot: true, text: 'nearest: Π(c), ' + num(dWall), p: seg(p, 0.2, 0.3), below: true }], qW, false);
-          wallPlot(g, R2, heightAlong, hMax, C.gold, 'height J, along the ' + faceName, [
-            { t: freeZ[fj], col: C.blue, dot: true, text: 'Π(c): ' + num(zJ, 3), p: seg(p, 0.66, 0.76), left: !lowLeft },
-            { t: T[fj], col: C.gold, dot: true, text: 'x*: ' + num(TJ, 3), p: seg(p, 0.56, 0.66), left: lowLeft }], qL, true);
+          questionCard(g, R1, C.blue, '1  Warden: closest to c?', 'Π_C(c) = ' + pair(freeZ), 'distance  ' + num(dWall) + ' < ' + num(dStar) + ' at x*', seg(p, 0.02, 0.08), seg(p, 0.18, 0.28), seg(p, 0.56, 0.64));
+          questionCard(g, R2, C.gold, '2  King: lowest height J?', 'x* = ' + pair(T), 'height J  ' + num(TJ, 3) + ' < ' + num(zJ, 3) + ' at Π(c)', seg(p, 0.32, 0.4), seg(p, 0.52, 0.6), seg(p, 0.56, 0.66));
         } });
     } else {
       var samples = [];

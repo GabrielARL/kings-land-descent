@@ -372,20 +372,103 @@
       g.labelPx(LR[0] + 4, LR[1] + LR[3] - 12, 'all three pass parity; evidence separates them', C.dim, { plain: true, size: narrow ? 9.5 : 11, p: seg(p, 0.82, 1) });
     } });
 
-  out.push({ id: 'light-replicas', chapter: CH.cajode, title: 'One check keeps one replica', layout: 'side', dur: 5.4,
-    text: 'To handle all checks separately, row R2 keeps a replica vector z<sub>R2</sub> of its three incident shared bits. Its update projects b<sub>N(R2)</sub> + u<sub>R2</sub> onto the even-parity polytope. That polytope is the convex hull of the row’s four even binary patterns, so a projection may be fractional; it need not choose a hard row immediately.',
-    math: 'z<sub>a</sub> ← Π<sub>P<sub>a</sub></sub>(b<sub>N(a)</sub> + u<sub>a</sub>),  one vector z<sub>a</sub> per check a',
+  out.push({ id: 'light-replicas', chapter: CH.cajode, title: 'Why each check keeps a replica vector', layout: 'side', dur: 10,
+    text: 'One shared bit can belong to several checks: R2 uses b₄, b₅ and b₆, while C2 also uses b₅. ' +
+      at(0.24, 'With only b, enforcing R2 changes a value that C2 uses, so the six check updates do not separate. Each check therefore keeps its own replica vector z<sub>a</sub>. It enforces z<sub>a</sub> ∈ P<sub>a</sub> separately; z<sub>a</sub> = b<sub>N(a)</sub> reconnects its entries to shared b. ') +
+      at(0.5, 'The scaled dual u<sub>a</sub> accumulates signed disagreement. The check forms q<sub>a</sub> = b<sub>N(a)</sub> + u<sub>a</sub>, then updates z<sub>a</sub>—not b. Π means choosing the point in P<sub>a</sub> with the smallest Euclidean (straight-line) distance to q<sub>a</sub>. ') +
+      at(0.78, 'Why may z<sub>a</sub> be fractional? P<sub>a</sub> is the convex hull of the passing hard rows: all nonnegative weighted blends whose weights add to one. For q = (1, 1, 1), the nearest point is (⅔, ⅔, ⅔) = ⅓·011 + ⅓·101 + ⅓·110. It lies between three passing rows. Thresholding, hard parity checks and the CRC come later.'),
+    math: 'split each check:  z<sub>a</sub> ∈ P<sub>a</sub>  and  z<sub>a</sub> = b<sub>N(a)</sub>' +
+      at(0.5, '<br>q<sub>a</sub><sup>k+1</sup> = b<sub>N(a)</sub><sup>k+1</sup> + u<sub>a</sub><sup>k</sup>') +
+      at(0.68, '<br>z<sub>a</sub><sup>k+1</sup> = Π<sub>P<sub>a</sub></sub>(q<sub>a</sub><sup>k+1</sup>) = arg min<sub>z ∈ P<sub>a</sub></sub> ‖z − q<sub>a</sub><sup>k+1</sup>‖<sub>2</sub><sup>2</sup>') +
+      at(0.88, '<br>u<sub>a</sub><sup>k+1</sup> = u<sub>a</sub><sup>k</sup> + b<sub>N(a)</sub><sup>k+1</sup> − z<sub>a</sub><sup>k+1</sup>'),
     draw: function (g, p) {
-      var R = g.sideR, c = g.ctx, narrow = R[2] < 560, BR = narrow ? [R[0] + 4, R[1] + 28, R[2] - 8, R[3] * 0.57] : [R[0] + 4, R[1] + 28, R[2] * 0.49, R[3] - 34];
-      var DR = narrow ? [R[0] + 12, R[1] + R[3] * 0.62, R[2] - 24, R[3] * 0.34] : [R[0] + R[2] * 0.52, R[1] + 42, R[2] * 0.46, R[3] - 58];
-      g.panel(R, 'Shared row values and one local replica'); lightBoard(g, BR, LIGHT_TRACE[2].b, { panel: false, p: p, showValues: true, highlightRow: 1 });
-      var x = DR[0] + DR[2] / 2, y1 = DR[1] + DR[3] * 0.22, y2 = DR[1] + DR[3] * 0.52, y3 = DR[1] + DR[3] * 0.82;
-      g.labelPx(x, y1, 'shared row  b₄, b₅, b₆', C.gold, { align: 'center', plain: true, mono: true, p: seg(p, 0.1, 0.32), size: narrow ? 10.5 : 12 });
-      g.arrowPx([x, y1 + 14], [x, y2 - 18], C.violet, 2);
-      c.globalAlpha = seg(p, 0.32, 0.58); c.strokeStyle = C.violet; c.lineWidth = 2; c.strokeRect(DR[0] + DR[2] * 0.12, y2 - 17, DR[2] * 0.76, 34); c.globalAlpha = 1;
-      g.labelPx(x, y2, 'R2: project onto P_even', C.violet, { align: 'center', plain: true, p: seg(p, 0.34, 0.6), size: narrow ? 10 : 11.5 });
-      g.arrowPx([x, y2 + 18], [x, y3 - 16], C.blue, 2);
-      g.labelPx(x, y3, 'replica vector z_R2 (possibly fractional)', C.blue, { align: 'center', plain: true, p: seg(p, 0.62, 0.88), size: narrow ? 9.5 : 11 });
+      var R = g.sideR, c = g.ctx, narrow = R[2] < 560, trace = LIGHT_TRACE[3];
+      var BR = narrow ? [R[0] + 4, R[1] + 28, R[2] - 8, R[3] * 0.48] : [R[0] + 4, R[1] + 28, R[2] * 0.49, R[3] - 34];
+      var DR = narrow ? [R[0] + 8, R[1] + R[3] * 0.55, R[2] - 16, R[3] * 0.4] : [R[0] + R[2] * 0.52, R[1] + 38, R[2] * 0.46, R[3] - 50];
+      g.panel(R, 'One shared bit, two separate check updates');
+      var board = lightBoard(g, BR, trace.b, { panel: false, p: seg(p, 0, 0.2), showValues: true, highlightRow: 1, highlightCol: 1 });
+      var b5 = [board.x + board.cell * 1.5, board.y + board.cell * 1.5], pulse = seg(p, 0.08, 0.24);
+      if (pulse > 0) { c.save(); c.globalAlpha = pulse; c.strokeStyle = C.gold; c.lineWidth = 3; c.beginPath(); c.arc(b5[0], b5[1], board.cell * (0.3 + 0.06 * Math.sin(p * 22)), 0, TAU); c.stroke(); c.restore(); }
+      g.labelPx(b5[0], b5[1] - board.cell * 0.47, 'one shared b₅', C.gold, { align: 'center', plain: true, size: narrow ? 10 : 11.5, p: seg(p, 0.1, 0.25) });
+
+      var gap = narrow ? 8 : 14;
+      var boxes = narrow ? [
+        [DR[0], DR[1] + 18, (DR[2] - gap) / 2, DR[3] - 24],
+        [DR[0] + (DR[2] + gap) / 2, DR[1] + 18, (DR[2] - gap) / 2, DR[3] - 24]
+      ] : [
+        [DR[0] + 4, DR[1] + 28, DR[2] - 8, (DR[3] - 70) / 2],
+        [DR[0] + 4, DR[1] + 50 + (DR[3] - 70) / 2, DR[2] - 8, (DR[3] - 70) / 2]
+      ];
+      var specs = [
+        { title: 'R2 replica  z_R2', bits: [3, 4, 5], names: ['b₄', 'b₅', 'b₆'], z: trace.z[1], col: C.blue, a: 0.14, b: 0.34 },
+        { title: 'C2 replica  z_C2', bits: [1, 4, 7], names: ['b₂', 'b₅', 'b₈'], z: trace.z[4], col: C.violet, a: 0.2, b: 0.4 }
+      ];
+      specs.forEach(function (s, si) {
+        var box = boxes[si], appear = seg(p, s.a, s.a + 0.1), travel = seg(p, s.a, s.b), work = seg(p, 0.38, 0.52), targets = [];
+        c.save(); c.globalAlpha = appear; c.strokeStyle = s.col; c.lineWidth = 2; c.strokeRect(box[0], box[1], box[2], box[3]); c.restore();
+        g.labelPx(box[0] + box[2] / 2, box[1] + 16, s.title, s.col, { align: 'center', plain: true, mono: true, size: narrow ? 9 : 11, p: appear });
+        s.bits.forEach(function (bit, j) {
+          var tx = box[0] + box[2] * (0.24 + 0.26 * j), ty = box[1] + box[3] * 0.58, row = Math.floor(bit / 3), col = bit % 3;
+          var from = [board.x + (col + 0.5) * board.cell, board.y + (row + 0.5) * board.cell], now = lerp2(from, [tx, ty], travel);
+          targets.push([tx, ty]);
+          if (travel > 0 && travel < 0.995) lamp(g, now[0], now[1], narrow ? 8 : 10, trace.b[bit], 1, null, null);
+          lamp(g, tx, ty, narrow ? 11 : 14, mix(trace.b[bit], s.z[j], work), seg(travel, 0.72, 1), num(mix(trace.b[bit], s.z[j], work), 2), null);
+          g.labelPx(tx, box[1] + box[3] - 13, s.names[j], j === 1 ? C.gold : C.dim, { align: 'center', plain: true, mono: true, size: narrow ? 8.5 : 10, p: seg(travel, 0.78, 1) });
+        });
+        var tether = seg(p, s.b, s.b + 0.1);
+        if (tether > 0) { var midBit = s.bits[1], mr = Math.floor(midBit / 3), mc = midBit % 3, src = [board.x + (mc + 0.5) * board.cell, board.y + (mr + 0.5) * board.cell]; c.save(); c.globalAlpha = tether * 0.7; c.strokeStyle = s.col; c.lineWidth = 1.4; c.setLineDash([4, 4]); c.beginPath(); c.moveTo(src[0], src[1]); c.lineTo(targets[1][0], targets[1][1]); c.stroke(); c.restore(); c.setLineDash([]); }
+      });
+      g.labelPx(DR[0] + DR[2] / 2, narrow ? DR[1] + 5 : DR[1] + DR[3] - 10,
+        'b₅ = ' + num(trace.b[4], 2) + '  ·  R2 keeps ' + num(trace.z[1][1], 2) + '  ·  C2 keeps ' + num(trace.z[4][1], 2), C.gold,
+        { align: 'center', plain: true, mono: true, size: narrow ? 8.5 : 10.5, p: seg(p, 0.43, 0.54) });
+
+      // The second half zooms into one parity step. A clean q = 111 example makes the nearest fractional point visible;
+      // the next page then opens the full cube and the computed round-4 R2 projection.
+      var change = seg(p, 0.52, 0.61);
+      if (change > 0) { c.save(); c.globalAlpha = change; c.fillStyle = C.bg; c.fillRect(R[0], R[1], R[2], R[3]); c.restore(); }
+      if (!(change > 0.01)) return;
+      g.panel(R, change > 0.98 ? (narrow ? 'Projection updates z, not b' : 'Projection updates the replica, not the shared vector') : null);
+      var CR = narrow ? [R[0] + 4, R[1] + 28, R[2] - 8, R[3] * 0.57] : [R[0] + 4, R[1] + 30, R[2] * 0.58, R[3] - 38];
+      var LR = narrow ? [R[0] + 12, R[1] + R[3] * 0.62, R[2] - 24, R[3] * 0.34] : [R[0] + R[2] * 0.61, R[1] + 44, R[2] * 0.37, R[3] - 56];
+      function P3(v) {
+        var yaw = 0.68, pitch = 0.42, S = Math.min(CR[2], CR[3]) * 0.52, cx = CR[0] + CR[2] / 2, cy = CR[1] + CR[3] * 0.55;
+        var x = v[0] - 0.5, y = v[1] - 0.5, z = v[2] - 0.5, x1 = x * Math.cos(yaw) - y * Math.sin(yaw), y1 = x * Math.sin(yaw) + y * Math.cos(yaw);
+        return [cx + S * x1, cy - S * (z * Math.cos(pitch) - y1 * Math.sin(pitch)), y1 * Math.cos(pitch) + z * Math.sin(pitch)];
+      }
+      var corners = [], even = [[0, 0, 0], [0, 1, 1], [1, 0, 1], [1, 1, 0]], m;
+      for (m = 0; m < 8; m++) corners.push([(m >> 2) & 1, (m >> 1) & 1, m & 1]);
+      var cubeP = seg(p, 0.55, 0.65) * change;
+      c.save(); c.globalAlpha = cubeP; c.strokeStyle = 'rgba(242,245,248,0.28)'; c.lineWidth = 1.2;
+      corners.forEach(function (a, ia) { corners.forEach(function (b2, ib) { if (ia < ib && Math.abs(a[0] - b2[0]) + Math.abs(a[1] - b2[1]) + Math.abs(a[2] - b2[2]) === 1) { var A = P3(a), Bq = P3(b2); c.beginPath(); c.moveTo(A[0], A[1]); c.lineTo(Bq[0], Bq[1]); c.stroke(); } }); });
+      c.restore();
+      var solidP = seg(p, 0.6, 0.72) * change;
+      var faces = [[0, 1, 2], [0, 1, 3], [0, 2, 3], [1, 2, 3]].map(function (face) { var pts = face.map(function (j) { return even[j]; }); return { pts: pts, depth: pts.reduce(function (sum, v) { return sum + P3(v)[2]; }, 0) }; });
+      faces.sort(function (a, b2) { return b2.depth - a.depth; });
+      faces.forEach(function (face) { if (!(solidP > 0)) return; c.save(); c.globalAlpha = solidP; c.beginPath(); face.pts.forEach(function (v, j) { var A = P3(v); if (j) c.lineTo(A[0], A[1]); else c.moveTo(A[0], A[1]); }); c.closePath(); c.fillStyle = 'rgba(169,205,246,0.15)'; c.fill(); c.strokeStyle = C.blue; c.lineWidth = 1.8; c.stroke(); c.restore(); });
+      corners.forEach(function (v) {
+        var pass = (v[0] + v[1] + v[2]) % 2 === 0, A = P3(v), q = seg(p, pass ? 0.59 : 0.63, pass ? 0.69 : 0.73) * change;
+        if (!(q > 0)) return; c.save(); c.globalAlpha = q; c.beginPath(); c.arc(A[0], A[1], pass ? 5.5 : 4.5, 0, TAU); c.fillStyle = pass ? C.blue : C.bg; c.fill(); c.strokeStyle = pass ? C.blue : C.red; c.lineWidth = 1.7; c.stroke(); c.restore();
+        if (pass) g.labelPx(A[0] + (A[0] < CR[0] + CR[2] / 2 ? -9 : 9), A[1] - 11, '' + v[0] + v[1] + v[2], C.blue, { align: A[0] < CR[0] + CR[2] / 2 ? 'right' : 'left', plain: true, mono: true, size: 11, p: q });
+      });
+      var qIn = [1, 1, 1], qOut = [2 / 3, 2 / 3, 2 / 3], move = seg(p, 0.74, 0.9), Qin = P3(qIn), Qout = P3(qOut), Qnow = [mix(Qin[0], Qout[0], ease(move)), mix(Qin[1], Qout[1], ease(move))];
+      var inputP = seg(p, 0.68, 0.75) * change;
+      if (inputP > 0) { c.save(); c.globalAlpha = inputP; c.fillStyle = C.orange; c.beginPath(); c.arc(Qin[0], Qin[1], 6, 0, TAU); c.fill(); c.restore(); g.labelPx(Qin[0] + 10, Qin[1] - 18, 'q = (1, 1, 1)', C.orange, { plain: true, mono: true, size: 10.5, p: inputP }); }
+      if (move > 0) { c.save(); c.globalAlpha = change; c.strokeStyle = C.violet; c.lineWidth = 2; c.setLineDash([5, 4]); c.beginPath(); c.moveTo(Qin[0], Qin[1]); c.lineTo(Qnow[0], Qnow[1]); c.stroke(); c.setLineDash([]); c.fillStyle = C.violet; c.beginPath(); c.arc(Qnow[0], Qnow[1], 6, 0, TAU); c.fill(); c.restore(); }
+      if (move > 0.98) {
+        [[0, 1, 1], [1, 0, 1], [1, 1, 0]].forEach(function (v) { var A = P3(v); c.save(); c.globalAlpha = seg(p, 0.9, 0.96); c.strokeStyle = C.gold; c.lineWidth = 1.3; c.beginPath(); c.moveTo(A[0], A[1]); c.lineTo(Qout[0], Qout[1]); c.stroke(); c.restore(); });
+        g.labelPx(Qout[0] + (narrow ? 9 : -12), Qout[1] + (narrow ? 18 : 22), 'z = (⅔, ⅔, ⅔)', C.violet, { align: narrow ? 'left' : 'right', plain: true, mono: true, size: 10.5, p: seg(p, 0.88, 0.94) });
+      }
+      var items = [
+        { t: 'new shared values  b_N(a)', col: C.gold, at: 0.62 },
+        { t: '+ old scaled dual  u_a', col: C.violet, at: 0.61 },
+        { t: '= projection input  q_a', col: C.orange, at: 0.67 },
+        { t: 'Π: nearest point in P_a', col: C.blue, at: 0.75 },
+        { t: 'update z_a, not b', col: C.violet, at: 0.86 },
+        { t: 'convex hull = nonnegative blends', col: C.gold, at: 0.9 },
+        { t: 'whose weights add to one', col: C.gold, at: 0.93 },
+        { t: 'fractional now; hard checks later', col: C.ink, at: 0.96 }
+      ], rh = Math.min(narrow ? 18 : 31, LR[3] / items.length);
+      items.forEach(function (it, j) { g.labelPx(LR[0], LR[1] + rh * (j + 0.5), it.t, it.col, { plain: true, mono: j < 5, size: narrow ? 9.5 : 11.5, p: seg(p, it.at, it.at + 0.07) * change }); });
     } });
 
   // ------------------------------------------------------------ the even-parity polytope of row R2, drawn in its cube

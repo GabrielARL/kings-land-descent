@@ -212,6 +212,8 @@ Object.keys(PAGES).forEach(function (k) {
   check('a #via address plays that road first', d.road && d.id === 'road-twins-coach-0' && via.Realm.ticket() && via.Realm.ticket().from === 'end');
   var at = sandbox(PAGES.coach, 'coach', '#at=physio-role'), d2 = at.Board.debug({});
   check('a plain #at address opens at that step', !d2.road && d2.id === 'physio-role');
+  var replica = sandbox(PAGES.tutorial, 'tutorial', '#at=light-replicas'), d3 = replica.Board.debug({});
+  check('the public replica permalink keeps its stable target', !d3.road && d3.id === 'light-replicas' && d3.title === 'Why each check keeps a replica vector');
   var tale = sandbox(PAGES.tutorial, 'tutorial'), tf = elementWithClass(tale, 'realm-fork'); tale.Board.go(ids.tutorial.indexOf('end')); var th = tf.innerHTML;
   check('the tutorial end renders one four-way direct chooser with the Coach first and recommended', th.indexOf('Choose what to learn next') >= 0 && (th.match(/realm-road-primary/g) || []).length === 4 && th.indexOf('Plan one safe training session') < th.indexOf('Follow CAJODE') && th.indexOf('Recommended') >= 0 && th.indexOf('#via=') < 0);
   var keep = sandbox(PAGES.keep, 'keep'), kf = elementWithClass(keep, 'realm-fork'); keep.Board.go(ids.keep.indexOf('takeaway')); var kh = kf.innerHTML;
@@ -224,6 +226,8 @@ Object.keys(PAGES).forEach(function (k) {
 
 // ---------------------------------------------------------------- every built page carries the roads exactly once
 var realmSrc = fs.readFileSync(path.join(__dirname, 'realm.js'), 'utf8'), boardSrc = fs.readFileSync(path.join(__dirname, 'board.js'), 'utf8');
+var boardPartsSrc = fs.readFileSync(path.join(__dirname, 'board_parts.js'), 'utf8');
+var courseSrc = fs.readFileSync(path.join(__dirname, 'course.js'), 'utf8');
 check('the shared Contents list uses native buttons and marks the current step for assistive technology',
   /<button type="button" class="bl-step" data-i=/.test(boardSrc) && /setAttribute\('aria-current', 'step'\)/.test(boardSrc) && !/The six pages of King/.test(realmSrc));
 var built = { 'index.html': 'game', 'tutorial.html': 'tutorial', 'bp_and_cajode.html': 'soldiers', 'jade_keep_tutorial.html': 'keep', 'the_coach_and_the_physio.html': 'coach', 'localization_is_decoding.html': 'dive', 'five_receivers_on_red.html': 'red', 'finding_the_tear.html': 'net' };
@@ -231,6 +235,10 @@ Object.keys(built).forEach(function (f) {
   var html = fs.existsSync(path.join(ROOT, f)) ? fs.readFileSync(path.join(ROOT, f), 'utf8') : '';
   check(f + ' carries the current player and roads once, and names itself “' + built[f] + '”', html.split(realmSrc).length === 2 && html.split(boardSrc).length === 2 && html.indexOf('<meta name="kings-land-page" content="' + built[f] + '">') >= 0);
 });
+var builtTutorial = fs.existsSync(path.join(ROOT, 'tutorial.html')) ? fs.readFileSync(path.join(ROOT, 'tutorial.html'), 'utf8') : '';
+check('tutorial.html embeds the current introductory course source exactly once', builtTutorial.split(courseSrc).length === 2);
+var builtGame = fs.existsSync(path.join(ROOT, 'index.html')) ? fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8') : '';
+check('the game and tutorial embed the current shared story source exactly once', builtGame.split(boardPartsSrc).length === 2 && builtTutorial.split(boardPartsSrc).length === 2);
 
 console.log(failures ? failures + ' of ' + checks + ' checks FAILED' : 'all ' + checks + ' checks passed');
 process.exit(failures ? 1 : 0);

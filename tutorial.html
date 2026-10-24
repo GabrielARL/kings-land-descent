@@ -96,7 +96,7 @@ button:focus-visible, summary:focus-visible { outline: 3px solid var(--accent); 
     <span class="count" id="board-count"></span>
   </header>
   <div class="course-body">
-    <div class="stage"><canvas id="board-canvas" aria-label="The animation of this step"></canvas></div>
+    <div class="stage"><canvas id="board-canvas" role="img" aria-labelledby="board-step" aria-describedby="board-text board-math"></canvas></div>
     <section class="story" aria-live="polite">
       <div class="chapter" id="board-chapter"></div>
       <h2 id="board-step"></h2>
@@ -1912,7 +1912,8 @@ var Board = (function () {
     var wardenPages = !!(cx.tutorial && box && freeOut && land.kind === 'quad' && land.A && !land.ripples && !land.holes &&
       (cFace === 0 || cFace === 1) && Math.abs(T[cFace] - freeZ[cFace]) < 1e-9);
     if (wardenPages) {
-      var fi = cFace, fj = 1 - cFace, wallAt = freeZ[fi], dWall = len(sub(free, freeZ)), zJ = f(freeZ), gapTZ = len(sub(T, freeZ)), wd = box[1] - box[0];
+      var fi = cFace, fj = 1 - cFace, wallAt = freeZ[fi], dWall = len(sub(free, freeZ)), dStar = len(sub(free, T));
+      var zJ = f(freeZ), gapTZ = len(sub(T, freeZ)), wd = box[1] - box[0];
       var SUBN = ['₁', '₂'], DIRS = ['east–west', 'north–south'], DIRC = ['East–west', 'North–south'];
       var faceName = (fi === 0 ? (wallAt >= box[1] ? 'east' : 'west') : (wallAt >= box[1] ? 'north' : 'south')) + ' wall';
       var bLo = num(box[0], 0), bHi = num(box[1], 0), lawRule = bLo + ' ≤ x₁ ≤ ' + bHi + ' and ' + bLo + ' ≤ x₂ ≤ ' + bHi;
@@ -1926,16 +1927,10 @@ var Board = (function () {
         for (var i = 0; i <= 120; i++) { var t = TAU * i / 120; pts.push(add(add(free, scale(evAlong, ra * Math.cos(t))), scale(evAcross, rc * Math.sin(t)))); }
         return pts;
       };
-      // the lawful set C, lightly filled; and the lawful spots inside one of the land's rings
+      // the lawful set C, lightly filled
       var lawFill = function (g, p) {
         if (!(p > 0)) return; var c = g.ctx, A0 = g.P([box[0], box[1]]), B0 = g.P([box[1], box[0]]);
         g.clip(g.mapR); c.globalAlpha = 0.16 * clamp(p, 0, 1); c.fillStyle = C.blue; c.fillRect(A0[0], A0[1], B0[0] - A0[0], B0[1] - A0[1]); c.globalAlpha = 1; c.restore();
-      };
-      var lowerInside = function (g, h, p) {
-        if (!(p > 0)) return; var c = g.ctx, A0 = g.P([box[0], box[1]]), B0 = g.P([box[1], box[0]]);
-        g.clip(g.mapR); c.beginPath(); c.rect(A0[0], A0[1], B0[0] - A0[0], B0[1] - A0[1]); c.clip();
-        c.beginPath(); landRing(h).forEach(function (q, i) { var a = g.P(q); if (i) c.lineTo(a[0], a[1]); else c.moveTo(a[0], a[1]); }); c.closePath();
-        c.globalAlpha = 0.34 * clamp(p, 0, 1); c.fillStyle = C.gold; c.fill(); c.globalAlpha = 1; c.restore();
       };
       // spots one distance r from c: a circle, drawn as far round as p
       var circle = function (g, r, col, w, p, dash) {
@@ -2043,68 +2038,53 @@ var Board = (function () {
           if (!compact && yr + 22 < R[1] + R[3] - 8) g.labelPx(x, yr + 22, 'the same spot the circle reached', C.ink, { plain: true, size: 12, p: seg(p, 0.9, 0.98) });
         } });
 
-      // page 3: the nearest lawful spot is not the lowest one
-      var ringT = landRing(TJ), ringZ = landRing(zJ), farView = around(ringT.concat([add(free, [-dWall, -dWall]), add(free, [dWall, dWall]), inPt]), 0.12, 0.3 * cx.span);
-      var alongWall = function (t) { var q = freeZ.slice(); q[fj] = t; return q; };
-      var distAlong = function (t) { return len(sub(alongWall(t), free)); }, heightAlong = function (t) { return f(alongWall(t)); };
-      var dMax = Math.max(distAlong(box[0]), distAlong(box[1])) * 1.12, hMax = Math.max(heightAlong(box[0]), heightAlong(box[1])) * 1.12;
-      // a small plot of one function along the wall, with marks at the Warden's spot and at the spot to dig
-      var wallPlot = function (g, Rr, fn, vmax, col, title, marks, p, ticks) {
-        var c = g.ctx, L = Rr[0] + 42, Rt = Rr[0] + Rr[2] - 14, Tp = Rr[1] + 28, Bt = Rr[1] + Rr[3] - (ticks ? 24 : 10);
-        var X = function (t) { return L + (t - box[0]) / wd * (Rt - L); }, Y = function (v) { return Bt - v / vmax * (Bt - Tp); };
-        g.panel(Rr); c.font = '600 12px ' + g.sans; c.fillStyle = col; c.textAlign = 'left'; c.textBaseline = 'top'; c.fillText(title, Rr[0] + 10, Rr[1] + 8);
-        c.strokeStyle = C.faint; c.lineWidth = 1; c.beginPath(); c.moveTo(L, Tp); c.lineTo(L, Bt); c.lineTo(Rt, Bt); c.stroke();
-        c.font = '11px ' + g.mono; c.fillStyle = C.dim; c.textAlign = 'right'; c.textBaseline = 'middle';
-        var vt = H.nice(vmax / 2); for (var v = 0; v <= vmax + 1e-9; v += vt) c.fillText(num(v, 1), L - 5, Y(v));
-        if (ticks) {
-          c.textAlign = 'center'; c.textBaseline = 'top'; [box[0], box[0] + wd / 2, box[1]].forEach(function (t) { c.fillText(num(t, Math.abs(t - Math.round(t)) < 1e-9 ? 0 : 1), X(t), Bt + 5); });
-          c.font = '600 12px ' + g.sans; c.fillStyle = C.ink; c.textAlign = 'left'; c.fillText('x' + SUBN[fj] + ' →', Rr[0] + 6, Bt + 9);
-        }
-        marks.forEach(function (m) { if (!(m.p > 0)) return; c.globalAlpha = 0.6 * clamp(m.p, 0, 1); c.strokeStyle = m.col; c.lineWidth = 1; c.setLineDash([3, 3]); c.beginPath(); c.moveTo(X(m.t), Tp); c.lineTo(X(m.t), Bt); c.stroke(); c.setLineDash([]); c.globalAlpha = 1; });
-        if (p > 0) {
-          c.save(); c.beginPath(); c.rect(L, Tp - 4, Rt - L, Bt - Tp + 8); c.clip(); c.strokeStyle = col; c.lineWidth = 2.2; c.lineJoin = 'round'; c.beginPath();
-          for (var i = 0, n = Math.round(80 * clamp(p, 0, 1)); i <= n; i++) { var t = box[0] + wd * i / 80; if (i) c.lineTo(X(t), Y(fn(t))); else c.moveTo(X(t), Y(fn(t))); }
-          c.stroke(); c.restore();
-        }
-        marks.forEach(function (m) {
-          if (!(m.p > 0) || !m.dot) return; var px = X(m.t), py = Y(fn(m.t));
-          c.globalAlpha = clamp(m.p, 0, 1); c.beginPath(); c.arc(px, py, 5, 0, TAU); c.fillStyle = m.col; c.fill(); c.lineWidth = 2; c.strokeStyle = C.bg; c.stroke(); c.globalAlpha = 1;
-          g.labelPx(px + (m.below ? 0 : m.left ? -10 : 10), py + (m.below ? 16 : -13), m.text, m.col, { align: m.below ? 'center' : m.left ? 'right' : 'left', size: 11.5, p: m.p });
-        });
+      // page 3: two different questions rank the same lawful points in opposite orders
+      var ringT = landRing(TJ), farView = around(ringT.concat([add(free, [-dWall, -dWall]), add(free, [dWall, dWall]), inPt]), 0.12, 0.3 * cx.span);
+      var questionCard = function (g, Rr, col, title, answer, comparison, qTitle, qAnswer, qComparison) {
+        var c = g.ctx, compact = Rr[3] < 130, x = Rr[0] + 14;
+        var yAnswer = Rr[1] + (compact ? 32 : Rr[3] * 0.43), yComparison = Rr[1] + (compact ? 53 : Rr[3] * 0.68);
+        g.panel(Rr);
+        c.save(); c.globalAlpha = clamp(qTitle, 0, 1); c.fillStyle = col; c.fillRect(Rr[0] + 3, Rr[1] + 8, 3, Rr[3] - 16); c.restore();
+        g.labelPx(x, Rr[1] + 10, title, col, { plain: true, size: compact ? 10.5 : 12.5, p: qTitle });
+        g.labelPx(x, yAnswer, answer, col, { plain: true, mono: true, size: compact ? 9.5 : 13, p: qAnswer });
+        g.labelPx(x, yComparison, comparison, C.ink, { plain: true, mono: true, size: compact ? 9.2 : 12, p: qComparison });
       };
-      var lowLeft = T[fj] < freeZ[fj];
-      out.push({ id: 'warden-not-lowest', chapter: 'The Twins', title: 'Nearest is not lowest', layout: 'map+side', view: farView, dur: 8,
-        text: 'Is the Warden’s answer the spot to dig? Read the height there: J = ' + num(zJ, 3) + ' at Π(c). The spot to dig, x* = ' + pair(T) + ', is lower, at J = ' + num(TJ, 3) + '. ' +
-          'It lies on the same ' + faceName + ', ' + num(gapTZ) + ' away from Π(c) along the wall; both plots follow that wall. ' +
-          'The Warden minimises distance, so its rings around c are circles. The King minimises the height J. The land’s equal-height rings around c are long, tilted ellipses: an equal move raises J ' + steeperS + ' times more across the valley than along it. ' +
-          'Grow the land’s rings from c, and the first lawful spot they reach is x*, not Π(c). Every lawful spot in the gold patch is no higher than Π(c). ' +
-          'The Warden never feels the slope, so on its own it cannot find the spot to dig. The Wanderer feels the slope but ignores the wall. Each twin has half of the skill the job needs.',
-        math: 'nearest: Π<sub>C</sub>(c) = ' + pair(freeZ) + ',  J = ' + num(zJ, 3) +
-          at(0.5, '<br>lowest: x* = ' + pair(T) + ',  J = ' + num(TJ, 3)) +
-          at(0.8, '<br>the Warden minimises |z − c|;  the King minimises J(z)'),
+      out.push({ id: 'warden-not-lowest', chapter: 'The Twins', title: 'Nearest is not lowest', layout: 'map+side', view: farView, dur: 9,
+        text: 'The Warden and the King are answering different questions. ' +
+          at(0.06, 'The Warden asks: “Which lawful point is closest to c?” Its answer, Π<sub>C</sub>(c) = ' + pair(freeZ) + ', is lawful and ' + num(dWall) + ' from c. Projection promises no more than that. ') +
+          at(0.32, 'The King asks: “Which lawful point has the lowest height J?” Its answer is x* = ' + pair(T) + '. The ranking reverses: x* is farther from c, ' + num(dStar) + ' instead of ' + num(dWall) + ', but lower in J, ' + num(TJ, 3) + ' instead of ' + num(zJ, 3) + '. ') +
+          at(0.58, 'Both answers lie on the same ' + faceName + ', ' + num(gapTZ) + ' apart. Follow the wall from Π(c) to x*: the height falls. A distance circle first touches C at Π(c). The land is ' + steeperS + ' times steeper across the valley than along it, so its equal-height rings are tilted ellipses. The first such ellipse to reach C touches x*. ') +
+          at(0.82, 'The Warden knows C but never reads J. The Wanderer feels the slope of J but may leave C. The twins must combine these jobs to find one point that is both lawful and low.'),
+        math: 'Warden: Π<sub>C</sub>(c) = arg min<sub>z ∈ C</sub> |z − c| = ' + pair(freeZ) + ';  distance ' + num(dWall) +
+          at(0.42, '<br>King: x* = arg min<sub>z ∈ C</sub> J(z) = ' + pair(T) + ';  J = ' + num(TJ, 3)) +
+          at(0.7, '<br>nearest: ' + num(dWall) + ' < ' + num(dStar) + ';  lowest: ' + num(TJ, 3) + ' < ' + num(zJ, 3)),
         draw: function (g, p) {
           base(g); lawFill(g, 1);
-          var qW = seg(p, 0.06, 0.28), qL = seg(p, 0.32, 0.62), qR = seg(p, 0.66, 0.8), qB = seg(p, 0.84, 0.96);
-          // the Warden's circle through Π(c), then the land's rings growing from c until one first reaches the wall
+          var qW = seg(p, 0.04, 0.28), qK = seg(p, 0.32, 0.58), qE = seg(p, 0.62, 0.82), qB = seg(p, 0.84, 0.96), phoneMap = g.mapR[2] < 430;
+          // First replay the Warden's answer. Then visibly walk down the same wall until the King reaches x*.
           circle(g, dWall, C.blue, 2, qW);
-          if (qL > 0) g.path(landRing(freeJ + (TJ - freeJ) * qL), C.gold, 2.2, 1);
-          lowerInside(g, zJ, qR); g.path(ringZ, C.orange, 1.8, qR, [6, 4]);
-          // how far apart the two answers are along the wall, drawn just inside it
+          var wallNow = lerp2(freeZ, T, ease(qK));
+          if (qK > 0) {
+            g.path([freeZ, wallNow], C.gold, 2.8, 1);
+            g.dot(wallNow, 5.5, C.gold, 1);
+            g.label(wallNow, 'along the wall: J = ' + num(f(wallNow), 3), C.gold, { dx: 12, dy: 18, size: 11.5, p: seg(p, 0.34, 0.4) * (1 - seg(p, 0.54, 0.6)), inside: true });
+          }
+          // Once the lower point is visible, grow the land's equal-height ellipse to its first wall contact.
+          if (qE > 0) g.path(landRing(freeJ + (TJ - freeJ) * qE), C.gold, 2.2, 1);
           var inward = fi === 0 ? [wallAt >= box[1] ? -0.05 * wd : 0.05 * wd, 0] : [0, wallAt >= box[1] ? -0.05 * wd : 0.05 * wd];
           g.path([freeZ, add(freeZ, inward), add(T, inward), T], C.violet, 1.6, qB);
-          g.label(add(lerp2(freeZ, T, 0.5), inward), num(gapTZ) + ' apart', C.violet, { dx: -10, dy: 0, align: 'right', size: 12, p: seg(p, 0.9, 1), inside: true });
-          warden(g, freeZ, qW); star(g, T, seg(p, 0.56, 0.66));
-          g.label(freeZ, 'nearest: Π(c), J = ' + num(zJ, 3), C.blue, { dx: -12, dy: lowLeft ? -20 : 20, align: 'right', size: 12, p: seg(p, 0.2, 0.3), inside: true });
-          g.label(T, 'lowest: x*, J = ' + num(TJ, 3), C.gold, { dx: -12, dy: lowLeft ? 22 : -22, align: 'right', size: 12, p: seg(p, 0.6, 0.68), inside: true });
-          g.labelPx(g.mapR[0] + 12, g.mapR[1] + 30, p < 0.3 ? 'the Warden’s rings: circles' : p < 0.64 ? 'the land’s equal-height rings: ellipses' : p < 0.82 ? 'gold: lawful and no higher than Π(c)' : 'two answers on one wall', p < 0.3 ? C.blue : C.gold, { size: 13 });
+          if (phoneMap) g.labelPx(g.mapR[0] + g.mapR[2] - 10, g.mapR[1] + 52, num(gapTZ) + ' apart on the wall', C.violet, { align: 'right', size: 10.5, p: seg(p, 0.9, 1) });
+          else g.label(add(lerp2(freeZ, T, 0.5), inward), num(gapTZ) + ' apart', C.violet, { dx: -10, dy: 0, align: 'right', size: 12, p: seg(p, 0.9, 1), inside: true });
+          warden(g, freeZ, qW); star(g, T, seg(p, 0.54, 0.62));
+          g.label(freeZ, 'nearest: Π(c), distance ' + num(dWall), C.blue, { dx: -12, dy: phoneMap ? 30 : 20, align: 'right', size: phoneMap ? 10.5 : 12, p: seg(p, 0.18, 0.28), inside: true });
+          g.label(T, 'lowest: x*, J = ' + num(TJ, 3), C.gold, { dx: -12, dy: phoneMap ? -36 : -22, align: 'right', size: phoneMap ? 10.5 : 12, p: seg(p, 0.56, 0.66), inside: true });
+          var stageText = p < 0.3 ? '1  Warden: which lawful point is closest?' : p < 0.62 ? '2  King: which lawful point is lowest?' : p < 0.84 ? 'same centre, different rings' : 'nearest lawful is not lowest lawful';
+          g.labelPx(g.mapR[0] + 12, g.mapR[1] + 30, stageText, p < 0.3 ? C.blue : C.gold, { size: 13 });
           g.hero(free, 'tw', 1); g.label(free, 'c', C.ink, { dx: 12, dy: -14, size: 12, inside: true });
-          // the side panel: distance and height along the wall, each with its own lowest point
+          // The side cards keep the two objectives and their reversed rankings visible without asking students to read two plots.
           var R = g.sideR, h2 = (R[3] - 8) / 2, R1 = [R[0], R[1], R[2], h2], R2 = [R[0], R[1] + h2 + 8, R[2], h2];
-          wallPlot(g, R1, distAlong, dMax, C.blue, 'distance from c at each ' + faceName + ' point', [
-            { t: freeZ[fj], col: C.blue, dot: true, text: 'nearest: Π(c), ' + num(dWall), p: seg(p, 0.2, 0.3), below: true }], qW, false);
-          wallPlot(g, R2, heightAlong, hMax, C.gold, 'height J, along the ' + faceName, [
-            { t: freeZ[fj], col: C.blue, dot: true, text: 'Π(c): ' + num(zJ, 3), p: seg(p, 0.66, 0.76), left: !lowLeft },
-            { t: T[fj], col: C.gold, dot: true, text: 'x*: ' + num(TJ, 3), p: seg(p, 0.56, 0.66), left: lowLeft }], qL, true);
+          questionCard(g, R1, C.blue, '1  Warden: closest to c?', 'Π_C(c) = ' + pair(freeZ), 'distance  ' + num(dWall) + ' < ' + num(dStar) + ' at x*', seg(p, 0.02, 0.08), seg(p, 0.18, 0.28), seg(p, 0.56, 0.64));
+          questionCard(g, R2, C.gold, '2  King: lowest height J?', 'x* = ' + pair(T), 'height J  ' + num(TJ, 3) + ' < ' + num(zJ, 3) + ' at Π(c)', seg(p, 0.32, 0.4), seg(p, 0.52, 0.6), seg(p, 0.56, 0.66));
         } });
     } else {
       var samples = [];
@@ -3023,20 +3003,103 @@ var Board = (function () {
       g.labelPx(LR[0] + 4, LR[1] + LR[3] - 12, 'all three pass parity; evidence separates them', C.dim, { plain: true, size: narrow ? 9.5 : 11, p: seg(p, 0.82, 1) });
     } });
 
-  out.push({ id: 'light-replicas', chapter: CH.cajode, title: 'One check keeps one replica', layout: 'side', dur: 5.4,
-    text: 'To handle all checks separately, row R2 keeps a replica vector z<sub>R2</sub> of its three incident shared bits. Its update projects b<sub>N(R2)</sub> + u<sub>R2</sub> onto the even-parity polytope. That polytope is the convex hull of the row’s four even binary patterns, so a projection may be fractional; it need not choose a hard row immediately.',
-    math: 'z<sub>a</sub> ← Π<sub>P<sub>a</sub></sub>(b<sub>N(a)</sub> + u<sub>a</sub>),  one vector z<sub>a</sub> per check a',
+  out.push({ id: 'light-replicas', chapter: CH.cajode, title: 'Why each check keeps a replica vector', layout: 'side', dur: 10,
+    text: 'One shared bit can belong to several checks: R2 uses b₄, b₅ and b₆, while C2 also uses b₅. ' +
+      at(0.24, 'With only b, enforcing R2 changes a value that C2 uses, so the six check updates do not separate. Each check therefore keeps its own replica vector z<sub>a</sub>. It enforces z<sub>a</sub> ∈ P<sub>a</sub> separately; z<sub>a</sub> = b<sub>N(a)</sub> reconnects its entries to shared b. ') +
+      at(0.5, 'The scaled dual u<sub>a</sub> accumulates signed disagreement. The check forms q<sub>a</sub> = b<sub>N(a)</sub> + u<sub>a</sub>, then updates z<sub>a</sub>—not b. Π means choosing the point in P<sub>a</sub> with the smallest Euclidean (straight-line) distance to q<sub>a</sub>. ') +
+      at(0.78, 'Why may z<sub>a</sub> be fractional? P<sub>a</sub> is the convex hull of the passing hard rows: all nonnegative weighted blends whose weights add to one. For q = (1, 1, 1), the nearest point is (⅔, ⅔, ⅔) = ⅓·011 + ⅓·101 + ⅓·110. It lies between three passing rows. Thresholding, hard parity checks and the CRC come later.'),
+    math: 'split each check:  z<sub>a</sub> ∈ P<sub>a</sub>  and  z<sub>a</sub> = b<sub>N(a)</sub>' +
+      at(0.5, '<br>q<sub>a</sub><sup>k+1</sup> = b<sub>N(a)</sub><sup>k+1</sup> + u<sub>a</sub><sup>k</sup>') +
+      at(0.68, '<br>z<sub>a</sub><sup>k+1</sup> = Π<sub>P<sub>a</sub></sub>(q<sub>a</sub><sup>k+1</sup>) = arg min<sub>z ∈ P<sub>a</sub></sub> ‖z − q<sub>a</sub><sup>k+1</sup>‖<sub>2</sub><sup>2</sup>') +
+      at(0.88, '<br>u<sub>a</sub><sup>k+1</sup> = u<sub>a</sub><sup>k</sup> + b<sub>N(a)</sub><sup>k+1</sup> − z<sub>a</sub><sup>k+1</sup>'),
     draw: function (g, p) {
-      var R = g.sideR, c = g.ctx, narrow = R[2] < 560, BR = narrow ? [R[0] + 4, R[1] + 28, R[2] - 8, R[3] * 0.57] : [R[0] + 4, R[1] + 28, R[2] * 0.49, R[3] - 34];
-      var DR = narrow ? [R[0] + 12, R[1] + R[3] * 0.62, R[2] - 24, R[3] * 0.34] : [R[0] + R[2] * 0.52, R[1] + 42, R[2] * 0.46, R[3] - 58];
-      g.panel(R, 'Shared row values and one local replica'); lightBoard(g, BR, LIGHT_TRACE[2].b, { panel: false, p: p, showValues: true, highlightRow: 1 });
-      var x = DR[0] + DR[2] / 2, y1 = DR[1] + DR[3] * 0.22, y2 = DR[1] + DR[3] * 0.52, y3 = DR[1] + DR[3] * 0.82;
-      g.labelPx(x, y1, 'shared row  b₄, b₅, b₆', C.gold, { align: 'center', plain: true, mono: true, p: seg(p, 0.1, 0.32), size: narrow ? 10.5 : 12 });
-      g.arrowPx([x, y1 + 14], [x, y2 - 18], C.violet, 2);
-      c.globalAlpha = seg(p, 0.32, 0.58); c.strokeStyle = C.violet; c.lineWidth = 2; c.strokeRect(DR[0] + DR[2] * 0.12, y2 - 17, DR[2] * 0.76, 34); c.globalAlpha = 1;
-      g.labelPx(x, y2, 'R2: project onto P_even', C.violet, { align: 'center', plain: true, p: seg(p, 0.34, 0.6), size: narrow ? 10 : 11.5 });
-      g.arrowPx([x, y2 + 18], [x, y3 - 16], C.blue, 2);
-      g.labelPx(x, y3, 'replica vector z_R2 (possibly fractional)', C.blue, { align: 'center', plain: true, p: seg(p, 0.62, 0.88), size: narrow ? 9.5 : 11 });
+      var R = g.sideR, c = g.ctx, narrow = R[2] < 560, trace = LIGHT_TRACE[3];
+      var BR = narrow ? [R[0] + 4, R[1] + 28, R[2] - 8, R[3] * 0.48] : [R[0] + 4, R[1] + 28, R[2] * 0.49, R[3] - 34];
+      var DR = narrow ? [R[0] + 8, R[1] + R[3] * 0.55, R[2] - 16, R[3] * 0.4] : [R[0] + R[2] * 0.52, R[1] + 38, R[2] * 0.46, R[3] - 50];
+      g.panel(R, 'One shared bit, two separate check updates');
+      var board = lightBoard(g, BR, trace.b, { panel: false, p: seg(p, 0, 0.2), showValues: true, highlightRow: 1, highlightCol: 1 });
+      var b5 = [board.x + board.cell * 1.5, board.y + board.cell * 1.5], pulse = seg(p, 0.08, 0.24);
+      if (pulse > 0) { c.save(); c.globalAlpha = pulse; c.strokeStyle = C.gold; c.lineWidth = 3; c.beginPath(); c.arc(b5[0], b5[1], board.cell * (0.3 + 0.06 * Math.sin(p * 22)), 0, TAU); c.stroke(); c.restore(); }
+      g.labelPx(b5[0], b5[1] - board.cell * 0.47, 'one shared b₅', C.gold, { align: 'center', plain: true, size: narrow ? 10 : 11.5, p: seg(p, 0.1, 0.25) });
+
+      var gap = narrow ? 8 : 14;
+      var boxes = narrow ? [
+        [DR[0], DR[1] + 18, (DR[2] - gap) / 2, DR[3] - 24],
+        [DR[0] + (DR[2] + gap) / 2, DR[1] + 18, (DR[2] - gap) / 2, DR[3] - 24]
+      ] : [
+        [DR[0] + 4, DR[1] + 28, DR[2] - 8, (DR[3] - 70) / 2],
+        [DR[0] + 4, DR[1] + 50 + (DR[3] - 70) / 2, DR[2] - 8, (DR[3] - 70) / 2]
+      ];
+      var specs = [
+        { title: 'R2 replica  z_R2', bits: [3, 4, 5], names: ['b₄', 'b₅', 'b₆'], z: trace.z[1], col: C.blue, a: 0.14, b: 0.34 },
+        { title: 'C2 replica  z_C2', bits: [1, 4, 7], names: ['b₂', 'b₅', 'b₈'], z: trace.z[4], col: C.violet, a: 0.2, b: 0.4 }
+      ];
+      specs.forEach(function (s, si) {
+        var box = boxes[si], appear = seg(p, s.a, s.a + 0.1), travel = seg(p, s.a, s.b), work = seg(p, 0.38, 0.52), targets = [];
+        c.save(); c.globalAlpha = appear; c.strokeStyle = s.col; c.lineWidth = 2; c.strokeRect(box[0], box[1], box[2], box[3]); c.restore();
+        g.labelPx(box[0] + box[2] / 2, box[1] + 16, s.title, s.col, { align: 'center', plain: true, mono: true, size: narrow ? 9 : 11, p: appear });
+        s.bits.forEach(function (bit, j) {
+          var tx = box[0] + box[2] * (0.24 + 0.26 * j), ty = box[1] + box[3] * 0.58, row = Math.floor(bit / 3), col = bit % 3;
+          var from = [board.x + (col + 0.5) * board.cell, board.y + (row + 0.5) * board.cell], now = lerp2(from, [tx, ty], travel);
+          targets.push([tx, ty]);
+          if (travel > 0 && travel < 0.995) lamp(g, now[0], now[1], narrow ? 8 : 10, trace.b[bit], 1, null, null);
+          lamp(g, tx, ty, narrow ? 11 : 14, mix(trace.b[bit], s.z[j], work), seg(travel, 0.72, 1), num(mix(trace.b[bit], s.z[j], work), 2), null);
+          g.labelPx(tx, box[1] + box[3] - 13, s.names[j], j === 1 ? C.gold : C.dim, { align: 'center', plain: true, mono: true, size: narrow ? 8.5 : 10, p: seg(travel, 0.78, 1) });
+        });
+        var tether = seg(p, s.b, s.b + 0.1);
+        if (tether > 0) { var midBit = s.bits[1], mr = Math.floor(midBit / 3), mc = midBit % 3, src = [board.x + (mc + 0.5) * board.cell, board.y + (mr + 0.5) * board.cell]; c.save(); c.globalAlpha = tether * 0.7; c.strokeStyle = s.col; c.lineWidth = 1.4; c.setLineDash([4, 4]); c.beginPath(); c.moveTo(src[0], src[1]); c.lineTo(targets[1][0], targets[1][1]); c.stroke(); c.restore(); c.setLineDash([]); }
+      });
+      g.labelPx(DR[0] + DR[2] / 2, narrow ? DR[1] + 5 : DR[1] + DR[3] - 10,
+        'b₅ = ' + num(trace.b[4], 2) + '  ·  R2 keeps ' + num(trace.z[1][1], 2) + '  ·  C2 keeps ' + num(trace.z[4][1], 2), C.gold,
+        { align: 'center', plain: true, mono: true, size: narrow ? 8.5 : 10.5, p: seg(p, 0.43, 0.54) });
+
+      // The second half zooms into one parity step. A clean q = 111 example makes the nearest fractional point visible;
+      // the next page then opens the full cube and the computed round-4 R2 projection.
+      var change = seg(p, 0.52, 0.61);
+      if (change > 0) { c.save(); c.globalAlpha = change; c.fillStyle = C.bg; c.fillRect(R[0], R[1], R[2], R[3]); c.restore(); }
+      if (!(change > 0.01)) return;
+      g.panel(R, change > 0.98 ? (narrow ? 'Projection updates z, not b' : 'Projection updates the replica, not the shared vector') : null);
+      var CR = narrow ? [R[0] + 4, R[1] + 28, R[2] - 8, R[3] * 0.57] : [R[0] + 4, R[1] + 30, R[2] * 0.58, R[3] - 38];
+      var LR = narrow ? [R[0] + 12, R[1] + R[3] * 0.62, R[2] - 24, R[3] * 0.34] : [R[0] + R[2] * 0.61, R[1] + 44, R[2] * 0.37, R[3] - 56];
+      function P3(v) {
+        var yaw = 0.68, pitch = 0.42, S = Math.min(CR[2], CR[3]) * 0.52, cx = CR[0] + CR[2] / 2, cy = CR[1] + CR[3] * 0.55;
+        var x = v[0] - 0.5, y = v[1] - 0.5, z = v[2] - 0.5, x1 = x * Math.cos(yaw) - y * Math.sin(yaw), y1 = x * Math.sin(yaw) + y * Math.cos(yaw);
+        return [cx + S * x1, cy - S * (z * Math.cos(pitch) - y1 * Math.sin(pitch)), y1 * Math.cos(pitch) + z * Math.sin(pitch)];
+      }
+      var corners = [], even = [[0, 0, 0], [0, 1, 1], [1, 0, 1], [1, 1, 0]], m;
+      for (m = 0; m < 8; m++) corners.push([(m >> 2) & 1, (m >> 1) & 1, m & 1]);
+      var cubeP = seg(p, 0.55, 0.65) * change;
+      c.save(); c.globalAlpha = cubeP; c.strokeStyle = 'rgba(242,245,248,0.28)'; c.lineWidth = 1.2;
+      corners.forEach(function (a, ia) { corners.forEach(function (b2, ib) { if (ia < ib && Math.abs(a[0] - b2[0]) + Math.abs(a[1] - b2[1]) + Math.abs(a[2] - b2[2]) === 1) { var A = P3(a), Bq = P3(b2); c.beginPath(); c.moveTo(A[0], A[1]); c.lineTo(Bq[0], Bq[1]); c.stroke(); } }); });
+      c.restore();
+      var solidP = seg(p, 0.6, 0.72) * change;
+      var faces = [[0, 1, 2], [0, 1, 3], [0, 2, 3], [1, 2, 3]].map(function (face) { var pts = face.map(function (j) { return even[j]; }); return { pts: pts, depth: pts.reduce(function (sum, v) { return sum + P3(v)[2]; }, 0) }; });
+      faces.sort(function (a, b2) { return b2.depth - a.depth; });
+      faces.forEach(function (face) { if (!(solidP > 0)) return; c.save(); c.globalAlpha = solidP; c.beginPath(); face.pts.forEach(function (v, j) { var A = P3(v); if (j) c.lineTo(A[0], A[1]); else c.moveTo(A[0], A[1]); }); c.closePath(); c.fillStyle = 'rgba(169,205,246,0.15)'; c.fill(); c.strokeStyle = C.blue; c.lineWidth = 1.8; c.stroke(); c.restore(); });
+      corners.forEach(function (v) {
+        var pass = (v[0] + v[1] + v[2]) % 2 === 0, A = P3(v), q = seg(p, pass ? 0.59 : 0.63, pass ? 0.69 : 0.73) * change;
+        if (!(q > 0)) return; c.save(); c.globalAlpha = q; c.beginPath(); c.arc(A[0], A[1], pass ? 5.5 : 4.5, 0, TAU); c.fillStyle = pass ? C.blue : C.bg; c.fill(); c.strokeStyle = pass ? C.blue : C.red; c.lineWidth = 1.7; c.stroke(); c.restore();
+        if (pass) g.labelPx(A[0] + (A[0] < CR[0] + CR[2] / 2 ? -9 : 9), A[1] - 11, '' + v[0] + v[1] + v[2], C.blue, { align: A[0] < CR[0] + CR[2] / 2 ? 'right' : 'left', plain: true, mono: true, size: 11, p: q });
+      });
+      var qIn = [1, 1, 1], qOut = [2 / 3, 2 / 3, 2 / 3], move = seg(p, 0.74, 0.9), Qin = P3(qIn), Qout = P3(qOut), Qnow = [mix(Qin[0], Qout[0], ease(move)), mix(Qin[1], Qout[1], ease(move))];
+      var inputP = seg(p, 0.68, 0.75) * change;
+      if (inputP > 0) { c.save(); c.globalAlpha = inputP; c.fillStyle = C.orange; c.beginPath(); c.arc(Qin[0], Qin[1], 6, 0, TAU); c.fill(); c.restore(); g.labelPx(Qin[0] + 10, Qin[1] - 18, 'q = (1, 1, 1)', C.orange, { plain: true, mono: true, size: 10.5, p: inputP }); }
+      if (move > 0) { c.save(); c.globalAlpha = change; c.strokeStyle = C.violet; c.lineWidth = 2; c.setLineDash([5, 4]); c.beginPath(); c.moveTo(Qin[0], Qin[1]); c.lineTo(Qnow[0], Qnow[1]); c.stroke(); c.setLineDash([]); c.fillStyle = C.violet; c.beginPath(); c.arc(Qnow[0], Qnow[1], 6, 0, TAU); c.fill(); c.restore(); }
+      if (move > 0.98) {
+        [[0, 1, 1], [1, 0, 1], [1, 1, 0]].forEach(function (v) { var A = P3(v); c.save(); c.globalAlpha = seg(p, 0.9, 0.96); c.strokeStyle = C.gold; c.lineWidth = 1.3; c.beginPath(); c.moveTo(A[0], A[1]); c.lineTo(Qout[0], Qout[1]); c.stroke(); c.restore(); });
+        g.labelPx(Qout[0] + (narrow ? 9 : -12), Qout[1] + (narrow ? 18 : 22), 'z = (⅔, ⅔, ⅔)', C.violet, { align: narrow ? 'left' : 'right', plain: true, mono: true, size: 10.5, p: seg(p, 0.88, 0.94) });
+      }
+      var items = [
+        { t: 'new shared values  b_N(a)', col: C.gold, at: 0.62 },
+        { t: '+ old scaled dual  u_a', col: C.violet, at: 0.61 },
+        { t: '= projection input  q_a', col: C.orange, at: 0.67 },
+        { t: 'Π: nearest point in P_a', col: C.blue, at: 0.75 },
+        { t: 'update z_a, not b', col: C.violet, at: 0.86 },
+        { t: 'convex hull = nonnegative blends', col: C.gold, at: 0.9 },
+        { t: 'whose weights add to one', col: C.gold, at: 0.93 },
+        { t: 'fractional now; hard checks later', col: C.ink, at: 0.96 }
+      ], rh = Math.min(narrow ? 18 : 31, LR[3] / items.length);
+      items.forEach(function (it, j) { g.labelPx(LR[0], LR[1] + rh * (j + 0.5), it.t, it.col, { plain: true, mono: j < 5, size: narrow ? 9.5 : 11.5, p: seg(p, it.at, it.at + 0.07) * change }); });
     } });
 
   // ------------------------------------------------------------ the even-parity polytope of row R2, drawn in its cube

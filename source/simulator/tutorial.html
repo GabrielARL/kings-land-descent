@@ -90,7 +90,7 @@ button:focus-visible, summary:focus-visible { outline: 3px solid var(--accent); 
     <span class="count" id="board-count"></span>
   </header>
   <div class="course-body">
-    <div class="stage"><canvas id="board-canvas" aria-label="The animation of this step"></canvas></div>
+    <div class="stage"><canvas id="board-canvas" role="img" aria-labelledby="board-step" aria-describedby="board-text board-math"></canvas></div>
     <section class="story" aria-live="polite">
       <div class="chapter" id="board-chapter"></div>
       <h2 id="board-step"></h2>

@@ -14,6 +14,7 @@ var board = fs.readFileSync(path.join(dir, 'board.js'), 'utf8');
 var parts = fs.readFileSync(path.join(dir, 'board_parts.js'), 'utf8');
 var course = fs.readFileSync(path.join(dir, 'course.js'), 'utf8');
 var page = fs.readFileSync(path.join(dir, 'page.html'), 'utf8');
+var tutorialPage = fs.readFileSync(path.join(dir, 'tutorial.html'), 'utf8');
 var failures = 0, checks = 0;
 
 function check(what, ok, detail) {
@@ -311,7 +312,7 @@ var lightPages = [
   ['light-shared', 'One lamp belongs to two checks'],
   ['light-single-error', 'One glitch is easy'],
   ['light-uncertain', 'Several glows are uncertain'],
-  ['light-replicas', 'One check keeps one replica'],
+  ['light-replicas', 'Why each check keeps a replica vector'],
   ['light-polytope', 'Inside the cube: the even-parity polytope'],
   ['light-corrections', 'One lamp receives two corrections'],
   ['light-rounds', 'Run all checks together'],
@@ -330,6 +331,19 @@ check('single-error localization is explicitly limited to its assumption',
 check('received glow and channel LLR are kept distinct',
   /measures a brightness yᵢ; a channel model turns that observation into a channel LLR/.test(course) &&
   /log\[p\(yᵢ\|0\)\/p\(yᵢ\|1\)\]/.test(course) && /negative favours 1/.test(course));
+check('the replica page first explains why overlapping checks are split',
+  /One shared bit can belong to several checks/.test(course) && /the six check updates do not separate/.test(course) &&
+  /Each check therefore keeps its own replica vector/.test(course) && /z<sub>a<\/sub> = b<sub>N\(a\)<\/sub> reconnects its entries to shared b/.test(course));
+check('the replica page defines the z update as a nearest-point operation and keeps b unchanged in that step',
+  /The check forms q<sub>a<\/sub> = b<sub>N\(a\)<\/sub> \+ u<sub>a<\/sub>, then updates z<sub>a<\/sub>—not b/.test(course) &&
+  /smallest Euclidean \(straight-line\) distance to q<sub>a<\/sub>/.test(course) &&
+  /scaled dual u<sub>a<\/sub> accumulates signed disagreement/.test(course) && /arg min<sub>z ∈ P<sub>a<\/sub><\/sub>/.test(course));
+check('the replica page explains convex hull and fractional projection with one concrete blend',
+  /convex hull of the passing hard rows: all nonnegative weighted blends whose weights add to one/.test(course) &&
+  /the nearest point is \(⅔, ⅔, ⅔\) = ⅓·011 \+ ⅓·101 \+ ⅓·110/.test(course) &&
+  /Thresholding, hard parity checks and the CRC come later/.test(course));
+check('the tutorial canvas is described by the current step title, explanation and formula',
+  /<canvas id="board-canvas" role="img" aria-labelledby="board-step" aria-describedby="board-text board-math"><\/canvas>/.test(tutorialPage));
 check('the polytope page defines the hull as every mixture and says why it is convex',
   /every mixture of the four passing corners/.test(course) && /This set of all mixtures is the convex hull of the four corners/.test(course) && /It is convex: the straight segment between any two of its points stays inside it/.test(course) &&
   /again a mixture of the same four corners/.test(course) && /sliced off by one flat cut/.test(course));
@@ -347,8 +361,8 @@ check('the polytope page defines the hull as every mixture and says why it is co
     ok && /A = ½·011 \+ ½·110 = \(0\.5, 1, 0\.5\)/.test(course) && /B = 0\.7·000 \+ 0\.3·101 = \(0\.3, 0, 0\.3\)/.test(course) &&
     /WA = \[0, 0\.5, 0, 0\.5\], WB = \[0\.7, 0, 0\.3, 0\]/.test(course) && /Watch the white dot slide from A to B/.test(course) && /a second reason it is convex/.test(course));
 })();
-check('replicas are vectors, projections may be fractional and duals live on edges',
-  /replica vector z<sub>R2<\/sub>/.test(course) && /projection may be fractional/.test(course) &&
+check('replicas are vectors, fractional values are not hard decisions and duals live on edges',
+  /replica vector z<sub>a<\/sub>/.test(course) && /Why may z<sub>a<\/sub> be fractional\?/.test(course) &&
   /Each check-bit edge has its own replica coordinate/.test(course) && /all 18 edge duals/.test(course));
 check('product-code example is bounded before the LDPC generalization',
   /small regular product code/.test(course) && /LDPC code uses a much larger sparse graph/.test(course) &&
@@ -387,6 +401,10 @@ try {
     words[0].word.join('') + ' gap=' + (words[1].value - words[0].value).toFixed(3));
   var projected = LM.project([0.9, 0.8, 0.7]), reprojected = LM.project(projected);
   check('the degree-three parity-polytope projector is idempotent', projected.every(function (q, i) { return Math.abs(q - reprojected[i]) < 1e-12; }));
+  var allOnes = [1, 1, 1], equalBlend = LM.project(allOnes), blendDistance = Math.hypot(1 / 3, 1 / 3, 1 / 3);
+  check('the animated 111 example projects to the equal fractional blend, closer than any passing hard row',
+    equalBlend.every(function (q) { return Math.abs(q - 2 / 3) < 1e-12; }) &&
+    Math.abs(Math.hypot(allOnes[0] - equalBlend[0], allOnes[1] - equalBlend[1], allOnes[2] - equalBlend[2]) - blendDistance) < 1e-12 && blendDistance < 1);
   var r2in = [3, 4, 5].map(function (bit, j) { return LM.trace[4].b[bit] + LM.trace[3].u[1][j]; }), r2z = LM.trace[4].z[1];
   var EVEN = [[0, 0, 0], [0, 1, 1], [1, 0, 1], [1, 1, 0]], kkt = Math.max.apply(null, EVEN.map(function (v) { return v.reduce(function (s, q, i) { return s + (r2in[i] - r2z[i]) * (q - r2z[i]); }, 0); }));
   var cuts = [r2z[0] + r2z[1] + r2z[2] - 2, r2z[0] - r2z[1] - r2z[2], r2z[1] - r2z[0] - r2z[2], r2z[2] - r2z[0] - r2z[1]];
@@ -437,6 +455,10 @@ try {
   check('the land’s ring through x* first touches the wall at x*, while Π(c) is higher on the same wall',
     Math.abs(westmost[0] - wb[1]) < 1e-9 && wdist(westmost, wT) < 1e-6 && wT[0] === wz[0] && wf(wz) - wf(wT) > 0.1 && wdist(wz, wT) > 0.2,
     'westmost=' + wpr(westmost) + ' x*=' + wpr(wT) + ' J(Π(c))=' + wfmt(wf(wz)) + ' J(x*)=' + wfmt(wf(wT)));
+  var wdPi = wdist(wz, wc), wdStar = wdist(wT, wc);
+  check('distance and height rank the two lawful answers in opposite orders',
+    wdPi < wdStar && wf(wT) < wf(wz),
+    'distance ' + wfmt(wdPi) + ' < ' + wfmt(wdStar) + '; height ' + wfmt(wf(wT)) + ' < ' + wfmt(wf(wz)));
   var p1 = wPage('warden-role'), p2 = wPage('warden-steps'), p3 = wPage('warden-not-lowest'), t1 = wPlain(p1), t2 = wPlain(p2), t3 = wPlain(p3);
   check('the first Warden page defines C and says in words what Π stands for',
     /We call the set of lawful spots C, the shaded square on the map\./.test(t1) && /0 ≤ x₁ ≤ 1 and 0 ≤ x₂ ≤ 1/.test(t1) &&
@@ -448,11 +470,13 @@ try {
     t2.indexOf('East–west, ' + wc[0].toFixed(2) + ' lies past the wall at 1, so z₁ = 1.') >= 0 &&
     t2.indexOf('North–south, ' + wc[1].toFixed(2) + ' is already between 0 and 1, so it stays.') >= 0 &&
     t2.indexOf('Both ways give Π(c) = ' + wpr(wz) + ', ' + wfmt(wdist(wz, wc)) + ' from c.') >= 0, t2.slice(0, 120));
-  check('the third Warden page compares the nearest and the lowest lawful spots with the computed heights',
-    t3.indexOf('J = ' + wfmt(wf(wz)) + ' at Π(c)') >= 0 && t3.indexOf('x* = ' + wpr(wT) + ', is lower, at J = ' + wfmt(wf(wT))) >= 0 &&
-    t3.indexOf(wfmt(wdist(wz, wT)) + ' away from Π(c) along the wall') >= 0 && /an equal move raises J ten times more across the valley than along it/.test(t3) &&
-    /the first lawful spot they reach is x\*, not Π\(c\)/.test(t3) && /Every lawful spot in the gold patch is no higher than Π\(c\)/.test(t3) &&
-    /Each twin has half of the skill the job needs\./.test(t3));
+  check('the third Warden page asks two questions, then makes the reversed rankings explicit',
+    /The Warden and the King are answering different questions\./.test(t3) && /The Warden asks: “Which lawful point is closest to c\?”/.test(t3) &&
+    /The King asks: “Which lawful point has the lowest height J\?”/.test(t3) && /Projection promises no more than that\./.test(t3) &&
+    t3.indexOf('x* is farther from c, ' + wfmt(wdStar) + ' instead of ' + wfmt(wdPi) + ', but lower in J, ' + wfmt(wf(wT)) + ' instead of ' + wfmt(wf(wz))) >= 0 &&
+    t3.indexOf('Both answers lie on the same east wall, ' + wfmt(wdist(wz, wT)) + ' apart.') >= 0 &&
+    /The twins must combine these jobs to find one point that is both lawful and low\./.test(t3) &&
+    /Π<sub>C<\/sub>\(c\) = arg min<sub>z ∈ C<\/sub> \|z − c\|/.test(p3.math) && /x\* = arg min<sub>z ∈ C<\/sub> J\(z\)/.test(p3.math));
   var wSentences = [t1, t2, t3].join(' ').split(/[.?]\s+(?=[A-ZΠ])/), wLong = wSentences.filter(function (q) { return q.split(/\s+/).length > 35; });
   var wBanned = /\b(novel|state-of-the-art|framework|paradigm|leverage|utili[sz]e|in order to|crucial|vital|clearly|obviously|natural|elegant|principled|lifting)\b|It is worth noting|n’t\b|n't\b|\b(it|that|there)’s\b|’(re|ve|ll|d)\b|!/i;
   check('the Warden pages keep sentences within 35 words, with no contractions, exclamations or banned words',
