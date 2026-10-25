@@ -1,6 +1,6 @@
 // The drawing parts of the tutorial "The Coach and the Physio" (plan_course.js): the map of plans (days across,
 // load up), the two specialists, the allowed polygon and its rules, the tether, the planning log, and the side panels:
-// the readiness curve, the Coach's scan, the two gauges, and the season's calendar.  The kit g comes from board.js.
+// the readiness curve, the Coach's scan, the two gauges, the fibre, and the final payoff.  The kit g comes from board.js.
 var PlanParts = (function () {
   'use strict';
   var B = window.Board; if (!B) return null;
@@ -105,9 +105,8 @@ var PlanParts = (function () {
     pl.frame(o.xLabel || (short ? 'days' : 'day on the calendar'), 'readiness');
     pl.seg(o.t[0], 1, o.t[1], 1, 'rgba(242,245,248,0.45)', 1.2, seg(p, 0, 0.2), [5, 4]); g.labelPx(pl.X(o.baseAt == null ? o.t[1] : o.baseAt) - 4, pl.Y(1) + (o.baseBelow ? 12 : -11), 'rested baseline 1', C.dim, { align: 'right', size: 11, plain: true, p: seg(p, 0.05, 0.2) });
     if (o.r0 != null) { pl.seg(o.t[0], o.r0, o.t[1], o.r0, C.red, 1.2, seg(p, 0, 0.2), [3, 4]); g.labelPx(pl.X(o.t[1]) - 4, pl.Y(o.r0) - 12, 'below ' + num(o.r0, 1) + ': negative linear gain', C.red, { align: 'right', size: 11, plain: true, p: seg(p, 0.05, 0.2) }); }
-    // the target: the dunk line, labelled at its right end (below the line when o.targetBelow); the game: a red day line
+    // the target: the dunk line, labelled at its right end (below the line when o.targetBelow)
     if (o.target != null) { pl.seg(o.t[0], o.target, o.t[1], o.target, C.orange, 1.4, seg(p, 0, 0.2), [6, 4]); g.labelPx(pl.X(o.targetAt == null ? o.t[1] : o.targetAt) - 4, pl.Y(o.target) + (o.targetBelow ? 12 : -11), 'a dunk: ' + num(o.target, 1), C.orange, { align: 'right', size: 11, plain: true, p: seg(p, 0.05, 0.2) }); }
-    if (o.game != null && o.game <= o.t[1]) { pl.seg(o.game, o.v[0], o.game, o.v[1], C.red, 1.5, seg(p, 0, 0.2)); g.labelPx(pl.X(o.game) - 5, pl.box[1] + pl.box[3] - 12, 'game, day ' + o.game, C.red, { align: 'right', size: 11, plain: true, p: seg(p, 0.05, 0.2) }); }
     (o.sessions || []).forEach(function (s, i) { var q = seg(p, 0.1 + 0.1 * i, 0.2 + 0.1 * i); if (!(q > 0)) return; pl.seg(s.t, o.v[0], s.t, o.v[0] + (o.v[1] - o.v[0]) * 0.18 * s.w / 5, s.col || C.gold, 6, q); if (s.text && !short) g.labelPx(pl.X(s.t) + 8, pl.Y(o.v[0] + (o.v[1] - o.v[0]) * 0.09 * s.w / 5), s.text, s.col || C.gold, { size: 11, plain: true, p: q }); });
     if (o.rOld) { pl.curve(o.rOld, 'rgba(242,245,248,0.35)', 1.8, seg(p, 0.1, 0.3)); if (o.old) g.labelPx(pl.X(o.oldAt || o.t[1]) - 4, pl.Y(o.rOld(o.oldAt || o.t[1])) - 12, o.old, C.dim, { align: 'right', size: 11, plain: true, p: seg(p, 0.2, 0.35) }); }
     pl.curve(o.r, o.col || C.gold, 2.4, seg(p, o.from == null ? 0.2 : o.from, o.to == null ? 0.75 : o.to));
@@ -144,21 +143,6 @@ var PlanParts = (function () {
     pl.curve(lg(prim), AIM, 2.2, s); pl.curve(lg(dual), PHYSIO, 2.2, s);
     g.labelPx(pl.box[0] + pl.box[2] - 6, pl.box[1] + 12, 'gap |x − z|: do they agree?', AIM, { size: 11.5, plain: true, align: 'right', p: seg(p, 0.1, 0.3) });
     g.labelPx(pl.box[0] + pl.box[2] - 6, pl.box[1] + 30, 'ρ × Physio’s move: has it settled?', PHYSIO, { size: 11.5, plain: true, align: 'right', p: seg(p, 0.2, 0.4) });
-    return pl;
-  }
-  // The season on a calendar: days across, sessions as bars with their loads, the taper band and the race flag;
-  // o: { race, taper, sessions: [{t, w, text, col}], p, title, planned (index from which sessions are 'next') }.
-  function calendar(g, R, o) {
-    var p = o.p == null ? 1 : o.p, pl = g.plot(R, [0, o.race + 0.5], [0, 7], { title: o.title }), c = g.ctx;
-    pl.frame('day', 'load');
-    var tq = seg(p, 0.55, 0.7); if (tq > 0) { c.globalAlpha = 0.18 * tq; c.fillStyle = PHYSIO; c.fillRect(pl.X(o.race - o.taper), pl.box[1], pl.X(o.race) - pl.X(o.race - o.taper), pl.box[3]); c.globalAlpha = 1; g.labelPx((pl.X(o.race - o.taper) + pl.X(o.race)) / 2, pl.box[1] + 14, 'taper', PHYSIO, { align: 'center', size: 11.5, plain: true, p: tq }); }
-    var rq = seg(p, 0.7, 0.85); if (rq > 0) { pl.seg(o.race, 0, o.race, 6.5, C.red, 2, rq); g.labelPx(pl.X(o.race) - 6, pl.box[1] + pl.box[3] - 30, 'game, day ' + o.race, C.red, { align: 'right', size: 11.5, plain: true, p: rq }); }   // the game label sits low, clear of the taper and session labels
-    var prevRight = -Infinity;   // a label that would run into the previous session's label is lifted above it
-    o.sessions.forEach(function (s, i) {
-      var q = seg(p, 0.05 + 0.16 * i, 0.2 + 0.16 * i); if (!(q > 0)) return; var x = pl.X(s.t), y0 = pl.Y(0), y1 = pl.Y(s.w * q), w = 9;
-      c.globalAlpha = 0.9; c.fillStyle = s.col || C.gold; c.fillRect(x - w / 2, y1, w, y0 - y1); c.globalAlpha = 1;
-      if (s.text) { c.font = '600 11.5px ' + g.sans; var tw = c.measureText(s.text).width, lift = x - tw / 2 < prevRight + 6 ? 18 : 0; g.labelPx(x, y1 - 12 - lift, s.text, s.col || C.gold, { align: 'center', size: 11.5, plain: true, p: seg(q, 0.6, 1) }); prevRight = lift ? prevRight : x + tw / 2; }
-    });
     return pl;
   }
   // The two effects of one hard session over the days after it: fitness (small, slow to fade) above zero and fatigue
@@ -353,6 +337,6 @@ var PlanParts = (function () {
     c.globalAlpha = 1;
   }
   return { COACH: COACH, PHYSIO: PHYSIO, LOG: LOG, AIM: AIM, axes: axes, figure: figure, coach: coach, physio: physio, star: star, spring: spring, rightAngle: rightAngle, polygon: polygon, ruleLine: ruleLine,
-           lines: lines, table: table, split: split, subscript: subscript, curvePanel: curvePanel, effectsPanel: effectsPanel, gainPricePanel: gainPricePanel, costKey: costKey, scanPanel: scanPanel, gaugePanel: gaugePanel, calendar: calendar,
+           lines: lines, table: table, split: split, subscript: subscript, curvePanel: curvePanel, effectsPanel: effectsPanel, gainPricePanel: gainPricePanel, costKey: costKey, scanPanel: scanPanel, gaugePanel: gaugePanel,
            courtPanel: courtPanel, fibrePanel: fibrePanel, sumBar: sumBar, tracesPanel: tracesPanel };
 })();

@@ -14,7 +14,7 @@
   var d = N.build(), p = d.p, pr = d.prob, S = d.sol, R = S.rounds, A = d.alone, AR = A.rounds, rho = p.rho;
   var free = pr.free, freeZ = pr.freeZ, best = pr.best.q, crest = pr.crest, rules = pr.rules, last = pr.last;
   var K = 2, rec = R[K], v = rec.v, x = rec.x, z = rec.z, u = rec.u, x1 = rec.xPrev, z1 = rec.zPrev, u1 = rec.uPrev, gap = rec.gap, xu = add(x, u1);
-  var K_END = R.length - 1, fin = S.final, second = d.season.plans[1], third = d.season.plans[2], pr1 = second.prob, S1 = second.sol, R1 = S1.rounds;
+  var K_END = R.length - 1, fin = S.final;
   var VIEW = [-0.4, 12.4, -0.4, 10.6];
   // one toy load unit is 500 kg of repetition volume.  At the fixed five sets of five used throughout this story,
   // the corresponding mass on the bar is 500w/25 = 20w kg
@@ -23,7 +23,6 @@
   function lifted(w) { return Math.round(w * UNIT_KG) + ' kg'; }
   function squats(w) { return WORDS[SETS] + ' sets of ' + WORDS[REPS] + ' squats with ' + barKg(w) + ' kg'; }
   function rule(id) { return rules.filter(function (r) { return r.id === id; })[0]; }
-  function rule1(id) { return pr1.rules.filter(function (r) { return r.id === id; })[0]; }
   function plan(q) { return '(' + num(q[0], 2) + ' d, ' + num(q[1], 2) + ')'; }
   function pr2(q) { return pair(q, 2); }
   function shadeOf(prob, id) {
@@ -31,10 +30,10 @@
     for (var i = 0; i <= 40; i++) for (var j = 0; j <= 40; j++) { var val = prob.J([VIEW[0] + (VIEW[1] - VIEW[0]) * i / 40, VIEW[2] + (VIEW[3] - VIEW[2]) * j / 40]); if (val < lo) lo = val; if (val > hi) hi = val; }
     return { lo: lo, hi: Math.max(-lo, 0.5), id: id, rings: 12 };   // centred on zero cost: negative benefit brown, positive benefit blue
   }
-  var shade0 = shadeOf(pr, 'J0'), shade1 = shadeOf(pr1, 'J1');
+  var shade0 = shadeOf(pr, 'J0');
   function base(g, o) {
     o = o || {}; var prob = o.prob || pr;
-    g.land(o.fn || prob.J, o.shade || (prob === pr ? shade0 : shade1)); P.axes(g, 'day of the session →', '↑ load');
+    g.land(o.fn || prob.J, o.shade || shade0); P.axes(g, 'day of the session →', '↑ load');
     if (o.poly !== false) P.polygon(g, prob.poly.verts, { p: o.polyP == null ? 1 : o.polyP });
   }
   // the Coach's walk downhill on its own map from a start to its favourite: a flow along the slope, for the eye
@@ -53,7 +52,7 @@
     for (i = 1; i < path.length; i++) { if (goal <= segL[i - 1]) { pos = lerp2(path[i - 1], path[i], segL[i - 1] ? goal / segL[i - 1] : 1); break; } goal -= segL[i - 1]; pos = path[i]; }
     return pos;
   }
-  var out = [], CH = { athlete: 'The athlete', pair: 'The Coach and the Physio', round: 'One planning round', season: 'The season', bridge: 'The same four moves elsewhere' };
+  var out = [], CH = { athlete: 'The athlete', pair: 'The Coach and the Physio', round: 'One planning round', result: 'The result', bridge: 'Into SAPPHIRE' };
 
   // ------------------------------------------------------------ 1. the athlete
   // One hard session leaves fitness (small, slow to fade) and fatigue (large, quick to fade); readiness is the rested
@@ -65,26 +64,23 @@
   function fatigue(t) { return fatAmp * Math.exp(-t / p.tau2); }
   function benefitAt(q) { return -pr.J(q); }
   var worth = rCrest - p.r0, exLoad = 5, exGain = exLoad * worth, exPrice = p.a * exLoad * exLoad, wZero = worth / p.a;
-  // the staircase to the dunk: the season's three sessions, their crests, the first day of the dunk, and two plans
-  // that do worse: a second session on day 1 (too soon) and sessions seven days apart (too seldom)
-  var hist = d.history, rAll = N.readiness(hist, p), dunkDay = N.reach(rAll, p.dunk, 0, p.race), rGame = rAll(p.race);
+  // the payoff shown after the negotiation: the agreed next session turns the old curve into a new one that reaches the rim
+  var hist = d.history, agreed = d.sessions[0], rAfter = N.readiness(hist, p), dunkDay = N.reach(rAfter, p.dunk, 0, p.windowEnd);
   function crestAfter(r, t0, t1) { return N.argmin1(function (t) { return -r(t); }, t0, t1).t; }
-  var r1 = pr.r, r12 = N.readiness(hist.slice(0, 2), p), crest2 = crestAfter(r12, hist[1].t, p.race), crest3 = crestAfter(rAll, hist[2].t, p.race);
-  var soon = N.readiness([hist[0], { t: 1, w: hist[0].w }], p), rSoon = soon(1 + 1e-6), rBeforeSoon = r1(1);
-  var weekly = N.readiness([hist[0], { t: 7, w: p.ramp * hist[0].w }], p), weeklyDunk = N.reach(weekly, p.dunk, 0, p.race);
+  var resultCrest = crestAfter(rAfter, agreed.t, p.windowEnd);
   var rate0 = last.w / p.wRef * (p.k2 / p.tau2 - p.k1 / p.tau1);   // how fast readiness climbs right after the session
   function climb(t) { return clamp(last.w / p.wRef * (p.k2 / p.tau2 * Math.exp(-t / p.tau2) - p.k1 / p.tau1 * Math.exp(-t / p.tau1)) / rate0, 0, 1); }
 
   out.push({ id: 'target', chapter: CH.athlete, title: 'The target: reach the dunk line', layout: 'side', dur: 7,
-    text: 'An athlete wants to slam dunk at the game on day ' + p.race + '. Call the rested jump 1 and draw the dunk line at ' + num(p.dunk, 1) + '. ' +
-      'A hard session first knocks the jump down, then leaves a rebound. Stack the sessions well and the rebounds climb like stairs toward the rim. ' +
+    text: 'An athlete wants to slam dunk. Call the rested jump 1 and draw the dunk line at ' + num(p.dunk, 1) + '. ' +
+      'A hard session first knocks the jump down, then leaves a rebound. Time the next session well and its rebound can build on the first. ' +
       'The planning question is simple: when should the next session happen, and how heavy should it be? ' +
-      'The dunk line is the destination, not the Coach’s ruler. The Coach scores one next session at a time; after each choice, we watch whether the growing staircase reaches the line and where it stands on game day. ' +
+      'The dunk line is the destination, not the Coach’s ruler. The Coach scores one next session; after the choice, we watch whether the new rebound reaches the line. ' +
       'Soon the job will split in two: the Coach knows what scores well, the Physio knows what is allowed, and ADMM helps them agree on one plan.',
-    math: 'the story’s destination: rested r = 1  →  dunk line r = ' + num(p.dunk, 1) + ' by game day ' + p.race + at(0.58, '<br>the choice made now: one next session (day t, load w)') + at(0.8, '<br>ADMM’s job: make the Coach’s choice and the Physio’s allowed choice become the same plan'),
+    math: 'the story’s destination: rested r = 1  →  dunk line r = ' + num(p.dunk, 1) + at(0.58, '<br>the choice made now: one next session (day t, load w)') + at(0.8, '<br>ADMM’s job: make the Coach’s choice and the Physio’s allowed choice become the same plan'),
     draw: function (g, q) {
       var jq = seg(q, 0.04, 0.34), h = 4 * jq * (1 - jq);   // one rested jump, up and down
-      P.courtPanel(g, g.sideR, { h: h, rim: p.dunk, rimP: seg(q, 0.44, 0.58), today: 1, todayP: seg(q, 0.17, 0.22), todayLabelP: seg(q, 0.34, 0.44), gapP: seg(q, 0.62, 0.76), questionP: seg(q, 0.8, 0.95), title: 'the rested jump against the rim' });
+      P.courtPanel(g, g.sideR, { h: h, rim: p.dunk, rimP: seg(q, 0.44, 0.58), today: 1, todayP: seg(q, 0.17, 0.22), todayLabelP: seg(q, 0.34, 0.44), gapP: seg(q, 0.62, 0.76), question: 'when and how heavy should the next session be?', questionP: seg(q, 0.8, 0.95), title: 'the rested jump against the rim' });
     } });
 
   var SESSION_FRAC = 0.16, DAYS = 12;   // the first part of the thigh page is the session itself; then twelve days run
@@ -128,67 +124,6 @@
       P.effectsPanel(g, top, { fit: fitness, fat: fatigue, fitAmp: fitAmp, fatAmp: fatAmp, t: [0, 12], p: seg(q, 0, 0.55), title: 'what one hard session leaves behind' });
       P.curvePanel(g, bottom, { r: pr.r, t: [0, 12], v: [0.3, 1.6], target: p.dunk, targetBelow: true, p: seg(q, 0.45, 1), title: 'readiness = 1 + fitness − fatigue', sessions: [{ t: 0, w: last.w, text: 'the session, day 0' }], from: 0.15, to: 0.55, baseAt: 8, baseBelow: true,
         marks: [{ t: 0.02, text: 'tired: ' + num(rDip, 2), at: 0.55, side: 'right' }, { t: tRested, text: 'rested again, day ' + num(tRested, 2), at: 0.65, side: 'right' }, { t: crest, text: 'the crest: ' + num(rCrest, 2) + ' on day ' + num(crest, 2), at: 0.75 }, { t: 10.5, text: 'back toward 1', at: 0.85, side: 'left' }] });
-    } });
-
-  // a curve between two days on a plot, drawn as far as progress q
-  function curveBetween(g, pl, fn, t0, t1, col, w, q, dash) {
-    if (!(q > 0)) return; var c = g.ctx, n = 140, lastI = Math.round(n * clamp(q, 0, 1));
-    c.save(); c.beginPath(); c.rect(pl.box[0], pl.box[1] - 6, pl.box[2], pl.box[3] + 6); c.clip(); c.strokeStyle = col; c.lineWidth = w; c.lineJoin = 'round'; if (dash) c.setLineDash(dash); c.beginPath();
-    for (var i = 0; i <= lastI; i++) { var t = t0 + (t1 - t0) * i / n, y = clamp(pl.Y(fn(t)), pl.box[1] - 40, pl.box[1] + pl.box[3] + 40); if (i) c.lineTo(pl.X(t), y); else c.moveTo(pl.X(t), y); }
-    c.stroke(); c.setLineDash([]); c.restore();
-  }
-  // the staircase: readiness over the block as the sessions are stacked; o: { p, reveal (one session at a time),
-  // compact (points without text, for a small panel), title }
-  var T_END = p.race + 0.4, V_LO = 0.3, V_HI = 1.9, DIM_GOLD = 'rgba(255,210,122,0.4)';
-  function staircasePanel(g, R, o) {
-    var pl = g.plot(R, [0, T_END], [V_LO, V_HI], { title: o.title }), short = pl.box[3] < 200 || o.compact, q = o.p == null ? 1 : o.p;
-    pl.frame('day', 'readiness');
-    pl.seg(0, 1, T_END, 1, 'rgba(242,245,248,0.45)', 1.2, 1, [5, 4]); g.labelPx(pl.X(p.race) - 10, pl.Y(1) + 12, 'rested 1', C.dim, { align: 'right', size: 11, plain: true });
-    pl.seg(0, p.dunk, T_END, p.dunk, C.orange, 1.5, seg(q, 0, 0.08), [6, 4]); g.labelPx(pl.X(0) + 6, pl.Y(p.dunk) - 13, 'story dunk line: ' + num(p.dunk, 1), C.orange, { size: 11.5, plain: true, p: seg(q, 0.02, 0.1) });
-    pl.seg(p.race, V_LO, p.race, V_HI, C.red, 1.5, seg(q, 0, 0.08)); g.labelPx(pl.X(p.race) - 6, pl.box[1] + pl.box[3] - 32, 'game, day ' + p.race, C.red, { align: 'right', size: 11.5, plain: true, p: seg(q, 0.02, 0.1) });
-    var reveal = o.reveal ? [seg(q, 0.04, 0.3), seg(q, 0.3, 0.56), seg(q, 0.56, 0.78)] : [seg(q, 0, 0.5), seg(q, 0, 0.5), seg(q, 0, 0.5)];
-    hist.forEach(function (s, i) {   // the sessions as bars, each when it joins the staircase
-      var qq = reveal[i]; if (!(qq > 0)) return; var grow = Math.min(1, qq * 3), top = V_LO + 0.16 * s.w / 5 * (V_HI - V_LO) * grow; pl.seg(s.t, V_LO, s.t, top, C.gold, 6, 1);
-      if (!short) g.labelPx(pl.X(s.t) + 7, pl.Y(top) - 9, 'day ' + num(s.t, i ? 2 : 0) + ': ' + barKg(s.w) + ' kg', C.gold, { size: 11, plain: true, p: grow });
-    });
-    [r1, r12, rAll].forEach(function (r, i) {   // one session, then two, then three; the tails of the earlier curves stay dim
-      var qq = reveal[i]; if (!(qq > 0)) return; var lastOne = i === 2 || !(reveal[i + 1] > 0); curveBetween(g, pl, r, 0, T_END, lastOne ? C.gold : DIM_GOLD, lastOne ? 2.6 : 1.6, qq);
-    });
-    function mark(t, v, text, side, below, qq, col, always) {
-      if (!(qq > 0)) return; pl.point(t, v, col || C.gold, '', qq);
-      if (text && (always || !short)) g.labelPx(pl.X(t) + (side < 0 ? -10 : 10), pl.Y(v) + (below ? 14 : -13), text, col || C.gold, { size: 11.5, align: side < 0 ? 'right' : 'left', p: seg(qq, 0.4, 1) });
-    }
-    var m1 = o.reveal ? seg(q, 0.24, 0.3) : seg(q, 0.5, 0.6), m2 = o.reveal ? seg(q, 0.5, 0.56) : seg(q, 0.6, 0.7), m3 = o.reveal ? seg(q, 0.72, 0.78) : seg(q, 0.7, 0.8);
-    mark(crest, rCrest, 'crest ' + num(rCrest, 2) + ': not enough', -1, false, m1);
-    mark(dunkDay, p.dunk, 'first crossing: day ' + num(dunkDay, 2), 1, true, m2, C.orange, true);
-    mark(crest2, r12(crest2), 'crest ' + num(r12(crest2), 2), 1, false, m2);
-    mark(crest3, rAll(crest3), 'crest ' + num(rAll(crest3), 2), -1, false, m3);
-    mark(p.race, rGame, '', 1, false, m3);
-    g.labelPx(pl.X(p.race) - 6, pl.box[1] + pl.box[3] - 48, 'r(' + p.race + ') = ' + num(rGame, 2), C.red, { align: 'right', size: 11.5, plain: true, p: m3 });
-    return pl;
-  }
-  // a smaller plan beside the staircase: its curve against the plan's, with one mark; o: { r, t1, col, p, mark: [t, v], text, below, title }
-  function miniPlan(g, R, o) {
-    var pl = g.plot(R, [0, T_END], [V_LO, V_HI], { title: o.title }); pl.frame('day', '');
-    pl.seg(0, p.dunk, T_END, p.dunk, C.orange, 1.2, 1, [6, 4]);
-    curveBetween(g, pl, rAll, 0, T_END, 'rgba(255,210,122,0.35)', 1.4, 1); curveBetween(g, pl, o.r, 0, o.t1, o.col, 2.2, o.p);
-    if (o.p >= 1 && o.mark) { pl.point(o.mark[0], o.mark[1], o.col, '', 1); g.labelPx(pl.box[0] + 6, pl.box[1] + 10, o.text, o.col, { size: 11.5, plain: true }); }
-    return pl;
-  }
-  out.push({ id: 'stairs', chapter: CH.athlete, title: 'Stacking sessions: the staircase to the dunk', layout: 'side', dur: 12,
-    text: 'One rebound is not high enough. But its slow green gain is still there when the next session arrives, so the next rebound starts from a higher floor. ' +
-      'The three sessions make a staircase: the crests rise from ' + num(rCrest, 2) + ' to ' + num(r12(crest2), 2) + ' to ' + num(rAll(crest3), 2) + '. The curve first reaches the dunk line on day ' + num(dunkDay, 2) + '. A later hard session makes another dip and rebound, and readiness is ' + num(rGame, 2) + ' on game day. ' +
-      'Timing matters. Put the second session on day 1 and the immediate dip reaches ' + num(rSoon, 2) + '; that day is outside the Physio’s allowed set. Wait until day 7 and the curve does not reach the dunk line until day ' + num(weeklyDunk, 2) + '. ' +
-      'The picture gives us the destination, but ADMM is not solving “reach the line as fast as possible.” It solves the smaller problem we need next: choose one session that scores well and obeys every rule. File it, rebuild the staircase, and choose again.',
-    math: 'three sessions  →  crests ' + num(rCrest, 2) + '  →  ' + num(r12(crest2), 2) + '  →  ' + num(rAll(crest3), 2) + at(0.5, '<br>first dunk-line crossing: day ' + num(dunkDay, 2) + ';  readiness on game day: ' + num(rGame, 2)) +
-      at(0.78, '<br>too early: post-session r = ' + num(rSoon, 2) + ';  too late: first crossing on day ' + num(weeklyDunk, 2)) + at(0.92, '<br>ADMM chooses one next session; the staircase is the result of repeating that choice'),
-    draw: function (g, q) {
-      var R = g.sideR, tall = R[3] >= 380 && R[2] >= 560, mainH = tall ? Math.round(R[3] * 0.64) : R[3];
-      staircasePanel(g, [R[0], R[1], R[2], mainH], { p: seg(q, 0, 0.8), reveal: true, title: 'the model run: three recorded sessions' });
-      if (!tall) return;   // on a phone the two other plans are told in the text
-      var half = Math.round((R[2] - 8) / 2), y2 = R[1] + mainH + 8, h2 = R[3] - mainH - 8;
-      miniPlan(g, [R[0], y2, half, h2], { r: soon, t1: 3.5, col: C.red, p: seg(q, 0.8, 0.9), mark: [1, rSoon], text: 'after day-1 session: r = ' + num(rSoon, 2), title: 'earlier: a second session on day 1' });
-      miniPlan(g, [R[0] + half + 8, y2, R[2] - half - 8, h2], { r: weekly, t1: T_END, col: C.violet, p: seg(q, 0.88, 1), mark: [weeklyDunk, p.dunk], text: 'first crossing on day ' + num(weeklyDunk, 2), title: 'later: put the next session on day 7' });
     } });
 
   out.push({ id: 'score', chapter: CH.athlete, title: 'The Coach’s proxy: score one next session', layout: 'side', dur: 7,
@@ -247,11 +182,11 @@
     { id: 'recovery', label: 'recovery: t ≥ ' + num(rule('recovery').b * -1, 0), at: 0.82, dx: 8, align: 'left' },
     { id: 'ramp', label: 'ramp: w ≤ ' + num(rule('ramp').b, 1), at: 0.68, dy: -14 },
     { id: 'workload', label: 'workload: w ≤ ' + num(p.w0, 0) + ' + ' + num(p.s, 1) + '·t', at: 0.5, dx: -12, dy: -6, align: 'right' },
-    { id: 'taper', label: 'taper: t ≤ ' + num(rule('taper').b, 0), at: 0.9, dx: -8, align: 'right' },
+    { id: 'window', label: 'this plan: t ≤ ' + num(rule('window').b, 0), at: 0.9, dx: -8, align: 'right' },
     { id: 'load', label: 'load: w ≥ 0', at: 0.3, dy: -13 }];
   out.push({ id: 'rules', chapter: CH.athlete, title: 'The Physio’s rules: the allowed plans', layout: 'map', view: VIEW, dur: 6.4,
-    text: 'The Physio reads the same plan against four club rules. Recovery: at least ' + p.recovery + ' days after the last hard session. Ramp: at most ' + Math.round((p.ramp - 1) * 100) + '% more load than last time, so w ≤ ' + num(rule('ramp').b, 1) + ': ' + barKg(rule('ramp').b) + ' kg on the bar instead of ' + barKg(last.w) + '. Workload: the load cap grows with the rest taken, w ≤ ' + num(p.w0, 0) + ' + ' + num(p.s, 1) + '·t. Taper: no hard session in the last ' + p.taper + ' days before the game on day ' + p.race + '. Add the obvious boundary that load cannot be negative. Each rule is a line with a forbidden side. The plans that obey all five boundaries form the allowed set C, the blue polygon. The Coach’s favourite lies outside C: it asks for too much load for the rest taken.',
-    math: 't ≥ ' + num(-rule('recovery').b, 0) + ',  w ≤ ' + num(rule('ramp').b, 1) + ',  w ≤ ' + num(p.w0, 0) + ' + ' + num(p.s, 1) + '·t,  t ≤ ' + num(rule('taper').b, 0) + ',  w ≥ 0' + at(0.8, ';  C: all five at once.  x̂ = ' + pr2(free) + ' breaks the ramp and workload rules'),
+    text: 'The Physio reads the same plan against four simple rules. Recovery: wait at least ' + p.recovery + ' days after the last hard session. Ramp: add at most ' + Math.round((p.ramp - 1) * 100) + '% to the last load, so w ≤ ' + num(rule('ramp').b, 1) + ': ' + barKg(rule('ramp').b) + ' kg on the bar instead of ' + barKg(last.w) + '. Workload: more rest permits more load, w ≤ ' + num(p.w0, 0) + ' + ' + num(p.s, 1) + '·t. Window: this planning card only looks at the next ' + p.windowEnd + ' days. Add the obvious boundary that load cannot be negative. Each rule cuts away one side of the map. What remains is the allowed set C, the blue polygon. The Coach’s favourite lies outside C because it asks for too much load for the rest taken.',
+    math: 't ≥ ' + num(-rule('recovery').b, 0) + ',  w ≤ ' + num(rule('ramp').b, 1) + ',  w ≤ ' + num(p.w0, 0) + ' + ' + num(p.s, 1) + '·t,  t ≤ ' + num(rule('window').b, 0) + ',  w ≥ 0' + at(0.8, ';  C: all five boundaries at once.  x̂ = ' + pr2(free) + ' breaks the ramp and workload rules'),
     draw: function (g, q) {
       base(g, { poly: false });
       ruleRows.forEach(function (rr, i) { P.ruleLine(g, rule(rr.id), seg(q, 0.04 + 0.14 * i, 0.18 + 0.14 * i), { label: rr.label, at: rr.at, dx: rr.dx, dy: rr.dy, align: rr.align }); });
@@ -426,52 +361,27 @@
       P.lines(g, g.sideR, lastRows.concat([{ text: 'both below ' + num(p.tol, 2) + ': file the plan', col: C.gold }, { text: 'session: day ' + num(fin.z[0], 2) + ', load ' + num(fin.z[1], 2), col: C.gold }]), q, 'The two gauges');
     } });
 
-  // ------------------------------------------------------------ 4. the season
-  var s1 = d.sessions[0], crest1 = pr1.crest, free1 = pr1.free, best1 = pr1.best.q;
-  out.push({ id: 'trained', chapter: CH.season, title: 'File the session, and the curve moves', layout: 'map+side', view: VIEW, dur: 6.4,
-    text: 'The first plan is filed on day ' + num(s1.t, 2) + '. The simulator appends it to the history and rebuilds the deterministic curve: a new dip, a new recovery, and a crest on day ' + num(crest1, 2) + ' that is higher than the last, ' + num(pr1.r(crest1), 2) + ' against ' + num(rCrest, 2) + ', because the earlier slow trace is still there. The planning problem is also rebuilt from the new last session: recovery now says t ≥ ' + num(-rule1('recovery').b, 2) + ', ramp w ≤ ' + num(rule1('ramp').b, 2) + ', workload w ≤ ' + num(p.w0, 0) + ' + ' + num(p.s, 1) + '·(t − ' + num(s1.t, 2) + '); the taper line stays at day ' + num(rule1('taper').b, 0) + '. The map is new, the allowed set is new, and the Coach’s favourite moved to ' + plan(free1) + '. Updating the history is the outer loop; ADMM negotiation is the inner loop.',
-    math: 'history: day 0 (load ' + num(last.w, 1) + '), day ' + num(s1.t, 2) + ' (load ' + num(s1.w, 2) + ')' + at(0.5, '<br>new rules: t ≥ ' + num(-rule1('recovery').b, 2) + ',  w ≤ ' + num(rule1('ramp').b, 2) + ',  w ≤ ' + num(p.w0, 0) + ' + ' + num(p.s, 1) + '·(t − ' + num(s1.t, 2) + '),  t ≤ ' + num(rule1('taper').b, 0)),
+  // ------------------------------------------------------------ 4. what the agreed plan changes
+  out.push({ id: 'result', chapter: CH.result, title: 'File the plan: the rebound reaches the rim', layout: 'side', dur: 7,
+    text: 'Now the agreed plan happens: day ' + num(agreed.t, 2) + ', load ' + num(agreed.w, 2) + ', ' + squats(agreed.w) + '. Add that session to the old curve. The next rebound crosses the dunk line on day ' + num(dunkDay, 2) + ' and crests at ' + num(rAfter(resultCrest), 2) + '. ' +
+      'The rim gave the story a destination. ADMM answered the smaller question underneath it: which next session is both high-scoring and allowed? The Coach handled the score, the Physio handled the rules, the tether coordinated their copies, and the log made unresolved disagreement return. ' +
+      'That is the idea we carry to SAPPHIRE: split one hard problem into local easy jobs, keep duplicate answers, and repeatedly pull those answers back into agreement.',
+    math: 'agreed next session: ' + pr2([agreed.t, agreed.w]) + at(0.42, '<br>old crest: ' + num(rCrest, 2) + '  &lt;  dunk line ' + num(p.dunk, 1)) + at(0.68, '<br>new curve first crosses ' + num(p.dunk, 1) + ' on day ' + num(dunkDay, 2)) + at(0.88, '<br>same pattern in SAPPHIRE: local copies + easy local updates + remembered disagreement'),
     draw: function (g, q) {
-      g.land(pr1.J, shade1); P.axes(g, 'day of the session →', '↑ load');
-      P.polygon(g, pr.poly.verts, { p: seg(q, 0.05, 0.2), fill: false, dash: [4, 4], col: 'rgba(169,205,246,0.45)' });
-      g.dot([s1.t, s1.w], 6, C.gold, seg(q, 0.05, 0.2)); g.label([s1.t, s1.w], 'session 1, done', C.gold, { dx: -12, dy: 18, align: 'right', p: seg(q, 0.1, 0.25), size: 12 });
-      P.polygon(g, pr1.poly.verts, { p: seg(q, 0.35, 0.55) }); g.label([8.8, 1.6], 'the new allowed set', PHYSIO, { align: 'center', p: seg(q, 0.5, 0.65), size: 12 });
-      P.coach(g, free1, seg(q, 0.65, 0.8), 'the new favourite ' + plan(free1), { dx: -14, dy: 18, align: 'right' }); P.star(g, best1, seg(q, 0.8, 0.95), 'the next best allowed session', { dx: 0, dy: 22, align: 'center' });
-      P.curvePanel(g, g.sideR, { r: pr1.r, rOld: pr.r, old: 'before session 1', oldAt: 9.5, t: [0, 12], v: [0.3, 1.8], target: p.dunk, p: q, title: 'readiness, with session 1 done', r0: p.r0, from: 0.3, to: 0.7,
-        sessions: [{ t: 0, w: last.w, text: 'day 0' }, { t: s1.t, w: s1.w, text: 'day ' + num(s1.t, 2) }], marks: [{ t: crest1, text: 'new crest ' + num(pr1.r(crest1), 2) + ' on day ' + num(crest1, 2), at: 0.62, side: 'left' }] });
+      P.curvePanel(g, g.sideR, { r: rAfter, rOld: pr.r, old: 'before the agreed session: still short', oldAt: crest, t: [0, p.windowEnd], v: [0.3, 1.75], target: p.dunk, targetBelow: true, p: q, title: 'the agreed session changes the curve', from: 0.28, to: 0.72,
+        sessions: [{ t: 0, w: last.w, text: 'day 0' }, { t: agreed.t, w: agreed.w, text: 'agreed: day ' + num(agreed.t, 2) }], marks: [{ t: dunkDay, text: 'reaches the rim: day ' + num(dunkDay, 2), col: C.orange, at: 0.7, side: 'right' }] });
     } });
-
-  var xs1 = R1.map(function (r) { return r.x; }), zs1 = R1.map(function (r) { return r.z; }), n1 = R1.length - 1, fin1 = S1.final, nextRec = third ? third.prob.rules.filter(function (r) { return r.id === 'recovery'; })[0] : null;
-  out.push({ id: 'next', chapter: CH.season, title: 'The next negotiation', layout: 'map+side', view: around(xs1.concat(zs1).concat([best1]), 0.6, 3.5), dur: 6.4,
-    text: 'The same four moves on the new map, from the Coach’s new favourite. In ' + n1 + ' rounds both gauges are below ' + num(p.tol, 2) + ' and the two put their names to z = ' + plan(fin1.z) + '. That is a hard session on day ' + num(fin1.z[0], 2) + ' with a load of ' + num(fin1.z[1], 2) + ', ' + squats(fin1.z[1]) + ', on the workload line, ' + num(rule1('taper').b - fin1.z[0], 1) + ' days before the taper. Then the rules close the window: the next hard session could not come before day ' + (nextRec ? num(-nextRec.b, 2) : '—') + ', after the taper has begun. The next thing on the calendar is the game.',
-    math: 'plan 2: ' + pr2(fin1.z) + ' after ' + n1 + ' rounds' + at(0.6, ';  plan 3: recovery t ≥ ' + (nextRec ? num(-nextRec.b, 2) : '—') + ' and taper t ≤ ' + num(rule1('taper').b, 0) + ' leave no allowed session: the game'),
-    draw: function (g, q) {
-      g.land(pr1.J, shade1); P.axes(g, 'day of the session →', '↑ load'); P.polygon(g, pr1.poly.verts); P.star(g, best1, 1);
-      var s = seg(q, 0.05, 0.85) * n1, kk = Math.floor(s), f2 = s - kk;
-      g.path(xs1.slice(0, kk + 1).concat(kk < n1 ? [lerp2(xs1[kk], xs1[kk + 1], ease(f2))] : []), 'rgba(230,233,238,0.8)', 2, 1);
-      g.path(zs1.slice(0, kk + 1).concat(kk < n1 ? [lerp2(zs1[kk], zs1[kk + 1], ease(f2))] : []), PHYSIO, 2, 1);
-      for (var m = 1; m <= Math.min(kk, n1); m++) { g.dot(xs1[m], 3, COACH, 1); g.dot(zs1[m], 3, PHYSIO, 1); }
-      var hx = kk < n1 ? lerp2(xs1[kk], xs1[kk + 1], ease(f2)) : xs1[n1], hz = kk < n1 ? lerp2(zs1[kk], zs1[kk + 1], ease(f2)) : zs1[n1];
-      P.spring(g, hx, hz, 1); P.physio(g, hz, 1); P.coach(g, hx, 1, kk >= n1 ? 'plan 2: ' + plan(fin1.z) : '', { dx: 14, dy: -16 }); g.labelPx(g.mapR[0] + 12, g.mapR[1] + 30, 'round ' + Math.min(kk, n1), C.gold, { size: 13 });
-      P.gaugePanel(g, g.sideR, R1, q, { upto: s / n1, tol: p.tol });
-    } });
-
-  var calSessions = [{ t: 0, w: last.w, text: 'day 0: ' + barKg(last.w) + ' kg', col: C.dim }].concat(d.sessions.map(function (s, i) { return { t: s.t, w: s.w, text: 'day ' + num(s.t, 2) + ': ' + barKg(s.w) + ' kg' }; }));
-  out.push({ id: 'block', chapter: CH.season, title: 'The block, and the line to remember', layout: 'side', dur: 6,
-    text: 'The season so far: the last hard session on day 0, the two negotiated sessions on days ' + num(d.sessions[0].t, 2) + ' and ' + num(d.sessions[1].t, 2) + ', the taper, and the game on day ' + p.race + '. The curve first reaches the story’s dunk line on day ' + num(dunkDay, 2) + ' and stands at ' + num(rGame, 2) + ' on game day. Every session was chosen the same way, and the ADMM lesson fits in one line. The curve tempts, the Physio constrains, the tether coordinates, and the planning log makes every unresolved disagreement return.',
-    math: 'outer loop: file one session → append it to history → rebuild the curve and rules → negotiate the next session' + at(0.6, '<br>inner loop: aim → the Coach’s step → the Physio’s step → the log, until both gauges are small'),
-    draw: function (g, q) { var RR = P.split(g.sideR, 0.5); P.calendar(g, RR[0], { race: p.race, taper: p.taper, sessions: calSessions, p: seg(q, 0, 0.6), title: 'the training block' }); staircasePanel(g, RR[1], { p: seg(q, 0.2, 1), compact: true, title: 'the staircase to the dunk' }); } });
 
   // ------------------------------------------------------------ 5. the same four moves elsewhere
   out.push({ id: 'bridge', chapter: CH.bridge, title: 'What this shares with a decoder', layout: 'side', dur: 6,
     text: 'The same split appears in a decoder, but it is repeated many times. The decoder keeps one shared set of soft bit values b. Every parity check a also keeps a local replica z<sub>a</sub> of just the bits that touch that check, b<sub>N(a)</sub>. ' +
-      'Why make replicas? A shared bit can belong to several checks. Each check needs to move its own local group to the nearest even-parity point without waiting for the other checks. The equalities z<sub>a</sub> = b<sub>N(a)</sub> then pull all those local answers back toward the same shared bits. ' +
-      'The local answer may stay fractional during the negotiation: projection chooses the nearest point in the convex parity set, not a hard codeword immediately. One log u<sub>a</sub> per check remembers how its replica disagrees with the shared bits. This is the same reason the Coach and Physio needed two copies and a log, repeated once for every check.',
+      'Why make replicas? A shared bit can belong to several checks. Each check needs to move its own local group to the nearest point in its parity region—the filled-in shape whose corners are that check’s passing 0/1 patterns—without waiting for the other checks. The equalities z<sub>a</sub> = b<sub>N(a)</sub> then pull all those local answers back toward the same shared bits. ' +
+      'Because the region is filled in, the nearest point may lie between its corners and stay fractional during the negotiation; projection does not have to choose a hard pattern immediately. One log u<sub>a</sub> per check remembers how its replica disagrees with the shared bits. This is the same reason the Coach and Physio needed two copies and a log, repeated once for every check.',
     math: 'check a forms q<sub>a</sub> = b<sub>N(a)</sub> + u<sub>a</sub>  →  z<sub>a</sub> = Π<sub>P(a)</sub>(q<sub>a</sub>)' + at(0.62, '<br>one replica z<sub>a</sub> and one log u<sub>a</sub> per check;  equality reconnects z<sub>a</sub> to the shared b<sub>N(a)</sub>'),
     draw: function (g, q) { var RR = P.split(g.sideR, 0.5); P.lines(g, RR[0], [{ text: 'shared object: one plan', col: C.gold }, { text: 'two full copies: x and z', col: COACH }, { text: 'local rule: z lies in C', col: PHYSIO }, { text: 'memory: one log u', col: LOG }], q, 'The plan'); P.lines(g, RR[1], [{ text: 'shared object: soft bits b', col: C.gold }, { text: 'one local replica zₐ per check', col: COACH }, { text: 'local rule: even parity', col: PHYSIO }, { text: 'memory: one log uₐ per check', col: LOG }], q, 'The decoder'); } });
 
   out.push({ id: 'differences', chapter: CH.bridge, title: 'What is different', layout: 'side', dur: 5.6,
-    text: 'The plan has only two numbers, so the Coach can scan every day. A decoder has thousands of bits and cannot scan every codeword. The plan has five straight boundaries and one copy with one log; a decoder has many parity checks, each with its own replica and log. ' +
+    text: 'The plan has only two numbers, so the Coach can scan every day. A decoder has thousands of bits and cannot scan every codeword. The plan has five straight boundaries and one duplicate plan with one log; a decoder has many parity checks, each with its own replica and log. ' +
       'The scale and the local work change, but the core idea does not: duplicate the shared unknown, give each copy one easy job, then use a tether and remembered disagreement until the copies agree and stop moving.',
     math: 'same four moves;  different cost, set, size, and test',
     draw: function (g, q) { var RR = P.split(g.sideR, 0.5); P.lines(g, RR[0], [{ text: 'two numbers: scan every day', col: COACH }, { text: 'five boundaries: one projection', col: PHYSIO }, { text: 'one duplicate plan, one log', col: LOG }, { text: 'stop when both gauges are small', col: C.gold }], q, 'The plan'); P.lines(g, RR[1], [{ text: 'thousands of bits: a few taps', col: COACH }, { text: 'many parity rules: one replica each', col: PHYSIO }, { text: 'one log per replica', col: LOG }, { text: 'then test syndrome and CRC', col: C.gold }], q, 'The decoder'); } });
