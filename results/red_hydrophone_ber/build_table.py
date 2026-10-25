@@ -20,6 +20,8 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 REPOSITORY = HERE.parents[1]
 GITHUB_ROOT = REPOSITORY.parent
+if not (GITHUB_ROOT / "JadeJcade").is_dir():
+    GITHUB_ROOT = REPOSITORY.parents[1]
 OUTPUT = HERE / "red_hydrophone_ber.csv"
 
 PILOTS = {
@@ -92,17 +94,12 @@ MODERN_RUNS = {
     (4, 2, "cajode"): GITHUB_ROOT
     / "CAJODE_simulations-worktrees/r3-cajode-red4h2-ber-001-20261024/results/cajode-red4-h2-ber-001",
     (4, 3, "cajode"): GITHUB_ROOT
-    / "CAJODE_simulations-worktrees/r3-cajode-red4h3-ber-001-20261024/results/cajode-red4-h3-ber-001",
+    / "CAJODE_simulations-worktrees/r3-cajode-red4h3-ber-002-20261024/results/cajode-red4-h3-ber-002",
 }
 
 # Snapshot state for known runs that have not yet produced authenticated aggregates.
 # A completed run is promoted to available by load_modern_run, which clears this reason.
-MODERN_MISSING_REASONS = {
-    (4, 2, "jade"): "run_in_progress_no_complete_aggregate",
-    (4, 3, "jade"): "run_not_started",
-    (4, 2, "cajode"): "run_in_progress_no_complete_aggregate",
-    (4, 3, "cajode"): "run_not_started",
-}
+MODERN_MISSING_REASONS = {}
 
 PEARL_RECEIVER = "joint_persistent_normalized_min_sum"
 PEARL_COHORT = "persistent_r2_v1"
@@ -148,6 +145,12 @@ PEARL_P12_P15 = (
     GITHUB_ROOT
     / "JadeJcade-runs/persistent-p12-p15-distributed-001/thinkpad/attempt-002/jobs"
 )
+PEARL_P025_P05 = (
+    GITHUB_ROOT / "JadeJcade-runs/pearl-p025-p05-fill-001/attempt-003"
+)
+PEARL_REMAINING37 = (
+    GITHUB_ROOT / "JadeJcade-runs/pearl-remaining37-fill-001/attempt-001"
+)
 # Every listed root is authenticated by the pinned SHA-256 registry below and
 # must also satisfy the embedded completion, manifest, frame, aggregate, and
 # trace-audit contracts before it is admitted.
@@ -159,6 +162,13 @@ PEARL_RUNS = {
     (2, 2, "p075"): PEARL_P075_TAKEOVER / "red2-h2",
     (2, 3, "p075"): PEARL_P075_TAKEOVER / "red2-h3",
     (3, 1, "p075"): PEARL_P075_TAKEOVER / "red3-h1",
+    (2, 2, "p025"): PEARL_REMAINING37 / "n1024-p025-red2-h2",
+    **{
+        (red, hydrophone, pilot): PEARL_P025_P05
+        / f"n1024-{pilot}-red{red}-h{hydrophone}"
+        for red, hydrophone in ((1, 1), (1, 2), (1, 3), (2, 1))
+        for pilot in ("p025", "p05")
+    },
     **{
         (red, hydrophone, pilot): PEARL_P12_P15
         / f"n1024-{pilot}-red{red}-h{hydrophone}"
@@ -167,6 +177,60 @@ PEARL_RUNS = {
     },
 }
 PEARL_ARTIFACT_SHA256 = {
+    (1, 1, "p025"): (
+        "4776aed05c56cf4f2e3f09f48e54202a7712c40af8125128c71eea68df569010",
+        "edd2c934cf726af8a49367a50aa56219890e5bb45da8e5800d71bd5eee3a1a0b",
+        "ce4041fad3e4214e332527d49bc72b6945a16108c86def2dc2b545cea27021f4",
+        "1ebb646d496f6b2348c6128f75d8e077ce2041fef2f231a546477770a50ce600",
+    ),
+    (1, 2, "p025"): (
+        "d699fcadfe4df59f4461a449974e80ebacdbb9300569ca246f09f841ac5cbdb3",
+        "61978bafa9157a6e9dfc7d737d055927340a3347eb5dceb023c64672fb9d87e6",
+        "aba6087638dbb48ee1089a3da1aefe6b8b515b456e4853d323a9968079e9f336",
+        "50c47e6bf8ce270ed8de7d054c22bfb578385ddf9115eac087a3956ed38c42f2",
+    ),
+    (1, 3, "p025"): (
+        "c4cf78af9fa1b79ab718f91912988af157798c44fad182c700775247ddec580f",
+        "4dcac38a59620e38f0ca9365ece443a9343864e7aeb76f50411a808cd1b5988a",
+        "e85f0c7105eda096e0473b80fb3ec00a250b85c072dc8678b78ea8574c6dcf73",
+        "efdd2c4f60cf99ede576329525d2ced25db7cfe510e1fd5205e873153b56d18b",
+    ),
+    (2, 1, "p025"): (
+        "9a8e70a1648b1d909df9e1f7a28e932dea494e6f2be53c045a48a2196cf88f02",
+        "9a6d12c4a6629cad4895269c9e3fd41cc282ed9891d81c12a4c7714e4836675f",
+        "bde4f2e926de2ca34ca749e0adbb398c22165e26b8eacf22fce3fa9b84fb474b",
+        "ef6ef795b1f288aafca923a7ecded367f76f7083373468aebe1afe256fb2f31c",
+    ),
+    (2, 2, "p025"): (
+        "5982709d161414e6b57cdf186041a376188c91ce3b701e4b6f810c1e3230050d",
+        "b6597142247bbbf478f2c80598250f570cf31a5cc9b676a86b3569f89eb7483c",
+        "bc7c803b30b385c12c70946c30ede612029ac87a8febf4e2d5f4752e3e63345b",
+        "37ce86b7f28bb11a30b1257593005e2a8b3a1148788ac2b1dad3e2a690413b9e",
+    ),
+    (1, 1, "p05"): (
+        "1c4020a05989b67e9d8a3e2a68da80d94fe0c98aedf1a0756bd27fcbeda83208",
+        "e7c02e45e8bc1ce706f67db7129d2b4080bdf3aebe5eb47e90531b65fd36edc3",
+        "d8af16d05812a1f951ba14c9cd5cbe0294d96b6abaf66d9e498ce55be04b9b05",
+        "bf95540b2273cdc9d8b128e0f03d7f2f82488ffa7f20a2aa19e1b12a174ff8aa",
+    ),
+    (1, 2, "p05"): (
+        "45c0322dac47941d68332c336dcf3b1ee1da51c5a966e847783bfee2a4b10a4b",
+        "d458b4e94491d4018bacadcff361f38f8624140791e055106610844b38d03c17",
+        "c9da5e45eb3f001bc088c7a1a109395c5b7ceb61a03ade5660c3ab2a10bd0e7e",
+        "a3e3c2de2ef6d6fdc871d9f1951a1b5cc760340703c7e1c68513dff5900cc371",
+    ),
+    (1, 3, "p05"): (
+        "b22bf6c16d97c1718e623df38d01d2699d29c889f672538075be1eddfca0b0c1",
+        "0997cbd853c4fac654a498ca929f782383a7b9b5fdf9db81d21ea10f930c1682",
+        "eade648f1c061d7c96e6ff383a0c5f7b881b83577955ec9e1799e5018622a86d",
+        "93cb7954bc97acba311559cdacaedf0cc97400255fcf7a3b615726978471ce0e",
+    ),
+    (2, 1, "p05"): (
+        "1c36fccaa2ebf97ef2e7f59cc97ba52930ad5af7a042e3273316122b1f7ee3b6",
+        "1b32414f8ace0ae99e6a7efe966b5bd4cead4e3de462aa5c33d44e27f51c83a4",
+        "b978ddcfc6e0e969582fb15cce20ba275527a7a17ff26f9b0037bcb030aa44a2",
+        "5a1e9d5898ae516c7a28f01850507fc393cfa98210348595a0f9c03f0ca865dd",
+    ),
     (1, 1, "p075"): (
         "75c02857840fd8525e5d71a9a4ee054f39865d8e46816f3c253678b3da518436",
         "6bbeeb3e0bb9a2322e324d7348f291ed17ef0b434ec4bdd824eeebfe208f6e2a",
@@ -258,8 +322,6 @@ PEARL_ARTIFACT_SHA256 = {
         "2926065d405c5c136264b1f782dba801981c4a29981d09060678d76512049cff",
     ),
 }
-PEARL_QUEUED_CHANNELS = {(1, 1), (1, 2), (1, 3), (2, 1)}
-
 FIELDS = (
     "red",
     "hydrophone",
@@ -367,10 +429,7 @@ def blank_row(
         )
         cohort = "modern_r3_ber"
     elif receiver == "pearl":
-        if pilot in ("p025", "p05") and (red, hydrophone) in PEARL_QUEUED_CHANNELS:
-            reason = "queued_waiting_predecessor"
-        else:
-            reason = "source_result_missing"
+        reason = "source_result_missing"
         cohort = PEARL_COHORT
     else:
         reason = "source_result_missing"

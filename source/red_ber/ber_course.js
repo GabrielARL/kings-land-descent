@@ -24,13 +24,11 @@
   }
   var cov = M.coverage(), avail = cov.reduce(function (s, q) { return s + q.available; }, 0), miss = cov.reduce(function (s, q) { return s + q.missing; }, 0);
   var PIL = D.pilots, LO = PIL[0], HI = PIL[PIL.length - 1], NCH = M.CHANNELS.length, PER = PIL.length * D.snrs.length;
-  // Every panel uses the same four case labels.  PEARL is currently complete on them at 7.5%, 12% and 15%; its
-  // queued 2.5% and 5% cells stay null while the other five curves retain this same comparison population.
+  // Every panel uses the same four case labels, where all six receivers are complete at all five pilot ratios.
   var CURVES = {}; ORDER.forEach(function (k) { CURVES[k] = PIL.map(function (p, i) { return M.curve(k, i); }); });
   var FIRST = {}, ZERO = {}, LOWEST = {};
   ORDER.forEach(function (k) { FIRST[k] = CURVES[k].map(function (cv) { return M.firstAtMost(cv, 1e-3); }); ZERO[k] = CURVES[k].map(function (cv) { return M.zeroFrom(cv); }); LOWEST[k] = CURVES[k].map(function (cv) { return M.lowest(cv); }); });
   var commonBits = function (i) { return M.COMMON.length * M.bits(i); };
-  var BASE = ORDER.filter(function (k) { return k !== 'pearl'; });
 
   // ------------------------------------------------------------ 1. what was measured
   out.push({ id: 'question', chapter: CH.what, title: 'One question for six receivers', layout: 'side', dur: 6,
@@ -271,60 +269,34 @@
     } });
 
   // ------------------------------------------------------------ 3. reading the table
-  var REASON = {
-    run_in_progress_no_complete_aggregate: 'run in progress',
-    run_not_started: 'not started',
-    queued_waiting_predecessor: 'queued behind the active campaign',
-    source_result_missing: 'no complete source result',
-    no_compatible_modern_result: 'no compatible modern result',
-    controller_terminal_failure_before_science: 'controller stopped before science',
-    blocked_by_predecessor_terminal_failure: 'blocked by predecessor failure'
-  };
-  function missingTag(why) {
-    if (why === 'run_in_progress_no_complete_aggregate') return 'run';
-    if (why === 'run_not_started') return 'not yet';
-    if (why === 'queued_waiting_predecessor') return 'queued';
-    if (why === 'controller_terminal_failure_before_science') return 'stopped';
-    if (why === 'blocked_by_predecessor_terminal_failure') return 'blocked';
-    return 'none';
-  }
-  var missJ = D.missing.filter(function (m) { return m.receiver === 'jade'; }), missC = D.missing.filter(function (m) { return m.receiver === 'cajode'; });
-  function missText(ms) {
-    var by = {}, seen = {}; ms.forEach(function (m) { var k = m.reason + ':' + m.red + ':' + m.hydrophone; if (!seen[k]) { (by[m.reason] = by[m.reason] || []).push(m); seen[k] = true; } });
-    return Object.keys(by).map(function (r) {
-      var ch = by[r], reds = {}; ch.forEach(function (m) { (reds[m.red] = reds[m.red] || []).push(m.hydrophone); });
-      var parts = Object.keys(reds).map(function (rd) { return reds[rd].length === D.hydrophones.length ? 'all of Red ' + rd : 'Red ' + rd + ', hydrophone ' + reds[rd].join(' and '); });
-      return list(parts) + ' (' + REASON[r] + ')';
-    });
-  }
   out.push({ id: 'missing', chapter: CH.read, title: 'Missing is not zero', layout: 'side', dur: 6.5,
-    text: 'Of the ' + group(D.rows) + ' rows, ' + group(miss) + ' have no result yet. They stay in the table, marked missing, with blank BER fields and a reason. ' +
-      'JADE has no result for ' + list(missText(missJ)) + '. SAPPHIRE has none for ' + list(missText(missC)) + '. ' +
-      'PEARL has complete curves at 7.5%, 12% and 15% pilots on the four-case plot scope. Its 2.5% and 5% jobs are queued, so those curve cells remain missing. A receiver run is not reported before it produces its authenticated aggregate. A missing result is never drawn as zero.',
+    text: 'Of the ' + group(D.rows) + ' rows, ' + group(miss) + ' have no result. They stay in the table, marked missing, with blank BER fields and a reason. ' +
+      'OFDM + FEC, Partial FFT + FEC, JADE, CORAL and SAPPHIRE each have all 960 rows. ' +
+      'PEARL has 384 of 960 rows: all five pilot ratios on the four-case plot scope, 7.5% on three additional cases, and 2.5% on Red 2, hydrophone 2. The active sequential fill queue covers the remaining 36 conditions. Each stays blank until its complete result passes the admission checks. A missing result is never drawn as zero.',
     math: 'available ' + group(avail) + ' + missing ' + group(miss) + ' = ' + group(D.rows) + ' rows',
-    a11y: 'Coverage table across twelve recording–hydrophone cases and five pilot ratios. OFDM plus FEC, Partial FFT plus FEC and CORAL have 960 of 960 receiver results. JADE and SAPPHIRE each have 800 of 960. PEARL has 240 of 960: complete 7.5 percent curves on seven cases, and complete 12 and 15 percent curves on four cases. Its 2.5 and 5 percent jobs for the four-case plot scope are queued. Missing entries are blank, never zero.',
+    a11y: 'Coverage table across twelve recording–hydrophone cases and five pilot ratios. OFDM plus FEC, Partial FFT plus FEC, JADE, CORAL and SAPPHIRE each have 960 of 960 receiver results. PEARL has 384 of 960: all five pilot ratios on the fixed four cases, 7.5 percent on three additional cases, and 2.5 percent on Red 2, hydrophone 2. The active sequential fill queue covers the remaining 36 conditions. They stay blank until complete results pass the admission checks; missing entries are never zero.',
     draw: function (g, p) {
       var R = g.sideR, narrow = R[2] < 560; g.panel(R, 'which receiver has results in which case');
       var cols = M.CHANNELS.map(function (ch) { return ch.key; });
       var res = P.matrix(g, [R[0], R[1], R[2] - (narrow ? 0 : 92), narrow ? R[3] * 0.62 : R[3] - 40], { rows: ORDER, cols: cols, labelW: narrow ? 104 : 150, top: 56, maxH: narrow ? 30 : 40, headSize: narrow ? 8.5 : 10.5, p: seg(p, 0, 0.6),
         cell: function (id, k) { var ch = M.CHANNELS[k], np = PIL.filter(function (_, i) { return M.has(id, ch, i); }).length;
           if (np) return { fill: RX[id].col.replace(')', ',0.35)').replace('rgb(', 'rgba(').replace(/^#(..)(..)(..)$/, function (m, a, b, c2) { return 'rgba(' + parseInt(a, 16) + ',' + parseInt(b, 16) + ',' + parseInt(c2, 16) + ',0.35)'; }), text: np === PIL.length || narrow ? '' : np + '/' + PIL.length, textCol: C.ink };
-          var why = M.missingOf(id, ch, 0); return { hatch: true, text: narrow ? '' : missingTag(why), textCol: C.dim }; } });
+          return { hatch: true, text: narrow ? '' : 'none', textCol: C.dim }; } });
       cov.forEach(function (q, r) {
         var y = res.top + r * (res.ch + 4) + res.ch / 2, qq = seg(p, 0.6 + 0.06 * r, 0.75 + 0.06 * r);
         if (!narrow) g.labelPx(R[0] + R[2] - 12, y, group(q.available) + ' / ' + group(q.available + q.missing), q.missing ? C.gold : C.ink, { plain: true, mono: true, size: 11, align: 'right', p: qq });
       });
       var yk = res.bottom + 26, qk = seg(p, 0.8, 1);
       if (narrow) cov.forEach(function (q, r) { g.labelPx(R[0] + 16 + (r % 2) * (R[2] / 2), yk + Math.floor(r / 2) * 20, RX[q.id].name + ': ' + group(q.available) + ' / ' + group(q.available + q.missing), RX[q.id].col, { plain: true, size: 10.5, p: qk }); });
-      else g.labelPx(R[0] + 16, yk, 'fraction: available pilot ratios; hatched: no complete result; queued: waiting behind active work', C.dim, { plain: true, size: 11, p: qk });
+      else g.labelPx(R[0] + 16, yk, 'fraction: available pilot ratios; hatched: no complete source result', C.dim, { plain: true, size: 11, p: qk });
     } });
 
   var notCommon = M.CHANNELS.filter(function (ch) { return M.COMMON.indexOf(ch) < 0; });
   out.push({ id: 'common', chapter: CH.read, title: 'One fixed four-case plot scope', layout: 'side', dur: 6,
-    text: 'All five pilot panels use the same four recording–hydrophone labels: Red 1 on all three hydrophones and Red 2 on hydrophone 1. These are the cases where PEARL has complete 7.5%, 12% and 15% curves. ' +
-      'At 2.5% and 5%, the other five receivers are pooled over the same four labels while PEARL remains missing. Pooling adds errors and bits before dividing, so one resulting value is a pooled curve point. Matching case labels make coverage comparable, but they do not establish identical payload bits, transmitted waveforms, received samples, or noise realizations across the three cohorts.',
-    math: 'pooled curve point = Σ errors / Σ bits over R1h1, R1h2, R1h3 and R2h1;  PEARL missing at 2.5% and 5%',
-    a11y: 'Every plotted curve uses the same four recording–hydrophone labels: Red 1 hydrophones 1, 2 and 3, and Red 2 hydrophone 1. PEARL has complete curves there at 7.5, 12 and 15 percent pilots. At 2.5 and 5 percent, only the other five receiver curves are shown over those same four labels because the PEARL jobs are queued. Shared labels do not prove that the three cohorts used identical payload bits, transmitted waveforms, received samples, or noise realizations.',
+    text: 'All five pilot panels use the same four recording–hydrophone labels: Red 1 on all three hydrophones and Red 2 on hydrophone 1. All six receivers have complete curves at all five pilot ratios on these cases. ' +
+      'Pooling adds errors and bits before dividing, so one resulting value is a pooled curve point. Matching case labels make coverage comparable, but they do not establish identical payload bits, transmitted waveforms, received samples, or noise realizations across the three cohorts.',
+    math: 'pooled curve point = Σ errors / Σ bits over R1h1, R1h2, R1h3 and R2h1;  six complete curves at every pilot ratio',
+    a11y: 'Every plotted curve uses the same four recording–hydrophone labels: Red 1 hydrophones 1, 2 and 3, and Red 2 hydrophone 1. All six receivers have complete curves there at all five pilot ratios. Shared labels do not prove that the three cohorts used identical payload bits, transmitted waveforms, received samples, or noise realizations.',
     draw: function (g, p) {
       var R = g.sideR, narrow = R[2] < 560; g.panel(R, M.COMMON.length + ' fixed cases for every pilot panel');
       P.tiles(g, [R[0] + 8, R[1] + 30, R[2] - 16, R[3] - 40], M.CHANNELS, { top: 26, maxH: R[2] < 560 ? 70 : 84, cell: function (ch, i) {
@@ -389,14 +361,14 @@
       g.labelPx(R[0] + R[2] - 16, R[1] + R[3] - (narrow ? 14 : lh - 10), 'dashed: 10⁻³, a reading aid', C.gold, { plain: true, size: 11.5, align: 'right', p: seg(p, 0.75, 0.9) });
     } });
 
-  var twoFive = Math.min.apply(null, BASE.map(function (k) { return LOWEST[k][0]; }));
+  var twoFive = Math.min.apply(null, ORDER.map(function (k) { return LOWEST[k][0]; }));
   var firstPilotOnly = PIL.map(function (pl, i) { return FIRST['ofdm+fec'][i] != null && FIRST['pfft+fec'][i] != null; }).indexOf(true);
   out.push({ id: 'sweep', chapter: CH.shows, title: 'Supporting view: all pilot sweeps', layout: 'side', dur: 9,
-    text: 'These panels retain the full curves behind the threshold grid. With ' + pct(LO.ratio) + ' pilots none of the five available pooled curves falls below ' + sci(twoFive, 1) + ', even at the sampled 30 dB endpoint. PEARL appears at 7.5%, 12% and 15%; its 2.5% and 5% curves stay absent while their queued jobs have no authenticated aggregate. ' +
+    text: 'These panels retain the full curves behind the threshold grid. With ' + pct(LO.ratio) + ' pilots none of the six pooled curves reaches 10⁻³; the lowest sampled BER is ' + sci(twoFive, 1) + '. PEARL now appears in every panel and first reaches 10⁻³ at ' + dB(FIRST.pearl[pi(5)]) + ' with 5% pilots. ' +
       'OFDM + FEC and Partial FFT + FEC first reach 10⁻³ from ' + pct(PIL[firstPilotOnly].ratio) + ' pilots. The sampled results do not obey a pointwise rule that more pilots always lowers every curve. ' +
       'For example, CORAL’s lowest pooled BER is ' + sci(LOWEST.coral[pi(12)], 1) + ' at 12% pilots and ' + sci(LOWEST.coral[pi(15)], 1) + ' at 15% pilots.',
     math: 'lowest pooled BER of CORAL:  ' + PIL.map(function (pl, i) { return pct(pl.ratio) + ' ' + sci(LOWEST.coral[i], 1); }).join(',  '),
-    a11y: 'Supporting sweep of pooled BER against sampled SNR at five pilot ratios over the same four cases. PEARL is drawn at 7.5, 12 and 15 percent; its 2.5 and 5 percent curves are missing. At 2.5 percent pilots none of the five available receivers falls below ' + sci(twoFive, 1) + '. OFDM plus FEC and Partial FFT plus FEC first reach 10 to the minus 3 at 7.5 percent pilots. CORAL’s minimum is ' + sci(LOWEST.coral[pi(12)], 1) + ' at 12 percent and ' + sci(LOWEST.coral[pi(15)], 1) + ' at 15 percent, so the result is not pointwise monotonic in pilot ratio.',
+    a11y: 'Supporting sweep of pooled BER against sampled SNR at five pilot ratios over the same four cases. All six receivers are drawn in every panel. At 2.5 percent pilots none reaches 10 to the minus 3; the lowest sampled BER is ' + sci(twoFive, 1) + '. PEARL first reaches 10 to the minus 3 at ' + dB(FIRST.pearl[pi(5)]) + ' with 5 percent pilots. OFDM plus FEC and Partial FFT plus FEC first reach 10 to the minus 3 at 7.5 percent pilots. CORAL’s minimum is ' + sci(LOWEST.coral[pi(12)], 1) + ' at 12 percent and ' + sci(LOWEST.coral[pi(15)], 1) + ' at 15 percent, so the result is not pointwise monotonic in pilot ratio.',
     draw: function (g, p) {
       var R = g.sideR, narrow = R[2] < 560; g.panel(R);
       var cols = narrow ? 2 : 3, rows = Math.ceil(PIL.length / cols), lh = narrow ? 60 : 30, w = (R[2] - 12) / cols, h = (R[3] - lh - 8) / rows;
@@ -452,9 +424,9 @@
     text: 'Pooling hides how much the recording–hydrophone cases differ. This map shows every case at one test condition: ' + pct(5) + ' pilots and ' + sC + ' dB. ' +
       chanText(M.CHANNELS[hardest]) + ' is the hardest there: OFDM + FEC leaves ' + sci(perChan['ofdm+fec'][hardest].ber, 1) + ', JADE ' + sci(perChan.jade[hardest].ber, 1) + ' and SAPPHIRE ' + sci(perChan.cajode[hardest].ber, 1) + '. ' +
       (h3Lowest ? 'On every recording, hydrophone 3 gives OFDM + FEC its lowest BER at this point. ' : '') +
-      'At this 5% condition, PEARL is blank in all 12 cases: the four fixed plot-scope cases are queued, and the other eight have no complete source result. Red 4 has results for the original five receivers on hydrophone 1; hydrophones 2 and 3 still lack JADE and SAPPHIRE results.',
+      'At this 5% condition, PEARL is available on the four fixed plot-scope cases; the other eight have no complete source result. The other five receivers have results on all 12 cases.',
     math: 'one test condition: ' + pct(5) + ' pilots, ' + sC + ' dB, every recording–hydrophone case, ' + D.frames + ' frames each',
-    a11y: 'Case-by-case information BER at 5 percent pilots and 20 dB. ' + chanText(M.CHANNELS[hardest]) + ' has the largest OFDM plus FEC BER, ' + sci(perChan['ofdm+fec'][hardest].ber, 1) + '; JADE is ' + sci(perChan.jade[hardest].ber, 1) + ' and SAPPHIRE is ' + sci(perChan.cajode[hardest].ber, 1) + ' there. PEARL is missing at 5 percent on every case: four fixed plot-scope cases are queued, and eight have no complete source result. Hydrophone 3 has the lowest OFDM plus FEC BER within every recording at this condition. Red 4 hydrophone 1 has results for the original five receivers; hydrophones 2 and 3 lack JADE and SAPPHIRE results.',
+    a11y: 'Case-by-case information BER at 5 percent pilots and 20 dB. ' + chanText(M.CHANNELS[hardest]) + ' has the largest OFDM plus FEC BER, ' + sci(perChan['ofdm+fec'][hardest].ber, 1) + '; JADE is ' + sci(perChan.jade[hardest].ber, 1) + ' and SAPPHIRE is ' + sci(perChan.cajode[hardest].ber, 1) + ' there. PEARL is available on the four fixed plot-scope cases and missing on the other eight. Hydrophone 3 has the lowest OFDM plus FEC BER within every recording at this condition. The other five receivers have results on all twelve cases.',
     draw: function (g, p) {
       var R = g.sideR, narrow = R[2] < 560; g.panel(R, narrow ? 'BER by case: ' + pct(5) + ' pilots, ' + sC + ' dB' : 'information BER per case at ' + pct(5) + ' pilots, ' + sC + ' dB');
       var res = P.matrix(g, [R[0], R[1], R[2], R[3] - 40], { rows: ORDER, cols: M.CHANNELS.map(function (ch) { return ch.key; }), labelW: narrow ? 104 : 150, top: 56, maxH: narrow ? 34 : 50, headSize: narrow ? 8.5 : 10.5, size: narrow ? 8.5 : 10.5, p: p,
@@ -469,16 +441,15 @@
   var fromFive = PIL.map(function (pl, i) { return i; }).filter(function (i) { return PIL[i].ratio >= 5; });
   var jointLead = fromFive.every(function (i) { return ['jade', 'cajode'].every(function (k) { return FIRST[k][i] != null && ['ofdm+fec', 'pfft+fec', 'coral'].every(function (o) { return FIRST[o][i] == null || FIRST[o][i] > FIRST[k][i]; }); }); });
   var SUPPORT = [
-    'At 2.5% pilots, none of the five available pooled curves falls below ' + sci(twoFive, 1) + '.',
+    'At 2.5% pilots, none of the six pooled curves reaches 10⁻³; the lowest sampled BER is ' + sci(twoFive, 1) + '.',
     (jointLead ? 'From 5% to 15% pilots, JADE and SAPPHIRE first sample 10⁻³ at a lower SNR than OFDM + FEC, Partial FFT + FEC and CORAL.' : ''),
     'OFDM + FEC and Partial FFT + FEC first sample 10⁻³ only from ' + pct(PIL[firstPilotOnly].ratio) + ' pilots.',
     'CORAL shows errors at every available receiver result; its lowest pooled BER is ' + sci(coralFloor, 1) + '.',
     'At 12% and 15% pilots, JADE and SAPPHIRE show runs with no error seen.',
-    'PEARL has authenticated pooled curves at 7.5%, 12% and 15% pilots on the fixed four-case scope.'
+    'PEARL has authenticated pooled curves at all five pilot ratios on the fixed four-case scope.'
   ].filter(Boolean);
   var NOT = [
-    'A six-receiver comparison at 2.5% or 5% pilots: PEARL results are still missing there.',
-    'A six-receiver comparison on every Red channel: PEARL coverage is incomplete, and Red 4 hydrophones 2 and 3 also lack JADE and SAPPHIRE.',
+    'A six-receiver comparison on every Red channel: PEARL coverage outside the fixed four-case scope is incomplete.',
     'A measured BER of 0.5/N: that value only places a zero-observation marker on a logarithmic plot.',
     'Anything about speed: the table holds no timing.',
     'A causal explanation: the table compares outcomes but does not isolate which mechanism caused a difference.',
@@ -532,9 +503,9 @@
   out.push({ id: 'synthesis', chapter: CH.claims, title: 'Six routes, one bounded conclusion', layout: 'side', dur: 6.5,
     text: 'The first two routes estimate from pilots and decode once. JADE supplies extrinsic information from the decoder to the next estimation pass. PEARL retains its check-to-variable and variable-to-check messages across message-passing iterations while updating the channel estimate. CORAL includes code constraints as penalty terms and no BP decoder. SAPPHIRE projects a local copy of the bit variables for each parity check onto its parity polytope and updates scaled dual variables. ' +
       (jointLead ? 'On the fixed four case labels and this table’s settings, JADE and SAPPHIRE first sample 10⁻³ at lower SNR values than OFDM + FEC, Partial FFT + FEC and CORAL from 5% through 15% pilots. ' : '') +
-      'PEARL is present only at 7.5%, 12% and 15%; its missing 2.5% and 5% curves are not inferred. These sentences report observed patterns, not causes or promises for another channel, code, pilot ratio, update budget, or cohort.',
+      'PEARL is present at all five pilot ratios on the fixed four-case scope. These sentences report observed patterns, not causes or promises for another channel, code, pilot ratio, update budget, or cohort.',
     math: 'mechanism map + coverage boundary + counted errors = an interpretable descriptive result',
-    a11y: 'Final synthesis. OFDM plus FEC and Partial FFT plus FEC use pilot-assisted channel estimation, decode once, and provide no feedback. JADE adds extrinsic information from the decoder to the next estimation pass. PEARL retains check-to-variable and variable-to-check messages across message-passing iterations while updating the channel estimate. CORAL uses penalty terms and no BP decoder. SAPPHIRE projects local copies onto parity polytopes and updates scaled dual variables. PEARL is plotted only at 7.5, 12 and 15 percent pilots. Every threshold statement is descriptive over the fixed four case labels, not a causal or universal conclusion.',
+    a11y: 'Final synthesis. OFDM plus FEC and Partial FFT plus FEC use pilot-assisted channel estimation, decode once, and provide no feedback. JADE adds extrinsic information from the decoder to the next estimation pass. PEARL retains check-to-variable and variable-to-check messages across message-passing iterations while updating the channel estimate. CORAL uses penalty terms and no BP decoder. SAPPHIRE projects local copies onto parity polytopes and updates scaled dual variables. PEARL is plotted at all five pilot ratios on the fixed four cases. Every threshold statement is descriptive over those labels, not a causal or universal conclusion.',
     draw: function (g, p) {
       var R = g.sideR, c = g.ctx, narrow = R[2] < 560; g.panel(R, narrow ? 'three questions for the next table' : 'carry three questions to the next result table');
       var cards = [

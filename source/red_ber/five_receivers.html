@@ -209,8 +209,8 @@ fieldset.predict p { margin: 7px 0 0; color: var(--muted); font-size: 14px; }
     'one-curve': 'One logarithmic bit-error-rate curve falls as signal-to-noise ratio increases. Hollow ending markers mean no error was observed.',
     'p75-predict': 'An empty six-receiver chart asks which curve will remain highest at the sampled high-SNR end. No measured result is shown yet.',
     p75: 'Six pooled bit-error-rate curves share one logarithmic plot at 7.5 percent pilots. Colour and marker shape both identify each receiver.',
-    sweep: 'Five small plots use the same four recording-hydrophone cases at 2.5, 5, 7.5, 12 and 15 percent pilots. PEARL is queued at the first two ratios and drawn at the other three.',
-    thresholds: 'A six-by-five matrix reports the first sampled signal-to-noise ratio whose pooled bit error rate is at most 10 to the minus 3; queued conditions stay blank.',
+    sweep: 'Five small plots use the same four recording-hydrophone cases at 2.5, 5, 7.5, 12 and 15 percent pilots. All six receivers are drawn in every panel.',
+    thresholds: 'A six-by-five matrix reports the first sampled signal-to-noise ratio whose pooled bit error rate is at most 10 to the minus 3. A dash means the sampled range does not reach that level.',
     zeros: 'Two rows of receiver markers show where runs of sampled points with no observed errors begin at 12 and 15 percent pilots.',
     channels: 'A six-by-twelve matrix compares receivers across recording-hydrophone cases at 5 percent pilots and 20 decibels. Cell colour and the printed BER decade encode magnitude; hatching means missing.',
     supports: 'Two columns separate descriptive statements supported by this table from claims the table cannot establish.',
@@ -227,7 +227,7 @@ fieldset.predict p { margin: 7px 0 0; color: var(--muted); font-size: 14px; }
   function thresholdsTable() {
     var M = window.Ber, D = window.BerData; if (!M || !D) return '';
     var heads = D.pilots.map(function (p) { return p.ratio + '% pilots'; });
-    var rows = M.IDS.map(function (id) { return [M.NAME[id]].concat(D.pilots.map(function (p, pi) { var cv = M.curve(id, pi), s = M.firstAtMost(cv, 1e-3); return cv.every(function (q) { return q === null; }) ? 'queued' : s == null ? 'not reached' : s + ' dB'; })); });
+    var rows = M.IDS.map(function (id) { return [M.NAME[id]].concat(D.pilots.map(function (p, pi) { var cv = M.curve(id, pi), s = M.firstAtMost(cv, 1e-3); return cv.every(function (q) { return q === null; }) ? 'missing' : s == null ? 'not reached' : s + ' dB'; })); });
     return tableHtml('First sampled SNR with pooled BER at most 10^−3, over the common recording-hydrophone cases.', heads, rows);
   }
   function pooledTable(ratio) {

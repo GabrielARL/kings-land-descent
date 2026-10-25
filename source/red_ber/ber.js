@@ -25,9 +25,9 @@
   function pilotIndex(ratio) { for (var i = 0; i < D.pilots.length; i++) if (Math.abs(D.pilots[i].ratio - ratio) < 1e-9) return i; return -1; }
   function snrIndex(snr) { return D.snrs.indexOf(snr); }
   // Keep the five-panel comparison population fixed.  The five established receivers are complete on BASE_COMMON;
-  // PEARL is jointly complete at 7.5%, 12% and 15% on the smaller four-case plot scope.
+  // PEARL is jointly complete at all five pilot ratios on the smaller four-case plot scope.
   var BASE_COMMON = CHANNELS.filter(function (c) { return BASE_IDS.every(function (k) { return has(k, c); }); });
-  var PEARL_PILOTS = [7.5, 12, 15].map(pilotIndex);
+  var PEARL_PILOTS = D.pilots.map(function (_, pi) { return pi; });
   var PLOT_SCOPE = BASE_COMMON.filter(function (c) { return PEARL_PILOTS.every(function (pi) { return has('pearl', c, pi); }); });
   var COMMON = PLOT_SCOPE;
   // one point; an observed zero keeps BER 0 and gets the table's plotting value 0.5/bits, which is not a measured BER
