@@ -24,11 +24,15 @@
   function bits(pi) { return D.frames * D.pilots[pi].payload; }
   function pilotIndex(ratio) { for (var i = 0; i < D.pilots.length; i++) if (Math.abs(D.pilots[i].ratio - ratio) < 1e-9) return i; return -1; }
   function snrIndex(snr) { return D.snrs.indexOf(snr); }
-  // Keep the five-panel comparison population fixed.  The five established receivers are complete on BASE_COMMON;
-  // PEARL is jointly complete at all five pilot ratios on the smaller four-case plot scope.
+  // Keep the five-panel comparison population fixed at the six approved Red 1 and Red 2 cases.  Every receiver must
+  // have all five pilot ratios on every retained case; a missing PEARL curve therefore fails closed instead of
+  // changing the population in just one panel.
   var BASE_COMMON = CHANNELS.filter(function (c) { return BASE_IDS.every(function (k) { return has(k, c); }); });
   var PEARL_PILOTS = D.pilots.map(function (_, pi) { return pi; });
-  var PLOT_SCOPE = BASE_COMMON.filter(function (c) { return PEARL_PILOTS.every(function (pi) { return has('pearl', c, pi); }); });
+  var PLOT_SCOPE_KEYS = ['R1h1', 'R1h2', 'R1h3', 'R2h1', 'R2h2', 'R2h3'];
+  var PLOT_SCOPE = BASE_COMMON.filter(function (c) {
+    return PLOT_SCOPE_KEYS.indexOf(c.key) >= 0 && PEARL_PILOTS.every(function (pi) { return has('pearl', c, pi); });
+  });
   var COMMON = PLOT_SCOPE;
   // one point; an observed zero keeps BER 0 and gets the table's plotting value 0.5/bits, which is not a measured BER
   function point(rec, c, pi, si) {

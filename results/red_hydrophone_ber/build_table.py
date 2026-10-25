@@ -151,6 +151,18 @@ PEARL_P025_P05 = (
 PEARL_REMAINING37 = (
     GITHUB_ROOT / "JadeJcade-runs/pearl-remaining37-fill-001/attempt-001"
 )
+PEARL_REMAINING37_KEYS = (
+    (2, 2, "p025"),
+    (2, 2, "p05"),
+    (2, 2, "p12"),
+    (2, 2, "p15"),
+    (2, 3, "p025"),
+    (2, 3, "p05"),
+    (2, 3, "p12"),
+    (2, 3, "p15"),
+    (3, 1, "p025"),
+    (3, 1, "p05"),
+)
 # Every listed root is authenticated by the pinned SHA-256 registry below and
 # must also satisfy the embedded completion, manifest, frame, aggregate, and
 # trace-audit contracts before it is admitted.
@@ -162,7 +174,11 @@ PEARL_RUNS = {
     (2, 2, "p075"): PEARL_P075_TAKEOVER / "red2-h2",
     (2, 3, "p075"): PEARL_P075_TAKEOVER / "red2-h3",
     (3, 1, "p075"): PEARL_P075_TAKEOVER / "red3-h1",
-    (2, 2, "p025"): PEARL_REMAINING37 / "n1024-p025-red2-h2",
+    **{
+        (red, hydrophone, pilot): PEARL_REMAINING37
+        / f"n1024-{pilot}-red{red}-h{hydrophone}"
+        for red, hydrophone, pilot in PEARL_REMAINING37_KEYS
+    },
     **{
         (red, hydrophone, pilot): PEARL_P025_P05
         / f"n1024-{pilot}-red{red}-h{hydrophone}"
@@ -176,6 +192,11 @@ PEARL_RUNS = {
         for pilot in ("p12", "p15")
     },
 }
+PEARL_PAIRED_ARTIFACT_KEYS = frozenset(
+    (red, hydrophone, pilot)
+    for red, hydrophone in ((1, 1), (1, 2), (1, 3), (2, 1))
+    for pilot in ("p12", "p15")
+)
 PEARL_ARTIFACT_SHA256 = {
     (1, 1, "p025"): (
         "4776aed05c56cf4f2e3f09f48e54202a7712c40af8125128c71eea68df569010",
@@ -207,6 +228,18 @@ PEARL_ARTIFACT_SHA256 = {
         "bc7c803b30b385c12c70946c30ede612029ac87a8febf4e2d5f4752e3e63345b",
         "37ce86b7f28bb11a30b1257593005e2a8b3a1148788ac2b1dad3e2a690413b9e",
     ),
+    (2, 3, "p025"): (
+        "8fb2e903939008cda1c3b839857fea9119e22636986b610ae36dc5478ff48820",
+        "198bdc18b8fdf14a1fad33a5742fa067fb14b2feff532112e3726d26e00b714b",
+        "58171801fda1d92b614ed8de9c98a1b25298353722bc91fa57e5918347ff820c",
+        "96f7f34a0b4e561db748ca48d9bcc1c771d540ceea0a99248067e530cfeabe70",
+    ),
+    (3, 1, "p025"): (
+        "315e41e4cf0544eb4092a47398f239c5ef7822a6716b4446b187a3c2d502a523",
+        "d96415e2e29ddb1cca10dc1f94c460ccb0ae2968f430d1ea5f8ff3c83b276835",
+        "4049c91062b6abfc39e58129af1f5d709185f9d5280fca686158cce61b08344c",
+        "25dc5d77110f58df9a90306ab14d4303810ee8ae2381a2fa2978c8a674c1b166",
+    ),
     (1, 1, "p05"): (
         "1c4020a05989b67e9d8a3e2a68da80d94fe0c98aedf1a0756bd27fcbeda83208",
         "e7c02e45e8bc1ce706f67db7129d2b4080bdf3aebe5eb47e90531b65fd36edc3",
@@ -230,6 +263,24 @@ PEARL_ARTIFACT_SHA256 = {
         "1b32414f8ace0ae99e6a7efe966b5bd4cead4e3de462aa5c33d44e27f51c83a4",
         "b978ddcfc6e0e969582fb15cce20ba275527a7a17ff26f9b0037bcb030aa44a2",
         "5a1e9d5898ae516c7a28f01850507fc393cfa98210348595a0f9c03f0ca865dd",
+    ),
+    (2, 2, "p05"): (
+        "e6fb7efae5d4c6259a84b92b2c6cae14e93764a8c65de43d7e7774c5500d520c",
+        "cdddc845bc299a29ff447de25598e479c1a8d3d202177e7a2189c2cc3c7ff79b",
+        "c2bca0309701229e389a89ec2205d2bd9df88db0b8de5d885ae06af3cfe85beb",
+        "bf7f8e0a3fa7c7e712afd0c7ff5489bf06700cbd850d8e221527eaf2f8df70f1",
+    ),
+    (2, 3, "p05"): (
+        "e17afa984efcb8a10695824a46021aca2ce308aa2acd2fd0718e0e11c160f6b4",
+        "9ee3dcde81cf5f3cd616976fcc5c0459c1ce47a58310d99ccf2b1477a361c496",
+        "be11798ef87e9429df7e5c9147b6e1bf99a5280295b34590dcf3937f6b95bde1",
+        "f2299292c099ba81201d2a2a15664e25e130002a00f5bd364fc4f3b0fc390840",
+    ),
+    (3, 1, "p05"): (
+        "b67d1b24d269be011f5df402b81f2354fa6101ab0a452681c0f7e2e9304ba7f6",
+        "f85ac8c94427b00dd6fa401496f811079612e5af1d78f7c3e5882ad0043d3ae9",
+        "67a84f7d07fd9646fa036e3e30f345d8959bbce7b542b4806e78e77080447dd2",
+        "3b59b97ba2f9de71c658dddf816d08a882a1b22eb5d3a7f5fa8a6739732d9a6b",
     ),
     (1, 1, "p075"): (
         "75c02857840fd8525e5d71a9a4ee054f39865d8e46816f3c253678b3da518436",
@@ -297,6 +348,18 @@ PEARL_ARTIFACT_SHA256 = {
         "99e29f228f8bd02d84aa8ca8a4547abccb49ce8131403f2d49b7070e0843fbf0",
         "75b0c1ae92a819bf42301f2d5e0bd1c11a246b3eec1f1417539067c4c5f4ad27",
     ),
+    (2, 2, "p12"): (
+        "46aa2106549f242c78132803aabe064520e94debf16ee661ad59ab1d7ee61c67",
+        "cfc0b416443e70e6f00c9d8aaf1062621c7e4a7392082de46461ec3305362f78",
+        "cf5df3efe91cf07daf61e5b633acbcf16bd21356d5616dbaef180d81b72489c9",
+        "60e05bc9f8f9872686d63deaf5851f0889fde56d934c15540b7aac64db004f3e",
+    ),
+    (2, 3, "p12"): (
+        "0f9d65e04eb2c16d373461d3ebd01fdd07e0400fc3e3ae469ab43c5611804924",
+        "dd4305ebbd73a31bdf0b9fc2012ed227aba4eedc3d34d48177c1260fbc1809aa",
+        "b60c7f77f04b22614594ac483bcc7769414435f94f93f7dde7b5751743cd604d",
+        "8e30895bb3dec3f927e0e414627b6849d4e370615c3b3a22f162b032b3f32cfe",
+    ),
     (1, 1, "p15"): (
         "4de838f0096f04546cf8100870ce1e34472591633f079578133eb63564e9dff6",
         "dfb75cc15b6de9bf1dd9c7d1f33043ccc1577c5377a5cbc0b9c3731a64741e93",
@@ -320,6 +383,18 @@ PEARL_ARTIFACT_SHA256 = {
         "190ff614bafea899937b11883813e4b43696cb27faed6559557894f5728d0819",
         "88eb0d3c24ea595142b07286328a7248d8600ad8bbb23cb9033fbb2fe6d568e8",
         "2926065d405c5c136264b1f782dba801981c4a29981d09060678d76512049cff",
+    ),
+    (2, 2, "p15"): (
+        "75db7f2b52d57d83fe22527be178334888276ea82920909be28d5790371ff197",
+        "3eef4f0fdf9d95e4fec97ebb5aeaf57def0598f9b7a366ab1b9b891308376036",
+        "b06f883fb274d944574fcb01e62019bcede4b72bd6e79ce423ef0c1b688b305e",
+        "633fb76dcc1df31fd8122588f80c450d14e3e073fedc0a0504a47de60ff5f034",
+    ),
+    (2, 3, "p15"): (
+        "b5ac9a18757072c08016dd31399cd384706e7933c5a2680e6e7d07fe69d6aebc",
+        "2b154f71dc751567c81ca4b84164796bc6c876f98ee376cb6584a2d7636db063",
+        "b068862d48f334045cfb1957f16492c62ccc61828542a3c738addfa789c98898",
+        "e843ea31ba340bd0891135c6c1b90d846bce444b60606f2ec423e5aa48a8055a",
     ),
 }
 FIELDS = (
@@ -760,7 +835,7 @@ def load_pearl_run(
     completion = read_json(completion_path)
     manifest = read_json(required["manifest.json"])
     payload_bits = PILOTS[pilot][1]
-    paired = pilot in ("p12", "p15")
+    paired = artifact_key in PEARL_PAIRED_ARTIFACT_KEYS
     artifact_receivers = (
         ["jade_bp", PEARL_RECEIVER] if paired else [PEARL_RECEIVER]
     )
@@ -1096,6 +1171,13 @@ def validate(rows: dict[tuple, dict[str, object]]) -> None:
 def main() -> None:
     require_equal(
         set(PEARL_ARTIFACT_SHA256), set(PEARL_RUNS), "PEARL run/hash registry keys"
+    )
+    require_equal(
+        PEARL_PAIRED_ARTIFACT_KEYS,
+        frozenset(
+            key for key, root in PEARL_RUNS.items() if root.parent == PEARL_P12_P15
+        ),
+        "legacy paired PEARL artifact keys",
     )
     snapshot = datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
     rows = {

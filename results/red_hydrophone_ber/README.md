@@ -14,7 +14,7 @@ The table contains 5,760 rows:
 
 Here, “all pilot ratios” means the five ratios in the current comparison. Older 20% pilot results exist but are outside this table. The common configuration is FFT length 1024, code rate 1/4, and 47 one-second frames per point.
 
-The current CSV snapshot is `2026-10-25T04:15:46Z`. Its coverage is:
+The current CSV snapshot is `2026-10-25T07:53:47Z`. Its coverage is:
 
 | Receiver | Available | Missing | Coverage |
 |---|---:|---:|---:|
@@ -23,14 +23,14 @@ The current CSV snapshot is `2026-10-25T04:15:46Z`. Its coverage is:
 | JADE | 960 | 0 | 100.0% |
 | CORAL | 960 | 0 | 100.0% |
 | SAPPHIRE (`cajode`) | 960 | 0 | 100.0% |
-| PEARL | 384 | 576 | 40.0% |
-| **Total** | **5,184** | **576** | **90.0%** |
+| PEARL | 528 | 432 | 55.0% |
+| **Total** | **5,328** | **432** | **92.5%** |
 
 JADE and SAPPHIRE now include all five authenticated curves for each of the 12 recording–hydrophone cases. The refresh admits 160 Red 4/hydrophone 3 rows from fresh CAJODE attempt `R3-CAJODE-RED4-H3-BER-002` and JADE attempt `R3-JADE-RED4H3-BER-001`. Their completion-receipt SHA-256 values are `fdb3b01b40a7e4c8d69b054d04bddfba65c9b5ef3af7eb0588eae763d5f4e529` and `628e113d0895235fb4b057eef09f055a325211cfbe80077b1e801fc80576140d`. Recovery controller `red4h3-after-red4h2-004` completed with receipt SHA-256 `69fc52aec81b833940da1e0fa12cbdb793807f22a6d8899b9cb3ee09e5897b2b`. The terminal partial CAJODE attempt 001 remains immutable and excluded.
 
-PEARL has complete curves at all five pilot ratios for Red 1/hydrophones 1–3 and Red 2/hydrophone 1. It also has complete 7.5% curves for Red 2/hydrophones 2–3 and Red 3/hydrophone 1. The earlier refresh admits 128 rows from the eight attempt-003 runs for the four-case plot scope at 2.5% and 5%. Controller `pearl-p025-p05-fill-after-red4h3-003` completed with receipt SHA-256 `61ad85320d98b263ff30c2245a52fbb49405fc8360dc31c6db8f939e4d559181`; its terminal attempt receipt has SHA-256 `6ebda4b432053f3b13bfe4e7d6ce37608b94196268decc233331dc3756ea6192`.
+PEARL has complete curves at all five pilot ratios for Red 1 and Red 2 on all three hydrophones. Those six recording–hydrophone cases form the fixed plot scope used by every pilot panel. PEARL also has complete 2.5%, 5%, and 7.5% curves for Red 3/hydrophone 1. The earlier attempt-003 fill contributed the 2.5% and 5% curves for Red 1/hydrophones 1–3 and Red 2/hydrophone 1. Controller `pearl-p025-p05-fill-after-red4h3-003` completed with receipt SHA-256 `61ad85320d98b263ff30c2245a52fbb49405fc8360dc31c6db8f939e4d559181`; its terminal attempt receipt has SHA-256 `6ebda4b432053f3b13bfe4e7d6ce37608b94196268decc233331dc3756ea6192`.
 
-The current refresh adds the complete 2.5% curve for Red 2/hydrophone 2 from job `n1024-p025-red2-h2` in the active 37-job fill. Its immutable controller job receipt has SHA-256 `b85bbf6f46e4fbd8a431856a6ccac3a8d6085791435edb5d4f86df2a2872e7bd`; the result completion, frame, aggregate, and manifest hashes are pinned in the builder. The active sequential queue covers the remaining 36 unavailable PEARL case–pilot conditions. They remain marked `source_result_missing` until each complete result is authenticated and registered. The partial Red 3/hydrophone 2 artifact, which covers only SNR 0–14 dB, remains deliberately excluded.
+The active 37-job fill now contributes ten authenticated curves: the four previously missing pilot ratios on Red 2/hydrophones 2 and 3, plus 2.5% and 5% on Red 3/hydrophone 1. Each result's completion, frame, aggregate, and manifest hashes are pinned in the builder. The active sequential queue covers the remaining 27 unavailable PEARL case–pilot conditions. They remain marked `source_result_missing` until each complete result is authenticated and registered. The partial Red 3/hydrophone 2 artifact, which covers only SNR 0–14 dB, remains deliberately excluded.
 
 ## Receiver mapping and source cohorts
 
@@ -45,7 +45,7 @@ The receiver names in the table map to source receiver IDs as follows:
 | `cajode` (SAPPHIRE) | `cajode` | modern R3 BER runs, with at most 50 ADMM iterations |
 | `pearl` | `joint_persistent_normalized_min_sum` | authenticated persistent R2-V1 runs, with at most 80 message-passing iterations |
 
-`jcade_regularized_power` is the source identifier for the receiver named CORAL in the four-receiver deck. The older `jade_bp` rows in that source table are not substituted for missing modern JADE results; doing so would mix receiver generations inside one JADE curve. The paired 12% and 15% PEARL artifacts also contain `jade_bp`, but the builder filters those artifacts to `joint_persistent_normalized_min_sum` and does not replace the table's modern JADE rows.
+`jcade_regularized_power` is the source identifier for the receiver named CORAL in the four-receiver deck. The older `jade_bp` rows in that source table are not substituted for missing modern JADE results; doing so would mix receiver generations inside one JADE curve. Eight legacy 12% and 15% PEARL artifacts also contain `jade_bp`, but the builder filters those artifacts to `joint_persistent_normalized_min_sum` and does not replace the table's modern JADE rows. The newer fill artifacts are PEARL-only. The builder binds the expected receiver shape to each registered artifact key and validates that shape before admitting any rows.
 
 SAPPHIRE is the current public name of the receiver stored under the stable key `cajode`. The frozen evidence snapshot and source artifacts retain the legacy display label `CAJODE`; the tutorial maps the stable key to SAPPHIRE only at the presentation boundary. No BER count changes as a result of the rename.
 
