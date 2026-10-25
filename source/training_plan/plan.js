@@ -1,9 +1,10 @@
 // The training-plan case study of the tutorial "The Coach and the Physio" (the_coach_and_the_physio.html): an
 // athlete's next hard session is one plan q = (t, w), the day it happens and its load.  The Coach wants the session
 // with the greatest training benefit, read off the predicted readiness curve; the Physio keeps the session inside a
-// set of safety rules.  The two negotiate with ADMM in scaled form: the Coach's copy x, the Physio's copy z, a
+// set of planning rules.  The two negotiate with ADMM in scaled form: the Coach's copy x, the Physio's copy z, a
 // tether of stiffness rho, and the planning log u.  After the session happens, the readiness curve changes and the
-// next plan is negotiated: the recovery cycle is the outer loop, ADMM the inner one.  Plain JavaScript (Node 12).
+// next plan is negotiated: the planning cycle is the outer loop, ADMM the inner one.  The slam-dunk line p.dunk is a
+// story target used to read the resulting curve; it is not part of the Coach's one-session objective.  Plain JavaScript (Node 12).
 var Plan = (function () {
   function copy(o, extra) { var r = {}, k; for (k in o) r[k] = o[k]; for (k in (extra || {})) r[k] = extra[k]; return r; }
   function sub(a, b) { return [a[0] - b[0], a[1] - b[1]]; }
@@ -28,10 +29,21 @@ var Plan = (function () {
   }
   // the crest of one session's trace, in days after it (where fitness minus fatigue is largest)
   function crestOf(p) { return p.tau1 * p.tau2 / (p.tau1 - p.tau2) * Math.log(p.k2 * p.tau1 / (p.k1 * p.tau2)); }
+  // the first day in [t0, t1] on which a curve reaches a level (a fine grid, then bisection), or null if it never does;
+  // with level = p.dunk this is the day the athlete can first dunk
+  function reach(r, level, t0, t1) {
+    if (r(t0) >= level) return t0;
+    var n = 2800; for (var i = 1; i <= n; i++) {
+      var t = t0 + (t1 - t0) * i / n; if (r(t) < level) continue;
+      var a = t0 + (t1 - t0) * (i - 1) / n, b = t; for (var k = 0; k < 50; k++) { var m = (a + b) / 2; if (r(m) >= level) b = m; else a = m; }
+      return b;
+    }
+    return null;
+  }
 
   // ---------------------------------------------------------------- the Coach: the benefit of a session
-  // A session of load w on a day of readiness r gains w * (r - r0), less a * w^2 for doing too much at once; below
-  // readiness r0 a session does harm.  The Coach's cost is minus the benefit.
+  // The toy score gives each unit of load the day-dependent worth r - r0, then subtracts the convex price a*w^2.
+  // Thus r0 is the score's zero-worth reference, not a biological harm threshold.  The Coach's cost is minus this proxy.
   function benefit(r, p) { return function (q) { return q[1] * (r(q[0]) - p.r0) - p.a * q[1] * q[1]; }; }
   // tMin: a plan cannot come before the last session, so the map is flat there (no cliff at day 0 in the shading)
   function cost(r, p, tMin) { var b = benefit(r, p); return function (q) { return -b(tMin == null ? q : [Math.max(q[0], tMin), q[1]]); }; }
@@ -58,14 +70,14 @@ var Plan = (function () {
   // ---------------------------------------------------------------- the Physio: the rules, a convex polygon
   // Each rule is a half-plane a.q <= b of the plan q = (t, w): the day comes after the recovery time, the load is
   // at most `ramp` times the last session's, the load allowed grows with the days of rest taken (the workload
-  // rule), the session leaves `taper` days before the race, and a load is not negative.
+  // rule), the session leaves `taper` days before the game, and a load is not negative.
   function rules(history, p) {
     var last = history[history.length - 1];
     return [
       { id: 'recovery', a: [-1, 0], b: -(last.t + p.recovery), name: 'recovery: at least ' + p.recovery + ' days after the last hard session', short: 't ≥ ' + fmt(last.t + p.recovery) },
       { id: 'ramp', a: [0, 1], b: p.ramp * last.w, name: 'ramp: at most ' + Math.round((p.ramp - 1) * 100) + '% more load than last time', short: 'w ≤ ' + fmt(p.ramp * last.w) },
       { id: 'workload', a: [-p.s, 1], b: p.w0 - p.s * last.t, name: 'workload: the load allowed grows with the rest taken', short: 'w ≤ ' + fmt(p.w0) + ' + ' + fmt(p.s) + '·(t − ' + fmt(last.t) + ')' },
-      { id: 'taper', a: [1, 0], b: p.race - p.taper, name: 'taper: no hard session in the last ' + p.taper + ' days before the race (day ' + p.race + ')', short: 't ≤ ' + fmt(p.race - p.taper) },
+      { id: 'taper', a: [1, 0], b: p.race - p.taper, name: 'taper: no hard session in the last ' + p.taper + ' days before the game (day ' + p.race + ')', short: 't ≤ ' + fmt(p.race - p.taper) },
       { id: 'load', a: [0, -1], b: 0, name: 'a load is not negative', short: 'w ≥ 0' }
     ];
   }
@@ -112,7 +124,7 @@ var Plan = (function () {
     prob.best = poly.empty ? null : bestSafe(prob);
     return prob;
   }
-  // the best safe session by brute force: a coarse grid over the polygon's box, then a fine one around the best cell
+  // the best allowed session by brute force: a coarse grid over the polygon's box, then a fine one around the best cell
   function bestSafe(prob) {
     var V = prob.poly.verts, t0 = Infinity, t1 = -Infinity, w0 = Infinity, w1 = -Infinity;
     V.forEach(function (q) { t0 = Math.min(t0, q[0]); t1 = Math.max(t1, q[0]); w0 = Math.min(w0, q[1]); w1 = Math.max(w1, q[1]); });
@@ -161,7 +173,7 @@ var Plan = (function () {
       if (prob.empty) { plans.push({ prob: prob, sol: null, empty: true }); break; }
       var sol = solve(prob), alone = solve(prob, { ropeAlone: true, rounds: p.ropeAloneRounds });
       plans.push({ prob: prob, sol: sol, alone: alone, empty: false });
-      history.push({ t: sol.plan[0], w: sol.plan[1] });   // the session the athlete does is the safe plan
+      history.push({ t: sol.plan[0], w: sol.plan[1] });   // append the allowed plan to the model's deterministic history
     }
     return { plans: plans, history: history, sessions: history.slice(p.history.length) };
   }
@@ -170,11 +182,12 @@ var Plan = (function () {
     return { p: p, season: s, first: first, prob: first.prob, sol: first.sol, alone: first.alone, history: s.history, sessions: s.sessions, crest: crestOf(p) };
   }
 
-  var PRESET = { k1: 1.0, tau1: 5, k2: 1.5, tau2: 1.5, wRef: 5, r0: 0.6, a: 0.05,
+  // dunk: the story's target line on the readiness plot; race: legacy field name for the day of the game
+  var PRESET = { k1: 1.0, tau1: 5, k2: 1.5, tau2: 1.5, wRef: 5, r0: 0.6, a: 0.05, dunk: 1.5,
                  recovery: 2, ramp: 1.1, w0: 1.0, s: 0.9, taper: 3, race: 14,
                  rho: 0.1, tol: 0.01, maxRounds: 80, ropeAloneRounds: 10, maxSessions: 4,
                  history: [{ t: 0, w: 5 }], tRange: [0, 12], wRange: [0, 10] };
-  return { PRESET: PRESET, build: build, season: season, problem: problem, solve: solve, readiness: readiness, crestOf: crestOf, benefit: benefit, cost: cost,
+  return { PRESET: PRESET, build: build, season: season, problem: problem, solve: solve, readiness: readiness, crestOf: crestOf, reach: reach, benefit: benefit, cost: cost,
            coachStep: coachStep, rules: rules, polygon: polygon, project: project, inside: inside, satisfied: satisfied, active: active, bestSafe: bestSafe, argmin1: argmin1,
            sub: sub, add: add, scale: scale, dot: dot, norm: norm, copy: copy };
 })();

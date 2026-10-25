@@ -63,7 +63,7 @@ The `light-replicas` step now begins with the overlap that requires replicas: th
 - `tutorial.html`: introductory guided tutorial
 - `jade_keep_tutorial.html`: OFDM-first SAPPHIRE and ADMM tutorial, with the Jade Keep as a secondary analogy
 - `bp_and_cajode.html`: the BP protocol beside SAPPHIRE's constraint circuit on a connected tree and its loop closure; the stable legacy filename is retained
-- `the_coach_and_the_physio.html`: training-plan case study with a Coach objective and Physio safety constraints
+- `the_coach_and_the_physio.html`: a slam-dunk ADMM story in which the Coach scores a complete day-and-load plan, the Physio projects a duplicate plan onto the allowed set, a tether coordinates them, and a planning log remembers repeated disagreement
 - `localization_is_decoding.html`: constrained-localization case study
 - `finding_the_tear.html`: joint geometry-and-twine-state case study
 - `source/simulator/`: HTML templates, JavaScript source, build script, and tests; `realm.js` holds the roads, the map and the interludes shared by all eight pages

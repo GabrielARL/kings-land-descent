@@ -267,7 +267,9 @@ check('aim is derived as the centre of the same quadratic penalty',
   /\|x − z \+ u\|² = \|x − \(z − u\)\|²/.test(parts) && /its centre is v = z − u/.test(parts));
 check('the rope-alone comparison says the rope pulls but does not remember',
   /rope alone/.test(parts) && /does not remember/.test(parts) && /counterfactual, not ADMM/.test(parts) &&
-  /with the book \(next\)/.test(parts));
+  /signed gap x − z is the arrow from the Warden’s lawful spot z to the Wanderer’s spot x/.test(parts) &&
+  /chart shows its length \|x − z\|/.test(parts) && /If x = z, it goes slack/.test(parts) &&
+  /book keeps the correction that a slack rope would lose/.test(parts) && /stored correction shifts the rope’s aim/.test(parts));
 
 var admmAt = course.indexOf("pick(Ww, 'tw', 4"), admmPick = admmAt < 0 ? '' : course.slice(admmAt, admmAt + 520);
 check('standalone ADMM lesson uses the first nonzero-ledger circuit',
@@ -290,12 +292,18 @@ try {
     near2(nextAim.uFrom, firstWall.u, 1e-12) && near2(nextAim.v, [nextAim.zFrom[0] - nextAim.uFrom[0], nextAim.zFrom[1] - nextAim.uFrom[1]], 1e-12) &&
     Math.hypot(nextAim.v[0] - nextAim.zFrom[0], nextAim.v[1] - nextAim.zFrom[1]) > 0.04,
     'z4=' + nextAim.zFrom.map(function (q) { return q.toFixed(4); }).join(',') + ' v4=' + nextAim.v.map(function (q) { return q.toFixed(4); }).join(','));
-  var nlz = aWalk[0].z.slice(), nlx;
-  for (var ai = 0; ai < 10; ai++) { nlx = aLand.wanderer(nlz, ap.rho); nlz = aLand.project(nlx); }
-  check('the ledger-free counterfactual is lawful but misses this wall minimum',
+  var nlz = aWalk[0].z.slice(), nlx, nlzBefore;
+  for (var ai = 0; ai < 10; ai++) { nlzBefore = nlz.slice(); nlx = aLand.wanderer(nlz, ap.rho); nlz = aLand.project(nlx); }
+  var ropeGap = Math.hypot(nlx[0] - nlz[0], nlx[1] - nlz[1]), ropeGrad = aLand.grad(nlx);
+  var ropeBalance = [ropeGrad[0] + ap.rho * (nlx[0] - nlzBefore[0]), ropeGrad[1] + ap.rho * (nlx[1] - nlzBefore[1])];
+  var lateBook = aWalk[20], starGrad = aLand.grad(aLand.treasure), storedBalance = [starGrad[0] + ap.rho * lateBook.u[0], starGrad[1] + ap.rho * lateBook.u[1]];
+  check('the ledger-free counterfactual stops stretched while the book closes the gap and keeps the wall correction',
     near2(aLand.project(nlz), nlz, 1e-12) && Math.hypot(nlz[0] - aLand.treasure[0], nlz[1] - aLand.treasure[1]) > 0.05 &&
-    Math.hypot(aWalk[10].z[0] - aLand.treasure[0], aWalk[10].z[1] - aLand.treasure[1]) < 0.001,
-    'without=' + nlz.map(function (q) { return q.toFixed(4); }).join(',') + ' ADMM=' + aWalk[10].z.map(function (q) { return q.toFixed(4); }).join(','));
+    ropeGap > 0.13 && Math.hypot(ropeBalance[0], ropeBalance[1]) < 1e-10 &&
+    Math.hypot(lateBook.x[0] - lateBook.z[0], lateBook.x[1] - lateBook.z[1]) < 1e-6 && Math.hypot(lateBook.u[0], lateBook.u[1]) > 0.19 &&
+    Math.hypot(storedBalance[0], storedBalance[1]) < 1e-6,
+    'rope gap=' + ropeGap.toFixed(4) + ' z=' + nlz.map(function (q) { return q.toFixed(4); }).join(',') +
+    ' book gap=' + Math.hypot(lateBook.x[0] - lateBook.z[0], lateBook.x[1] - lateBook.z[1]).toExponential(2) + ' u=' + lateBook.u.map(function (q) { return q.toFixed(4); }).join(','));
   check('every worked wall circuit follows the scaled ADMM identities', aWalk.slice(1).every(function (q) {
     return near2(q.v, [q.zFrom[0] - q.uFrom[0], q.zFrom[1] - q.uFrom[1]], 1e-11) &&
       near2(q.z, aLand.project([q.x[0] + q.uFrom[0], q.x[1] + q.uFrom[1]]), 1e-11) &&
@@ -491,11 +499,11 @@ try {
   check('the Warden pages keep sentences within 35 words, with no contractions, exclamations or banned words',
     wLong.length === 0 && !wBanned.test([t1, t2, t3].join(' ')), wLong.slice(0, 2).join(' | '));
   var wDraws = 0, wPhone = courseSandbox(390, 488);
-  ['warden-role', 'warden-steps', 'warden-not-lowest'].forEach(function (id) {
+  ['warden-role', 'warden-steps', 'warden-not-lowest', 'without-ledger', 'ledger-role', 'aim'].forEach(function (id) {
     [0, 0.1, 0.2, 0.35, 0.5, 0.62, 0.8, 0.92, 1].forEach(function (pp) { wsb.Board.debug({ step: 'wall-tw-' + id, p: pp }); wDraws++; });
     [0.5, 0.72, 0.82, 1].forEach(function (pp) { wPhone.Board.debug({ step: 'wall-tw-' + id, p: pp }); wDraws++; });
   });
-  check('the Warden pages draw at nine desktop moments and four phone moments without an error', wDraws === 39 &&
+  check('the Warden and book pages draw at nine desktop moments and four phone moments without an error', wDraws === 78 &&
     (wsb.kingsLandErrors || []).length === 0 && (wPhone.kingsLandErrors || []).length === 0, (wsb.kingsLandErrors || []).concat(wPhone.kingsLandErrors || []).slice(0, 3).join(' | '));
 } catch (e) {
   check('the Warden’s three pages', false, e && e.stack || e);

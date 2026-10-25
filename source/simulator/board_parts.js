@@ -781,6 +781,7 @@
     }
     if (noLedgerZ.length) {
       var nlEndZ = noLedgerZ[noLedgerDays], nlEndX = noLedgerX[noLedgerDays], nlGap = len(sub(nlEndX, nlEndZ));
+      var nlStarGap = len(sub(nlEndZ, T)), nlLandPull = scale(land.grad(nlEndX), -1), nlRopePull = scale(sub(noLedgerZ[noLedgerDays - 1], nlEndX), rho);
       var nlGaps = noLedgerX.map(function (q, i) { return len(sub(q, noLedgerZ[i])); }), admmGaps = []; for (var ai = 0; ai <= noLedgerDays; ai++) admmGaps.push(w[Math.min(ai, w.length - 1)].gap || 0);
       var nlView = around(noLedgerX.concat(noLedgerZ).concat([T]), 0.4, 0.3 * cx.span);
       // the first three days, one move at a time (tutorial only); the summary page below then continues from day 3
@@ -806,10 +807,15 @@
           aPrev: rd > 1 ? noLedgerZ[rd - 2] : null, trail: noLedgerX.slice(0, rd) }));
       }
       out.push({ id: 'without-ledger', chapter: 'The Twins', title: 'The rope pulls, but does not remember', layout: 'map+side', view: nlView, dur: 6.6,
-        text: 'Let them go on with the rope alone, each day remembering only where the Warden stood yesterday. The Wanderer goes to the lowest point of land plus rope, the Warden to the nearest lawful spot, and again. ' +
+        text: 'The signed gap x − z is the arrow from the Warden’s lawful spot z to the Wanderer’s spot x. The chart shows its length |x − z|. It is not the distance to the spot to dig, and it is not a difference in height. A nonzero gap means the twins still offer two different spots, so the King has no answer. ' +
+          'Let them continue with the rope alone, each circuit remembering only yesterday’s Warden. The Wanderer goes to the lowest point of land plus rope, and the Warden goes to the nearest lawful spot. ' +
           (ropeFirstGap ? 'For ' + (ropeFirstGap - 1) + (ropeFirstGap === 2 ? ' day' : ' days') + ' the twins end together. From day ' + ropeFirstGap + ' the Wanderer’s lowest point lies past the wall, so the Warden stops at the wall and a gap opens. ' : '') +
-          'The Wanderer always stops a little downhill of the Warden, the rope stretched by the slope, and the Warden stands on the wall. They settle a fixed gap apart. After ' + noLedgerDays + ' circuits the Warden is at z = ' + pair(nlEndZ) + ', on the wall but above the spot to dig, ' + pair(T) + ', and the gap is still ' + num(nlGap) + '. The rope pulls; it does not remember. This rope-only run is a counterfactual, not ADMM: it omits the scaled-dual update that remembers disagreement.',
-        math: 'rope alone: x ← argmin f + ρ/2·|x − z|²,  z ← Π<sub>C</sub>(x)' + at(0.55, '<br>after ' + noLedgerDays + ' circuits: z = ' + pair(nlEndZ) + ', gap ' + num(nlGap) + ';  the spot to dig ' + pair(T)),
+          'At the correct wall spot the valley still pulls the Wanderer east, through the wall. A rope tied directly between the twins can oppose that pull only while it stays stretched. If x = z, it goes slack. ' +
+          'So rope alone settles with two different spots. After ' + noLedgerDays + ' circuits x = ' + pair(nlEndX) + ', z = ' + pair(nlEndZ) + ' and |x − z| = ' + num(nlGap) + '. The Warden is lawful but still ' + num(nlStarGap) + ' along the wall from the spot to dig, ' + pair(T) + '. ' +
+          'The final arrows show why nothing moves: the land’s pull and the rope’s pull cancel while the rope remains stretched. The rope reacts to today’s gap, but it does not remember yesterday’s. This rope-only run is a counterfactual, not ADMM: it omits the scaled-dual update that remembers disagreement.',
+        math: 'signed gap: x − z;  plotted gap: |x − z|;  one answer requires x = z' +
+          at(0.42, '<br>rope-only balance: −∇J(x) + ρ(z − x) = 0, even when x ≠ z') +
+          at(0.72, '<br>after ' + noLedgerDays + ' circuits: x = ' + pair(nlEndX) + ',  z = ' + pair(nlEndZ) + ',  |x − z| = ' + num(nlGap)),
         draw: function (g, p) {
           base(g); star(g, T, 1);
           var s = ropeDays + seg(p, 0, 0.8) * (noLedgerDays - ropeDays), kk = Math.floor(s), fr = s - kk;   // from day 3 on; each day: the Wanderer hops, then the Warden
@@ -820,17 +826,22 @@
           g.labelPx(g.mapR[0] + 12, g.mapR[1] + 30, 'day ' + Math.min(kk, noLedgerDays) + ', rope alone', C.red, { size: 13 });
           if (p > 0.85) {
             var narrow = g.W < g.H;
-            g.label(nlEndZ, (narrow ? 'fixed gap = ' : 'a fixed gap of ') + num(nlGap), C.red,
+            g.label(nlEndZ, (narrow ? '|x − z| = ' : 'two spots: |x − z| = ') + num(nlGap), C.red,
               narrow ? { dx: -12, dy: -18, align: 'right', size: 11.5 } : { dx: -14, dy: -18, align: 'right', size: 12 });
             g.label(nlEndZ, narrow ? 'z = ' + pair(nlEndZ) + ' ≠ x*' : 'z = ' + pair(nlEndZ) + ', above the spot to dig', C.red,
               narrow ? { dx: -12, dy: 20, align: 'right', size: 11.5 } : { dx: -14, dy: 20, align: 'right', size: 12 });
+            var pullSize = Math.max(len(nlLandPull), len(nlRopePull)) || 1, arrowSpan = Math.min(0.13 * cx.span, 0.18), forceScale = arrowSpan / pullSize;
+            var landTip = add(nlEndX, scale(nlLandPull, forceScale)), ropeTip = add(nlEndX, scale(nlRopePull, forceScale)), pF = seg(p, 0.85, 0.98);
+            g.arrow(nlEndX, landTip, C.gold, 2.5, pF); g.arrow(nlEndX, ropeTip, C.orange, 2.5, pF);
+            g.label(landTip, narrow ? 'land' : 'land pulls out', C.gold, { dx: 8, dy: -16, size: narrow ? 10.5 : 11.5, p: pF });
+            g.label(ropeTip, narrow ? 'rope' : 'rope pulls back', C.orange, { dx: -8, dy: -16, align: 'right', size: narrow ? 10.5 : 11.5, p: pF });
           }
           var R = g.sideR, hi = Math.max.apply(null, nlGaps.concat(admmGaps)) * 1.6 || 1, pl = g.plot(R, [0, noLedgerDays], [0, hi], { title: 'the gap between the twins, circuit by circuit' }); pl.frame('circuit', 'gap |x − z|');
           pl.curve(function (t) { var i = Math.floor(t), fq = t - i; return nlGaps[Math.min(i, noLedgerDays)] * (1 - fq) + nlGaps[Math.min(i + 1, noLedgerDays)] * fq; }, C.red, 2.2, clamp(s / noLedgerDays, 0, 1));
           pl.curve(function (t) { var i = Math.floor(t), fq = t - i; return admmGaps[Math.min(i, noLedgerDays)] * (1 - fq) + admmGaps[Math.min(i + 1, noLedgerDays)] * fq; }, C.blue, 2.2, seg(p, 0.85, 1));
           // both labels sit above the rope-alone plateau, where no curve passes
-          g.labelPx(pl.X(noLedgerDays) - 4, pl.Y(nlGaps[noLedgerDays]) - 34, 'rope alone: the gap stays', C.red, { align: 'right', size: 11.5, plain: true, p: seg(p, 0.8, 0.9) });
-          g.labelPx(pl.X(noLedgerDays) - 4, pl.Y(nlGaps[noLedgerDays]) - 15, 'with the book (next): the gap closes', C.blue, { align: 'right', size: 11.5, plain: true, p: seg(p, 0.9, 1) });
+          g.labelPx(pl.X(noLedgerDays) - 4, pl.Y(nlGaps[noLedgerDays]) - 34, 'rope alone: |x − z| stays above 0', C.red, { align: 'right', size: 11.5, plain: true, p: seg(p, 0.8, 0.9) });
+          g.labelPx(pl.X(noLedgerDays) - 4, pl.Y(nlGaps[noLedgerDays]) - 15, 'with the book: |x − z| closes to 0', C.blue, { align: 'right', size: 11.5, plain: true, p: seg(p, 0.9, 1) });
         } });
     }
 
@@ -840,7 +851,8 @@
     var entries = []; for (var ej = 1; ej <= k; ej++) entries.push({ day: ej, gap: sub(w[ej].x, w[ej].z) });
     var firstGap = firstWallContact != null && firstWallContact <= k ? sub(w[firstWallContact].x, w[firstWallContact].z) : null;
     var bookSpan = Math.min(cx.span, Math.max(5 * len(gapNow), 5 * len(u), 0.08 * cx.span));
-    var bookView = around([z, x, add(z, u)], 0.6, bookSpan), kk = subscript(k);
+    var bookPoints = [z, x, add(z, u), v]; if (wall) bookPoints.push(T);
+    var bookView = around(bookPoints, 0.6, bookSpan), kk = subscript(k);
     var together = len(gapNow) < 1e-9, sameA = Math.abs(x[0] - z[0]) < 5e-4, sameB = Math.abs(x[1] - z[1]) < 5e-4;
     var outsideWord = tower ? 'off the parity-polytope line' : 'outside ' + lawName, onWord = tower ? 'on the parity-polytope line' : wall ? 'on the wall' : 'at the edge of ' + lawName;
     // the book's rows: runs of days with no gap are merged, and only the last rows are kept
@@ -853,6 +865,7 @@
     if (!bookText.length) bookText = [{ text: 'no entries yet', col: C.dim }];
     if (bookText.length > 4) bookText = [{ text: '…', col: C.dim }].concat(bookText.slice(-3));
     bookText.push({ text: 'total u' + kk + ' = ' + pair(u), col: C.orange });
+    if (len(u) > 1e-9) bookText.push({ text: 'next aim z' + kk + ' − u' + kk + ' = ' + pair(v), col: C.violet, aim: true });
     // the twins' two numbers, on dashed lines from each twin to the bottom and left edges of the map
     function coordLines(g, q, col, p) { var vv = g.vis; g.line(q, [q[0], vv[2]], col, 1.3, p, [4, 4]); g.line(q, [vv[0], q[1]], col, 1.3, p, [4, 4]); }
     function coordLabels(g, pA, pB) {
@@ -879,24 +892,27 @@
       g.ctx.beginPath(); g.ctx.moveTo(A[0], A[1]); g.ctx.lineTo(a[0], a[1]); g.ctx.stroke(); g.ctx.setLineDash([]);
       g.arrowPx(a, [a[0] + (b[0] - a[0]) * clamp(p, 0, 1), a[1] + (b[1] - a[1]) * clamp(p, 0, 1)], C.orange, 3);
       g.ctx.restore(); g.ctx.globalAlpha = 1;
-      g.labelPx((a[0] + b[0]) / 2, (a[1] + b[1]) / 2 + 20, 'the book: u' + kk + ' = ' + pair(u), C.orange, { align: 'center', size: 12, p: seg(p, 0.6, 1) });
+      g.labelPx((a[0] + b[0]) / 2, (a[1] + b[1]) / 2 + 20, 'stored correction: u' + kk + ' = ' + pair(u), C.orange, { align: 'center', size: 12, p: seg(p, 0.6, 1) });
     }
-    out.push({ id: 'ledger-role', chapter: 'The Twins', title: 'The Warden’s book: u', layout: 'map+side', view: bookView, dur: 6.4,
-      text: 'So the Warden keeps a book. The story calls it a book or ledger; in standard scaled ADMM it is the scaled dual variable u. ' +
-        'Each twin stands at a spot with two numbers, one for each direction of the map: the Wanderer at x = (x₁, x₂) and the Warden at z = (z₁, z₂). ' +
-        'At the end of every circuit the Warden writes their gap, x − z, into the book: how far, and in which direction, the Wanderer stands from it. So u ← u + (x − z). ' +
+    out.push({ id: 'ledger-role', chapter: 'The Twins', title: 'Why the rope needs the Warden’s book: u', layout: 'map+side', view: bookView, dur: 6.8,
+      text: 'Why keep a book? A rope tied directly between x and z pulls only while the twins stand apart. If they meet, it goes slack. ' +
+        (wall ? 'At the correct wall spot the valley still pulls the Wanderer east, through the wall. ' : 'At a constrained answer the land can still pull the Wanderer away from the Warden. ') +
+        'The Warden keeps a book. The book keeps the correction that a slack rope would lose. The story calls it a book or ledger; in standard scaled ADMM it is the scaled dual variable u. ' +
+        'At the end of every circuit the Warden adds the signed gap x − z to the book: how far, and in which direction, the Wanderer stands from it. So u ← u + (x − z). Repeated gaps in one direction build a stored correction. ' +
         (k === 0 ? 'At the start the twins stand together, x₀ = z₀, and the book is empty: u₀ = (0, 0).' :
           !firstGap ? 'So far the twins have always stood together, x = z, so every gap was (0, 0) and the book is empty. Today both stand at ' + pair(x) + '.' :
           (firstWallContact > 1 ? 'For the first ' + (firstWallContact - 1) + (firstWallContact === 2 ? ' day' : ' days') + ' the twins stood together, x = z, and the book stayed empty. ' : '') +
           (firstWallContact === k ?
             'On day ' + k + ' the Wanderer ended at x' + kk + ' = ' + pair(x) + ', ' + outsideWord + ', while the Warden stood ' + onWord + ' at z' + kk + ' = ' + pair(z) + '. The gap x' + kk + ' − z' + kk + ' = ' + pair(gapNow) + ' became the first entry, so the book reads u' + kk + ' = ' + pair(u) + '. ' :
             'On day ' + firstWallContact + ' the Wanderer first ended ' + outsideWord + ', and the book got its first entry, ' + pair(firstGap) + '. Today the Wanderer is at x' + kk + ' = ' + pair(x) + ' and the Warden at z' + kk + ' = ' + pair(z) + ', and the book reads u' + kk + ' = ' + pair(u) + '. ') +
-          'Tomorrow the Warden will use it.' + (cx.tutorial && w[k + 4] ? ' The next pages follow day ' + (k + 1) + ' move by move, then days ' + (k + 2) + ' to ' + (k + 4) + ' one at a time, each with a land made from the day before.' : '')),
-      math: 'x = (x₁, x₂): the Wanderer;  z = (z₁, z₂): the Warden' + at(0.3, '<br>x' + kk + ' = ' + pair(x) + ',  z' + kk + ' = ' + pair(z) + ',  x' + kk + ' − z' + kk + ' = ' + pair(gapNow)) +
-        at(0.72, '<br>u<sub>k</sub> = u<sub>k−1</sub> + (x<sub>k</sub> − z<sub>k</sub>);  u' + kk + ' = ' + (k > 0 ? (function () { var nz = entries.filter(function (e) { return len(e.gap) > 1e-9; }).map(function (e) { return pair(e.gap); }); return nz.length ? (nz.length > 3 ? '… + ' : '') + nz.slice(-3).join(' + ') + ' = ' : ''; })() : '') + pair(u)),
+          (len(u) > 1e-9 ? 'Tomorrow the stored correction shifts the rope’s aim from z' + kk + ' to z' + kk + ' − u' + kk + ' = ' + pair(v) + '. The correction can remain while the current gap closes. ' : 'Tomorrow the Warden will use it. ') +
+          (cx.tutorial && w[k + 4] ? 'The next pages follow day ' + (k + 1) + ' move by move, then days ' + (k + 2) + ' to ' + (k + 4) + ' one at a time.' : '')),
+      math: 'current signed gap: x' + kk + ' − z' + kk + ' = ' + pair(gapNow) + ';  one final spot requires x = z' +
+        at(0.38, '<br>u<sub>k</sub> = u<sub>k−1</sub> + (x<sub>k</sub> − z<sub>k</sub>);  u' + kk + ' = ' + (k > 0 ? (function () { var nz = entries.filter(function (e) { return len(e.gap) > 1e-9; }).map(function (e) { return pair(e.gap); }); return nz.length ? (nz.length > 3 ? '… + ' : '') + nz.slice(-3).join(' + ') + ' = ' : ''; })() : '') + pair(u)) +
+        (len(u) > 1e-9 ? at(0.78, '<br>stored correction shifts the next aim: z' + kk + ' − u' + kk + ' = ' + pair(v)) : ''),
       draw: function (g, p) {
-        var pX = seg(p, 0.05, 0.3), pZ = seg(p, 0.25, 0.5), pG = seg(p, 0.5, 0.7), pU = seg(p, 0.72, 0.95);
-        base(g);
+        var pX = seg(p, 0.05, 0.3), pZ = seg(p, 0.25, 0.5), pG = seg(p, 0.5, 0.7), pU = seg(p, 0.68, 0.86), pV = seg(p, 0.84, 0.98);
+        base(g); if (wall) star(g, T, 1);
         if (wall) {   // name the wall the Warden stands on
           var vv = g.vis, onSide = Math.abs(z[0] - box[0]) < 1e-9 || Math.abs(z[0] - box[1]) < 1e-9;
           if (onSide) g.label([z[0], vv[3]], 'the wall, x₁ = ' + num(z[0], 0), C.blue, { dx: 8, dy: 16, size: 11.5 });
@@ -904,8 +920,9 @@
         }
         coordLines(g, x, 'rgba(230,233,238,0.7)', pX); if (!together) coordLines(g, z, 'rgba(169,205,246,0.8)', pZ);
         coordLabels(g, pX, together ? pX : pZ);
-        if (!together) { g.arrow(z, x, C.violet, 2.5, pG); g.label(lerp2(z, x, 0.5), 'the gap x' + kk + ' − z' + kk + ' = ' + pair(gapNow), C.violet, { dy: -42, align: 'center', p: pG, size: 12 }); }
+        if (!together) { g.arrow(z, x, C.violet, 2.5, pG); g.label(lerp2(z, x, 0.5), 'current gap x' + kk + ' − z' + kk + ' = ' + pair(gapNow), C.violet, { dy: -42, align: 'center', p: pG, size: 12 }); }
         bookArrow(g, pU);
+        if (len(u) > 1e-9) { g.arrow(z, v, C.violet, 2.6, pV); g.dot(v, 5.5, C.violet, pV); g.label(v, 'next aim z' + kk + ' − u' + kk, C.violet, { dx: -8, dy: 22, align: 'right', p: pV, size: 12 }); }
         g.dot(z, 7, C.blue, together ? pX : pZ); g.hero(x, 'tw', pX);
         if (together) g.label(x, 'both twins: x' + kk + ' = z' + kk + ' = ' + pair(x), C.ink, { dx: 14, dy: -18, p: pX, size: 12 });
         else {
@@ -915,20 +932,20 @@
         }
         // the side panel: the twins' numbers, then the book
         var R = g.sideR, tall = R[3] > 300, rh = tall ? 26 : 20, c1 = R[0] + 14, c2 = R[0] + R[2] * 0.5, c3 = R[0] + R[2] * 0.76;
-        g.panel(R, 'Where the twins stand, day ' + k);
-        var table = [['', 'first', 'second', C.dim, 1], ['x' + kk + ', the Wanderer', 'x₁ = ' + num(x[0]), 'x₂ = ' + num(x[1]), '#e6e9ee', pX], ['z' + kk + ', the Warden', 'z₁ = ' + num(z[0]), 'z₂ = ' + num(z[1]), C.blue, pZ], ['x' + kk + ' − z' + kk + ', the gap', num(gapNow[0]), num(gapNow[1]), C.violet, pG]];
+        g.panel(R, 'Why remember the gap?');
+        var table = [['', 'first', 'second', C.dim, 1], ['x' + kk + ', the Wanderer', 'x₁ = ' + num(x[0]), 'x₂ = ' + num(x[1]), '#e6e9ee', pX], ['z' + kk + ', the Warden', 'z₁ = ' + num(z[0]), 'z₂ = ' + num(z[1]), C.blue, pZ], ['x' + kk + ' − z' + kk + ', current gap', num(gapNow[0]), num(gapNow[1]), C.violet, pG]];
         table.forEach(function (r, i) { var y = R[1] + 40 + rh * i; g.labelPx(c1, y, r[0], r[3], { plain: true, size: 12, p: r[4] }); g.labelPx(c2, y, r[1], r[3], { plain: true, mono: true, size: 12, p: r[4] }); g.labelPx(c3, y, r[2], r[3], { plain: true, mono: true, size: 12, p: r[4] }); });
         var y2 = R[1] + 40 + rh * 4 + (tall ? 18 : 8), cv = g.ctx;
         cv.globalAlpha = clamp(pU, 0, 1); cv.strokeStyle = C.faint; cv.lineWidth = 1; cv.beginPath(); cv.moveTo(R[0] + 10, y2 - rh / 2); cv.lineTo(R[0] + R[2] - 10, y2 - rh / 2); cv.stroke(); cv.globalAlpha = 1;
-        g.labelPx(c1, y2, 'The Warden’s book', C.gold, { plain: true, size: 12.5, p: pU });
-        bookText.forEach(function (r, i) { g.labelPx(c1, y2 + rh * (i + 1), r.text, r.col, { plain: true, mono: true, size: 12, p: seg(pU, 0.15 * i, 0.15 * i + 0.4) }); });
+        g.labelPx(c1, y2, 'The Warden’s book: stored corrections', C.gold, { plain: true, size: 12.5, p: pU });
+        bookText.forEach(function (r, i) { g.labelPx(c1, y2 + rh * (i + 1), r.text, r.col, { plain: true, mono: true, size: 12, p: r.aim ? pV : seg(pU, 0.15 * i, 0.15 * i + 0.4) }); });
       } });
 
     // ---- one circuit: the aim, the Wanderer's step, the Warden's step, the book
     var aimView = around([z, v, x, add(z, u)], 1.2, Math.max(0.16 * cx.span, 7 * len(u), 0.28));
     out.push({ id: 'aim', chapter: 'The Twins', title: 'Aim past the Warden: v = z − u', layout: 'map+side', view: aimView, dur: 5,
-      text: (len(u) > 1e-9 ? 'The book says: you fell short of me by u<sub>' + k + '</sub> = ' + pair(u) + '. So the Warden tells the Wanderer to aim not at z<sub>' + k + '</sub> but past it by the book: the aim is v<sub>' + k + '</sub> = z<sub>' + k + '</sub> − u<sub>' + k + '</sub> = ' + pair(v) + '. ' : 'The book is empty, so the aim is the Warden’s own spot: v<sub>' + k + '</sub> = z<sub>' + k + '</sub> = ' + pair(v) + '. ') +
-        'Why past, and why subtract? The rope’s cost ρ/2·|x − z + u|² is the same number as ρ/2·|x − (z − u)|²: a rope tied to v. A gap that repeats is corrected a little harder each day, until the Wanderer lands on the Warden.',
+      text: (len(u) > 1e-9 ? 'The current gap can now shrink without erasing the stored correction in the book. The book says: you fell short of me by u<sub>' + k + '</sub> = ' + pair(u) + '. So the Warden tells the Wanderer to aim not at z<sub>' + k + '</sub> but past it by the book: the aim is v<sub>' + k + '</sub> = z<sub>' + k + '</sub> − u<sub>' + k + '</sub> = ' + pair(v) + '. ' : 'The book is empty, so the aim is the Warden’s own spot: v<sub>' + k + '</sub> = z<sub>' + k + '</sub> = ' + pair(v) + '. ') +
+        'Why past, and why subtract? The rope’s cost ρ/2·|x − z + u|² is the same number as ρ/2·|x − (z − u)|²: a rope tied to v. A gap that repeats is corrected a little harder each day, until the two moving twins meet.',
       math: '|x − z + u|² = |x − (z − u)|²,  so its centre is v = z − u' + at(0.55, '<br>v<sub>' + k + '</sub> = ' + pair(z) + ' − ' + pair(u) + ' = ' + pair(v)),
       draw: function (g, p) {
         base(g); g.dot(z, 7, C.blue, 1); g.label(z, 'start at z' + subscript(k), C.blue, { dx: -8, dy: -16, align: 'right', p: 1, size: 12 }); g.hero(x, 'tw', 1); g.label(x, 'x' + subscript(k), '#e6e9ee', { dx: 10, dy: -16, size: 12 });
