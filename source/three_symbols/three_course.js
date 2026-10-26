@@ -327,21 +327,89 @@
         { name: 'b_3', marks: [{ v: R1.z[1][1], col: COL.z, text: 'copy', p: seg(q, 0.62, 0.7) }, { v: t[1][1], col: COL.target, text: 'B asks', p: pb }], arrows: [{ from: R1.z[1][1], to: t[1][1], col: COL.target, p: pb }] }], q, 'each target aims past its copy');
     } });
 
-  out.push({ id: 'shared', chapter: CH.round, title: 'Round 2: the shared update', layout: 'side', dur: 9,
-    text: 'Each symbol estimate now weighs the signal against the targets of its checks. Here d<sub>i</sub> is the number of checks that contain symbol i, and with ρ = 1 every term has the same weight, so the update is a plain average. ' +
-      at(0.3, 'Symbol 1 averages 0.1 with the 0.60 of A and gets ' + f2(R2.b[0]) + '. ') +
-      at(0.46, 'Symbol 2 averages 0.6, the 0.10 of A and the 0.90 of B and gets ' + f3(R2.b[1]) + '. ') +
-      at(0.62, 'Symbol 3 averages 0.9 with the 0.60 of B and gets ' + f2(R2.b[2]) + '. ') +
-      at(0.8, 'This average is not a guess. For symbol 2, the quadratic has slope 0.200 at 0.600 and curvature 3. Subtracting slope divided by curvature lands directly at its minimum: 0.600 − 0.200/3 = 0.533. Clipping would keep an outside answer in [0,1].'),
-    math: 'b<sub>i</sub> ← Π<sub>[0,1]</sub>((c<sub>i</sub> + ρ Σ<sub>a∋i</sub>(z<sub>a,i</sub> − u<sub>a,i</sub>)) / (1 + ρ d<sub>i</sub>))' + at(0.3, '<br>' + sup(bi(1), 2) + ' = (0.1 + 0.6)/2 = ' + f2(R2.b[0])) + at(0.46, '<br>' + sup(bi(2), 2) + ' = (0.6 + 0.1 + 0.9)/3 = ' + f3(R2.b[1])) + at(0.62, '<br>' + sup(bi(3), 2) + ' = (0.9 + 0.6)/2 = ' + f2(R2.b[2])) + at(0.8, '<br>φ<sub>2</sub>(t) = ½(t−0.6)² + ½(t−0.1)² + ½(t−0.9)²<br>φ′<sub>2</sub>(0.600) = 0.200, φ″<sub>2</sub> = 3<br>' + sup(bi(2), 2) + ' = Π<sub>[0,1]</sub>(0.600 − 0.200/3) = 0.533'),
+  var sharedCalcs = [
+    { i: 0, start: 0.06, end: 0.25, edges: [0], checks: ['A'], signal: c[0], targets: [R2.targets[0][0]], result: R2.b[0], den: 2 },
+    { i: 1, start: 0.25, end: 0.49, edges: [1, 2], checks: ['A', 'B'], signal: c[1], targets: [R2.targets[0][1], R2.targets[1][0]], result: R2.b[1], den: 3 },
+    { i: 2, start: 0.49, end: 0.68, edges: [3], checks: ['B'], signal: c[2], targets: [R2.targets[1][1]], result: R2.b[2], den: 2 }
+  ];
+  function sharedCalcAt(q) { return q < 0.06 ? null : q < 0.25 ? sharedCalcs[0] : q < 0.49 ? sharedCalcs[1] : q < 0.68 ? sharedCalcs[2] : sharedCalcs[1]; }
+  function sharedCalcLines(calc) {
+    var i = calc.i + 1, sum = calc.signal + calc.targets.reduce(function (s, v) { return s + v; }, 0);
+    var targetText = calc.checks.map(function (a, j) { return a + ' = ' + f2(calc.targets[j]); }).join(',  ');
+    var terms = [f2(calc.signal)].concat(calc.targets.map(f2)).join(' + ');
+    return [
+      { text: 'signal c_' + i + ' = ' + f2(calc.signal), col: COL.signal },
+      { text: 'corrected target' + (calc.targets.length > 1 ? 's: ' : ': ') + targetText, col: COL.target },
+      { text: 'b_' + i + '^2 = (' + terms + ') / (1 + ' + (calc.den - 1) + ')', col: COL.b },
+      { text: '= ' + f2(sum) + ' / ' + calc.den + ' = ' + (i === 2 ? f3(calc.result) : f2(calc.result)), col: C.gold, weight: '700' }
+    ];
+  }
+  function sharedRuleLines() {
+    return [
+      { text: 'ρ = 1: every incoming value has equal weight', col: C.ink },
+      { text: 'top: c_i + Σ_{a∋i}(z_{a,i}^1 − u_{a,i}^1)', col: COL.target },
+      { text: 'bottom: 1 signal value + d_i check requests', col: COL.b },
+      { text: 'b_i^2 = clip_[0,1](top / bottom)', col: C.gold, weight: '700' }
+    ];
+  }
+  function sharedProofLines(q) {
+    if (q < 0.79) return { title: 'symbol 2: the three quadratic terms', start: 0.68, end: 0.79, lines: [
+      { text: 'φ_2(t) = ½(t − 0.60)^2', col: COL.signal },
+      { text: '          + ½(t − 0.10)^2', col: COL.target },
+      { text: '          + ½(t − 0.90)^2', col: COL.target }
+    ] };
+    if (q < 0.90) return { title: 'at the old value b₂¹ = 0.600', start: 0.79, end: 0.90, lines: [
+      { text: 'slope: signal 0 + A 0.500 + B (−0.300)', col: COL.signal },
+      { text: 'total slope = 0.200', col: C.gold, weight: '700' },
+      { text: 'each ½(t − centre)^2 term adds curvature 1', col: COL.target },
+      { text: 'total curvature = 1 + 1 + 1 = 3', col: C.gold, weight: '700' },
+    ] };
+    return { title: 'the same answer as the average', start: 0.90, end: 1.01, lines: [
+      { text: 'old value − slope / curvature', col: C.ink },
+      { text: '0.600 − 0.200 / 3', col: COL.signal },
+      { text: '= 0.533', col: C.gold, weight: '700' },
+      { text: 'already inside [0,1], so clipping does nothing', col: COL.b }
+    ] };
+  }
+  function drawSharedCalculation(g, Rr, q, calc) {
+    var lineH = Math.round(Rr[3] * 0.41), gap = 8;
+    var NR = [Rr[0], Rr[1], Rr[2], lineH], ER = [Rr[0], Rr[1] + lineH + gap, Rr[2], Rr[3] - lineH - gap];
+    var local = calc ? clamp((q - calc.start) / (calc.end - calc.start), 0, 1) : clamp(q / 0.06, 0, 1), proofMode = q >= 0.68;
+    var marks = calc ? [{ v: calc.signal, col: COL.signal, text: proofMode ? 'old b_2^1 ' + f2(calc.signal) : 'c_' + (calc.i + 1) + ' ' + f2(calc.signal), p: seg(local, 0.02, 0.18) }].concat(calc.targets.map(function (v, j) {
+      return { v: v, col: COL.target, text: calc.checks[j] + ' ' + f2(v), p: seg(local, 0.12 + 0.08 * j, 0.3 + 0.08 * j) };
+    })).concat([{ v: calc.result, col: COL.b, big: true, below: false, text: proofMode ? 'new b_2^2 ' + f3(calc.result) : 'b_' + (calc.i + 1) + '^2 ' + (calc.i === 1 ? f3(calc.result) : f2(calc.result)), p: seg(local, 0.68, 0.88) }]) : [];
+    P.numberLines(g, NR, [{ name: calc ? 'b_' + (calc.i + 1) : 'b_i', marks: marks }], 1, calc ? 'the values for symbol ' + (calc.i + 1) : 'the same rule moves across the graph');
+    if (q < 0.68) {
+      var lines = calc ? sharedCalcLines(calc) : sharedRuleLines();
+      lines.forEach(function (it, j) { it.p = j === 3 ? seg(local, 0.68, 0.86) : seg(local, 0.05 + 0.15 * j, 0.22 + 0.15 * j); });
+      P.lines(g, ER, lines, 1, calc ? 'substitute only the highlighted values' : 'the shared-update rule, with ρ = 1', { size: ER[2] < 390 ? 11.5 : 12.5, rowH: 30 });
+    } else {
+      var proof = sharedProofLines(q), pp = clamp((q - proof.start) / (proof.end - proof.start), 0, 1);
+      proof.lines.forEach(function (it, j) { it.p = seg(pp, 0.04 + 0.16 * j, 0.24 + 0.16 * j); });
+      P.lines(g, ER, proof.lines, 1, proof.title, { size: ER[2] < 390 ? 11.5 : 12.5, rowH: 30 });
+    }
+  }
+
+  out.push({ id: 'shared', chapter: CH.round, title: 'Round 2: the shared update', layout: 'side', dur: 13.5,
+    text: 'Each symbol estimate combines one signal value with one corrected target from every check that touches it. Here d<sub>i</sub> counts those checks. With ρ = 1, the animation substitutes equal-weight values into the same rule. ' +
+      at(0.06, 'Symbol 1 has one check: ' + sup(bi(1), 2) + ' = (0.1 + 0.6)/2 = ' + f2(R2.b[0]) + '. ') +
+      at(0.25, 'Symbol 2 has two checks: ' + sup(bi(2), 2) + ' = (0.6 + 0.1 + 0.9)/3 = ' + f3(R2.b[1]) + '. ') +
+      at(0.49, 'Symbol 3 has one check: ' + sup(bi(3), 2) + ' = (0.9 + 0.6)/2 = ' + f2(R2.b[2]) + '. ') +
+      at(0.68, 'The last view returns to symbol 2. At its old value 0.600, the three quadratic terms have total slope 0.200 and curvature 3. Because the slope is positive, downhill is toward a smaller value. The move 0.600 − 0.200/3 = 0.533 reaches the same minimum as the average. Clipping changes nothing because the answer is already in [0,1].'),
+    math: '',
     draw: function (g, q) {
-      var RR = P.two(g.sideR, 0.5), t = R2.targets, p1 = seg(q, 0.3, 0.42), p2 = seg(q, 0.46, 0.58), p3 = seg(q, 0.62, 0.74), ps = [p1, p2, p3];
-      P.graph(g, RR[0], { title: 'round 2: the shared update', vals: R1.b.map(function (v, i) { return ps[i] >= 1 ? (i === 1 ? f3(R2.b[i]) : f2(R2.b[i])) : f2(v); }), valCol: function (i) { return ps[i] >= 1 ? C.gold : COL.b; },
-        arrows: [{ e: 0, text: f2(t[0][0]), col: COL.target, p: 1, side: -1 }, { e: 1, text: f2(t[0][1]), col: COL.target, p: 1, side: -1 }, { e: 2, text: f2(t[1][0]), col: COL.target, p: 1, side: 1 }, { e: 3, text: f2(t[1][1]), col: COL.target, p: 1, side: 1 }] });
-      P.numberLines(g, RR[1], [
-        { name: 'b_1', marks: [{ v: c[0], col: COL.signal, text: 'c', p: seg(q, 0.05, 0.15) }, { v: t[0][0], col: COL.target, text: 'A', p: seg(q, 0.1, 0.2) }, { v: R2.b[0], col: COL.b, big: true, text: '= ' + f2(R2.b[0]), below: false, p: p1 }] },
-        { name: 'b_2', marks: [{ v: c[1], col: COL.signal, text: 'c', p: seg(q, 0.05, 0.15) }, { v: t[0][1], col: COL.target, text: 'A', p: seg(q, 0.1, 0.2) }, { v: t[1][0], col: COL.target, text: 'B', p: seg(q, 0.15, 0.25) }, { v: R2.b[1], col: COL.b, big: true, text: '= ' + f3(R2.b[1]), below: false, p: p2 }] },
-        { name: 'b_3', marks: [{ v: c[2], col: COL.signal, text: 'c', p: seg(q, 0.05, 0.15) }, { v: t[1][1], col: COL.target, text: 'B', p: seg(q, 0.15, 0.25) }, { v: R2.b[2], col: COL.b, big: true, text: '= ' + f2(R2.b[2]), below: false, p: p3 }] }], q, 'the average is the minimum of the quadratic');
+      var RR = P.two(g.sideR, 0.52), t = R2.targets, calc = sharedCalcAt(q), focus = calc ? calc.i : null;
+      var done = sharedCalcs.map(function (s) { return q >= s.start + 0.68 * (s.end - s.start); });
+      var activeEdges = calc ? calc.edges : [];
+      P.graph(g, RR[0], { title: q < 0.06 ? 'round 2: one rule, three symbols' : q < 0.68 ? 'now update symbol ' + (focus + 1) : 'why symbol 2 lands at 0.533',
+        vals: R1.b.map(function (v, i) { return done[i] ? (i === 1 ? f3(R2.b[i]) : f2(R2.b[i])) : f2(v); }),
+        valCol: function (i) { return i === focus ? C.gold : COL.b; }, hi: focus, hiP: focus == null ? 0 : 1,
+        sig: ['c_1 = 0.10', 'c_2 = 0.60', 'c_3 = 0.90'], sigP: 1,
+        edgeCol: function (e) { return activeEdges.indexOf(e) >= 0 ? COL.target : 'rgba(242,245,248,0.28)'; },
+        edgeW: function (e) { return activeEdges.indexOf(e) >= 0 ? 2.5 : 1.3; },
+        arrows: activeEdges.map(function (e) { var E = T.EDGES[e]; return { e: e, text: f2(t[E[0]][E[2]]), col: COL.target, p: 1, side: E[0] ? 1 : -1 }; })
+      });
+      drawSharedCalculation(g, RR[1], q, calc);
     } });
 
   out.push({ id: 'roles', chapter: CH.round, title: 'Three updates, three jobs', layout: 'side', dur: 7,
