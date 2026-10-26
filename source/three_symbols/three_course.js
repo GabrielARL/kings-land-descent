@@ -24,7 +24,7 @@
   function bold(s) { return '<b>' + s + '</b>'; }
   function sub(x, s) { return x + '<sub>' + s + '</sub>'; }
   var b = bold('b'), cv = bold('c'), Cmat = bold('C'), cch = sub(bold('c'), 'ch'), Mmat = bold('M'), rvec = bold('r'), Hm = bold('H'), za = sub(bold('z'), 'a'), zA = sub(bold('z'), 'A'), zB = sub(bold('z'), 'B'), ua = sub(bold('u'), 'a'), uA = sub(bold('u'), 'A'), uB = sub(bold('u'), 'B');
-  var Sa = sub(bold('S'), 'a'), SA = sub(bold('S'), 'A'), SB = sub(bold('S'), 'B'), ra = sub(bold('r'), 'a'), PA = sub('𝒫', 'A'), Pa = sub('𝒫', 'a');
+  var Sa = sub(bold('S'), 'a'), SA = sub(bold('S'), 'A'), SB = sub(bold('S'), 'B'), ra = sub(bold('r'), 'a'), rA = sub(bold('r'), 'A'), PA = sub('𝒫', 'A'), Pa = sub('𝒫', 'a');
   function bi(i) { return sub('b', i); }
   function ze(a, i) { return sub('z', a + ',' + i); }
   function ue(a, i) { return sub('u', a + ',' + i); }
@@ -229,7 +229,7 @@
     text: 'The counterfactual now repeats those two updates through round 12. The graph reads ' + b + ' = ' + v2(L12.b) + ', ' + zA + ' = ' + v2(L12.z[0]) + ' and ' + zB + ' = ' + v2(L12.z[1]) + '. ' +
       at(0.32, 'Each replica is legal because both entries in its pair are equal. But the replicas do not equal the shared estimates: their gap is ' + f2(L12.gap) + '. The rounded word stays ' + word(L12.word) + ', and check A fails. ') +
       at(0.6, 'More rounds approach ' + b + ' = ' + v3(AL.b) + ', almost the same numbers. This is not a solution of the fixed problem. That problem forces b<sub>1</sub> = b<sub>2</sub> = b<sub>3</sub>, whose best common value is ' + f3(d.mean) + '. ') +
-      at(0.84, 'The signal pulls symbol 1 back toward 0.1 in every round, and nothing records that this same disagreement keeps returning. The ledger supplies that missing memory.'),
+      at(0.84, 'The disagreements keep returning, but the zero-ledger run erases them. The next page returns to the first projection and keeps one, so it can change what happens next.'),
     math: 'round 12: ' + b + ' = ' + v2(L12.b) + ',  ' + zA + ' = ' + v2(L12.z[0]) + ',  ' + zB + ' = ' + v2(L12.z[1]) + at(0.32, '<br>legal copies, but ‖' + Sa + b + ' − ' + za + '‖ = ' + f2(L12.gap)) + at(0.6, '<br>fixed problem: ' + b + '<sup>★</sup> = (' + f3(d.mean) + ', ' + f3(d.mean) + ', ' + f3(d.mean) + '), gap = 0'),
     draw: function (g, q) {
       var RR = P.two(g.sideR, 0.52), k = Math.min(N, Math.floor(seg(q, 0.12, 0.6) * N)), st = L[Math.max(1, k)];
@@ -237,22 +237,27 @@
       P.trace(g, RR[1], { rounds: L, n: N, upto: seg(q, 0.12, 0.6), title: 'no ledger: the estimates stall' });
     } });
 
-  out.push({ id: 'ledger', chapter: CH.memory, title: 'The ledger remembers the disagreement', layout: 'side', dur: 8.5,
-    text: 'The missing piece is memory. Each check keeps a ledger ' + ua + ', with one entry for each of its edges; in ADMM it is the scaled dual variable. ' +
-      at(0.28, 'After each projection the check adds the disagreement ' + ra + ' = ' + Sa + b + ' − ' + za + ' between the shared estimates and its copy. Starting from zero, ' + ua + ' is the running sum of every disagreement so far. ') +
-      at(0.6, 'A positive entry u<sub>a,i</sub> means b<sub>i</sub> has kept sitting above the copy, so the next update pulls b<sub>i</sub> down; a negative entry pulls it up. ') +
-      at(0.82, 'The ledger is not a symbol estimate, a message of belief propagation (BP), a gradient, momentum or a step size. It is accumulated signed disagreement.'),
-    math: ra + ' = ' + Sa + b + ' − ' + za + ',  ' + ua + ' ← ' + ua + ' + ' + ra + at(0.28, '<br>' + sup(ua, 'k') + ' = ' + sup(ra, 1) + ' + ' + sup(ra, 2) + ' + … + ' + sup(ra, 'k') + '  (from ' + sup(ua, 0) + ' = 0)'),
+  out.push({ id: 'ledger', chapter: CH.memory, title: 'Keep the gap the failed run erased', layout: 'side', dur: 10,
+    text: 'The previous page ended with a ' + f2(L12.gap) + ' gap. The no-ledger run computed signed differences, then erased them. Return to the first projection and keep check A’s difference. ' +
+      at(0.25, 'Check A saw ' + SA + sup(b, 1) + ' = (0.10, 0.60), but its legal copy was ' + sup(zA, 1) + ' = (0.35, 0.35), so ' + sup(rA, 1) + ' = (−0.25, 0.25). Without memory, ' + uA + ' stays zero and A requests (0.35, 0.35) again. ') +
+      at(0.55, 'ADMM writes the difference into the ledger: ' + sup(uA, 1) + ' = (−0.25, 0.25). The next shared update uses ' + zA + ' − ' + uA + ', changing A’s request to (0.60, 0.10). The negative entry raises the first request; the positive entry lowers the second. ') +
+      at(0.82, 'Later differences are added to the same ' + uA + ' instead of resetting. In ADMM, ' + ua + ' is the scaled dual variable: running signed disagreement that changes the next request.'),
+    math: sup(rA, 1) + ' = (0.10, 0.60) − (0.35, 0.35) = (−0.25, 0.25)' +
+      at(0.42, '<br>no ledger: ' + sup(uA, 1) + ' = (0, 0)  →  next request = (0.35, 0.35)') +
+      at(0.58, '<br>ADMM: ' + sup(uA, 1) + ' = ' + sup(rA, 1) + '  →  ' + sup(zA, 1) + ' − ' + sup(uA, 1) + ' = (0.60, 0.10)') +
+      at(0.82, '<br>later: ' + sup(ua, 'k') + ' = ' + sup(ua, 'k−1') + ' + ' + sup(ra, 'k') + '  (one u<sub>a,i</sub> per edge)'),
     draw: function (g, q) {
-      var RR = P.two(g.sideR, 0.58);
-      P.graph(g, RR[0], { title: 'a replica and a ledger on every edge', vals: ['b₁', 'b₂', 'b₃'], names: ['', '', ''], boxes: names({ u: true, uP: seg(q, 0.05, 0.25) }) });
-      P.lines(g, RR[1], [{ text: '*r_a = *S_a*b − *z_a', col: COL.u, p: seg(q, 0.28, 0.4) }, { text: '*u_a ← *u_a + *r_a', col: COL.u, p: seg(q, 0.34, 0.46) },
-        { text: 'u_{a,i} > 0: b_i sat above the copy', col: C.ink, p: seg(q, 0.6, 0.7) }, { text: '   → the next update pulls b_i down', col: COL.target, p: seg(q, 0.64, 0.74) },
-        { text: 'u_{a,i} < 0: b_i sat below the copy', col: C.ink, p: seg(q, 0.7, 0.8) }, { text: '   → the next update pulls b_i up', col: COL.target, p: seg(q, 0.74, 0.84) }], q, 'the ledger of check a');
+      blockFlow(g, g.sideR, [
+        ['shared pair', '*S_A*b^1 = (0.10, 0.60)', COL.b, 0.05],
+        ['legal copy', '*z_A^1 = (0.35, 0.35)', COL.z, 0.22],
+        ['signed difference', '*r_A^1 = (−0.25, 0.25)', COL.fail, 0.4],
+        ['do not erase it', '*u_A^1 = *r_A^1', COL.u, 0.58],
+        ['next request', '*z_A^1 − *u_A^1 = (0.60, 0.10)', COL.target, 0.76]
+      ], q, 'the missing line between the two pages');
     } });
 
   out.push({ id: 'edges', chapter: CH.memory, title: 'What every edge carries', layout: 'side', dur: 8,
-    text: 'Every check–symbol edge of the Tanner graph now carries its own state, a replica coordinate and a scaled dual variable. ' +
+    text: 'The two A entries just stored stay on A’s two edges. Check B keeps its own two entries, so every check–symbol edge carries a replica coordinate and a scaled dual variable. ' +
       at(0.28, 'The edge A–b<sub>1</sub> holds ' + ze('A', 1) + ' and ' + ue('A', 1) + ', and the edge B–b<sub>3</sub> holds ' + ze('B', 3) + ' and ' + ue('B', 3) + '. ') +
       at(0.52, 'Symbol 2 is one shared estimate inside two independent edge states, (' + ze('A', 2) + ', ' + ue('A', 2) + ') and (' + ze('B', 2) + ', ' + ue('B', 2) + '). ') +
       at(0.76, 'Overlapping checks may request different corrections to the same shared estimate, and this is the main reason for the replicas. SAPPHIRE keeps exactly this state, one b<sub>i</sub> per symbol and one pair per edge.'),
@@ -266,7 +271,7 @@
   // ------------------------------------------------------------ 4. one round by hand
   var R0 = R[0];
   out.push({ id: 'start', chapter: CH.round, title: 'The start: every copy copies the signal', layout: 'side', dur: 7.5,
-    text: 'The run starts from the signal, ' + sup(b, 0) + ' = ' + cv + ' = (0.1, 0.6, 0.9). Each replica starts as a plain copy of its symbols, ' + sup(zA, 0) + ' = (0.1, 0.6) and ' + sup(zB, 0) + ' = (0.6, 0.9), and both ledgers start at zero. ' +
+    text: 'Now replay that same first round slowly as full ADMM. The run starts from the signal, ' + sup(b, 0) + ' = ' + cv + ' = (0.1, 0.6, 0.9). Each replica starts as a plain copy of its symbols, ' + sup(zA, 0) + ' = (0.1, 0.6) and ' + sup(zB, 0) + ' = (0.6, 0.9), and both ledgers start at zero. ' +
       at(0.55, 'Round 1 opens with the shared update, and that update has nothing to settle. The signal and the replicas already agree, so ' + sup(b, 1) + ' = (0.1, 0.6, 0.9). ') +
       at(0.82, 'However, neither replica is legal yet, since neither pair is equal.'),
     math: sup(b, 0) + ' = (0.1, 0.6, 0.9)<br>' + sup(zA, 0) + ' = (0.1, 0.6),  ' + sup(zB, 0) + ' = (0.6, 0.9),  ' + sup(uA, 0) + ' = ' + sup(uB, 0) + ' = (0, 0)' + at(0.55, '<br>' + sup(b, 1) + ' = ' + sup(b, 0)),
