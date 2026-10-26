@@ -1876,6 +1876,17 @@ var ThreeParts = (function () {
   ];
   function bridgeBowlCost(bowl, t) { var d0 = t - bowl.centre; return bowl.curvature * d0 * d0 / 2; }
   function bridgeSignalCost(bowl, t) { var d0 = t - bowl.old; return bridgeBowlCost(bowl, t) - 0.08 * d0 * d0 * (1 + 0.15 * Math.sin(7 * t)); }
+  // A schematic two-coordinate receiver slice.  At response coordinate r = 0 its bright cross-section is exactly the
+  // one-symbol quadratic above.  Away from that slice the sheet exists only to give the response block a visible
+  // direction; it is not a sampled surface from the recorded receiver.
+  var bridgeResponse = { current: 0, quadratic: 0.16, slope: -0.10, coupling: 0.05 };
+  function bridgeJointCost(bowl, t, r, costFn) {
+    var base = costFn ? costFn(bowl, t) : bridgeBowlCost(bowl, t);
+    return base + bridgeResponse.quadratic * r * r + (bridgeResponse.slope + bridgeResponse.coupling * (t - bowl.old)) * r;
+  }
+  function bridgeResponseMinimum(bowl, t) {
+    return clamp(-(bridgeResponse.slope + bridgeResponse.coupling * (t - bowl.old)) / (2 * bridgeResponse.quadratic), -1, 1);
+  }
   function bridgeFocus(q) { return q < 0.08 ? null : q < 0.18 ? 0 : q < 0.28 ? 1 : q < 0.38 ? 2 : q < 0.54 ? null : q < 0.84 ? 1 : null; }
   function bridgeCardProgress(q) {
     if (q < 0.08) return seg(q, 0, 0.08);
@@ -1885,7 +1896,8 @@ var ThreeParts = (function () {
     if (q < 0.54) return seg(q, 0.38, 0.54);
     if (q < 0.70) return seg(q, 0.54, 0.70);
     if (q < 0.84) return seg(q, 0.70, 0.84);
-    return seg(q, 0.84, 1);
+    if (q < 0.94) return seg(q, 0.84, 0.94);
+    return seg(q, 0.94, 1);
   }
   function bridgePosition(bowl, q) {
     if (q < 0.38) return bowl.old;
@@ -1895,11 +1907,11 @@ var ThreeParts = (function () {
     return mix(bowl.old, bowl.centre, seg(q, 0.70, 0.84));
   }
   function bridgeLines(q) {
-    if (q < 0.08) return { title: 'what the perspective drawing means', lines: [
-      { text: 'horizontal: one symbol value t, from 0 to 1', col: COL.b },
-      { text: 'vertical: its cost above the bottom', col: COL.target },
-      { text: 'depth only separates symbols 1, 2 and 3', col: C.gold },
-      { text: 'three one-symbol graphs, not one joint surface', col: C.dim }
+    if (q < 0.08) return { title: 'how to read the 3D view', lines: [
+      { text: 'left–right: one symbol estimate b_i', col: COL.b },
+      { text: 'front–back: one real coordinate of *C', col: C.gold },
+      { text: 'up: cost', col: COL.target },
+      { text: 'bright slice: hold *C at *C^k', col: COL.pass }
     ] };
     if (q < 0.38) {
       var bowl = bridgeBowls[bridgeFocus(q)], j = bowl.i + 1;
@@ -1910,10 +1922,10 @@ var ThreeParts = (function () {
         { text: 'old b_' + j + '^1 = ' + f3(bowl.old) + ', slope ' + (bowl.slope >= 0 ? '+' : '−') + f3(Math.abs(bowl.slope)), col: COL.signal }
       ] };
     }
-    if (q < 0.54) return { title: 'one shared update', lines: [
+    if (q < 0.54) return { title: 'one shared symbol update', lines: [
       { text: 'old *b^1 = (0.100, 0.600, 0.900)', col: COL.signal },
-      { text: 'all three use the same old vector', col: C.ink },
-      { text: 'move directly to all three bowl bottoms', col: COL.pass },
+      { text: 'the same old vector feeds all three', col: C.ink },
+      { text: 'three markers move together', col: COL.pass },
       { text: 'new *b^2 = (0.350, 0.533, 0.750)', col: C.gold, weight: '700' }
     ] };
     if (q < 0.70) return { title: 'replay symbol 2', lines: [
@@ -1928,88 +1940,161 @@ var ThreeParts = (function () {
       { text: '= 0.533', col: C.gold, weight: '700' },
       { text: 'inside [0,1], so clipping changes nothing', col: COL.pass }
     ] };
-    return { title: 'schematic: first model the signal cost', lines: [
-      { text: 'fixed-weight signal cost near the old estimate', col: COL.signal },
-      { text: 'upper quadratic model: same height and slope', col: COL.target },
-      { text: 'the model stays above the signal cost', col: C.gold },
-      { text: 'then add binary + ADMM terms for the full bowl', col: COL.pass }
+    if (q < 0.94) return { title: 'fixed-C signal slice', lines: [
+      { text: 'gold: received-signal cost', col: COL.signal },
+      { text: 'violet: upper quadratic model', col: COL.target },
+      { text: 'bright slice preserves the toy curve', col: C.gold },
+      { text: 'touch; then add binary + ADMM terms', col: COL.pass }
+    ] };
+    return { title: 'response block', lines: [
+      { text: 'refresh the robust weights', col: COL.signal },
+      { text: 'hold the new *b fixed', col: COL.b },
+      { text: 'bright direction runs through *C', col: C.gold },
+      { text: 'solve full *C by normal equations', col: COL.pass }
     ] };
   }
-  function drawBridgeCurve(g, map, bowl, p, col, width, costFn, dash) {
-    if (!(p > 0)) return; var cx = g.ctx, n = 64; cx.save(); cx.globalAlpha = clamp(p, 0, 1); cx.strokeStyle = col; cx.lineWidth = width; if (dash) cx.setLineDash(dash); cx.beginPath();
-    for (var j = 0; j <= n; j++) { var t = j / n, a = map(t, costFn ? costFn(t) : bridgeBowlCost(bowl, t)); if (!j) cx.moveTo(a[0], a[1]); else cx.lineTo(a[0], a[1]); }
+  function bridgeView(F, unfold) {
+    var dx = -F[2] * 0.17 * unfold, dy = -F[3] * 0.12 * unfold;
+    return { F: F, ox: F[0] + F[2] * 0.22, oy: F[1] + F[3] * 0.84, xw: F[2] * 0.71, dx: dx, dy: dy, zh: F[3] * 0.61, zmax: 0.72 };
+  }
+  function bridgeProject(V, t, r, cost) {
+    var d = (r + 1) / 2;
+    return [V.ox + t * V.xw + d * V.dx, V.oy + d * V.dy - cost / V.zmax * V.zh];
+  }
+  function bridgePath3D(g, V, bowl, p, col, width, r, costFn, dash) {
+    if (!(p > 0)) return; var cx = g.ctx, n = 56; cx.save(); cx.globalAlpha = clamp(p, 0, 1); cx.strokeStyle = col; cx.lineWidth = width; cx.lineCap = 'round'; if (dash) cx.setLineDash(dash); cx.beginPath();
+    for (var j = 0; j <= n; j++) { var t = j / n, a = bridgeProject(V, t, r, bridgeJointCost(bowl, t, r, costFn)); if (!j) cx.moveTo(a[0], a[1]); else cx.lineTo(a[0], a[1]); }
     cx.stroke(); cx.restore();
   }
-  function drawBridgeWide(g, Rr, q) {
-    var cx = g.ctx, focus = bridgeFocus(q), xPad = Rr[2] * 0.08, pw = Rr[2] * 0.68, vh = Rr[3] * 0.48, dx = Rr[2] * 0.095, dy = Rr[3] * 0.105;
-    g.panel(Rr, q < 0.84 ? 'three one-symbol bowls in a perspective rack' : 'schematic signal model: touch and stay above');
-    [2, 1, 0].forEach(function (i) {
-      var bowl = bridgeBowls[i], reveal = seg(q, bowl.start, bowl.start + 0.075), active = q >= 0.84 ? i === 1 : (focus == null || focus === i), alpha = active ? 1 : 0.22, x0 = Rr[0] + xPad + i * dx, y0 = Rr[1] + Rr[3] * 0.78 - i * dy;
-      function map(t, cost) { return [x0 + t * pw, y0 - cost / 0.60 * vh]; }
-      var top = y0 - vh * 0.92, pFrame = q < 0.08 ? seg(q, 0, 0.07) : 1;
-      cx.save(); cx.globalAlpha = 0.25 * pFrame * alpha; cx.fillStyle = 'rgba(242,245,248,0.08)'; cx.fillRect(x0, top, pw, y0 - top); cx.strokeStyle = 'rgba(242,245,248,0.34)'; cx.lineWidth = 1; cx.strokeRect(x0, top, pw, y0 - top); cx.restore();
-      rich(g, x0 - 10, y0 + 2, 'b_' + (i + 1), { size: 12.5, align: 'right', col: active ? COL.b : C.dim, p: pFrame });
-      rich(g, x0, y0 + 18, '0', { size: 10.5, align: 'center', col: C.dim, p: pFrame }); rich(g, x0 + pw, y0 + 18, '1', { size: 10.5, align: 'center', col: C.dim, p: pFrame });
-      if (q >= 0.84 && i === 1) {
-        var old = bowl.old;
-        drawBridgeCurve(g, map, bowl, seg(q, 0.84, 0.91), COL.signal, 2.2, function (t) { return bridgeSignalCost(bowl, t); });
-        drawBridgeCurve(g, map, bowl, seg(q, 0.87, 0.94), COL.target, 3.2);
-        var touch = map(old, bridgeBowlCost(bowl, old)); cx.save(); cx.globalAlpha = seg(q, 0.88, 0.95); cx.fillStyle = C.gold; cx.beginPath(); cx.arc(touch[0], touch[1], 6, 0, Math.PI * 2); cx.fill(); cx.restore();
-        rich(g, touch[0] + 12, touch[1] - 18, 'touch at the old estimate', { size: 11, col: C.gold, p: seg(q, 0.9, 0.97), box: true });
-      } else drawBridgeCurve(g, map, bowl, reveal * alpha, COL.target, active ? 3.2 : 2);
-      if (!(reveal > 0) || q >= 0.84) return;
-      var pos = bridgePosition(bowl, q), ball = map(pos, bridgeBowlCost(bowl, pos)), bottom = map(bowl.centre, 0), oldPt = map(bowl.old, bridgeBowlCost(bowl, bowl.old));
-      cx.save(); cx.globalAlpha = alpha * seg(reveal, 0.25, 0.8); cx.fillStyle = COL.pass; cx.beginPath(); cx.arc(bottom[0], bottom[1], active ? 5.5 : 4, 0, Math.PI * 2); cx.fill(); cx.fillStyle = COL.signal; cx.beginPath(); cx.arc(ball[0], ball[1], active ? 6.5 : 5, 0, Math.PI * 2); cx.fill(); cx.restore();
-      if (focus === i && (q < 0.38 || (q >= 0.54 && q < 0.84))) {
-        var tangentDx = Math.min(46, pw * 0.1), slopePx = -(bowl.slope / 0.60 * vh) / pw; cx.save(); cx.globalAlpha = 0.85; cx.strokeStyle = COL.signal; cx.lineWidth = 1.8; cx.beginPath(); cx.moveTo(oldPt[0] - tangentDx, oldPt[1] - slopePx * tangentDx); cx.lineTo(oldPt[0] + tangentDx, oldPt[1] + slopePx * tangentDx); cx.stroke(); cx.restore();
+  function drawBridgeSurface3D(g, V, bowl, p, o) {
+    if (!(p > 0)) return; o = o || {}; var cx = g.ctx, nt = V.F[2] < 330 ? 14 : 20, nr = V.F[2] < 330 ? 6 : 8, costFn = o.costFn;
+    cx.save(); cx.fillStyle = o.col || COL.target; cx.strokeStyle = o.meshCol || 'rgba(203,186,255,0.42)'; cx.lineWidth = 0.7;
+    for (var ir = nr - 1; ir >= 0; ir--) {
+      var ra = -1 + 2 * ir / nr, rb = -1 + 2 * (ir + 1) / nr;
+      for (var it = 0; it < nt; it++) {
+        var ta = it / nt, tb = (it + 1) / nt;
+        var a = bridgeProject(V, ta, ra, bridgeJointCost(bowl, ta, ra, costFn));
+        var b0 = bridgeProject(V, tb, ra, bridgeJointCost(bowl, tb, ra, costFn));
+        var c0 = bridgeProject(V, tb, rb, bridgeJointCost(bowl, tb, rb, costFn));
+        var d0 = bridgeProject(V, ta, rb, bridgeJointCost(bowl, ta, rb, costFn));
+        cx.globalAlpha = clamp(p, 0, 1) * (o.fill == null ? 0.085 : o.fill) * (0.75 + 0.25 * (nr - ir) / nr);
+        cx.beginPath(); cx.moveTo(a[0], a[1]); cx.lineTo(b0[0], b0[1]); cx.lineTo(c0[0], c0[1]); cx.lineTo(d0[0], d0[1]); cx.closePath(); cx.fill();
       }
-    });
-    if (q >= 0.38 && q < 0.54) rich(g, Rr[0] + Rr[2] / 2, Rr[1] + 44, 'all three move together: one shared update', { size: 12.5, align: 'center', col: COL.pass, p: seg(q, 0.38, 0.45), box: true, weight: '700' });
-    if (q < 0.08) rich(g, Rr[0] + Rr[2] / 2, Rr[1] + Rr[3] - 15, 'depth separates the graphs; it is not another variable', { size: 11, align: 'center', col: C.dim, p: seg(q, 0.02, 0.08) });
+    }
+    cx.globalAlpha = clamp(p, 0, 1) * (o.mesh == null ? 0.34 : o.mesh);
+    for (var jr = 0; jr <= nr; jr++) {
+      var rr = -1 + 2 * jr / nr; cx.beginPath();
+      for (var jt = 0; jt <= nt; jt++) { var tt = jt / nt, pr = bridgeProject(V, tt, rr, bridgeJointCost(bowl, tt, rr, costFn)); if (!jt) cx.moveTo(pr[0], pr[1]); else cx.lineTo(pr[0], pr[1]); }
+      cx.stroke();
+    }
+    for (var kt = 0; kt <= nt; kt += 4) {
+      var tx = kt / nt; cx.beginPath();
+      for (var kr = 0; kr <= nr; kr++) { var rx = -1 + 2 * kr / nr, pp = bridgeProject(V, tx, rx, bridgeJointCost(bowl, tx, rx, costFn)); if (!kr) cx.moveTo(pp[0], pp[1]); else cx.lineTo(pp[0], pp[1]); }
+      cx.stroke();
+    }
+    cx.restore();
   }
-  function drawBridgeNarrow(g, Rr, q) {
-    var cx = g.ctx, focus = bridgeFocus(q), single = q >= 0.54, shown = single ? [1] : [0, 1, 2], top = Rr[1] + 36, gap = 5, rowH = (Rr[3] - 50 - gap * (shown.length - 1)) / shown.length;
-    g.panel(Rr, q >= 0.84 ? 'signal model: touch and stay above' : single ? 'symbol 2 enlarged' : 'the same three bowls, stacked for space');
-    shown.forEach(function (i, row) {
-      var bowl = bridgeBowls[i], active = focus == null || focus === i, reveal = seg(q, bowl.start, bowl.start + 0.075), x0 = Rr[0] + 48, x1 = Rr[0] + Rr[2] - 18, y0 = top + row * (rowH + gap) + rowH * 0.82, vh = rowH * 0.66;
-      function map(t, cost) { return [mix(x0, x1, t), y0 - cost / 0.60 * vh]; }
-      cx.save(); cx.globalAlpha = active ? 0.34 : 0.16; cx.strokeStyle = 'rgba(242,245,248,0.55)'; cx.lineWidth = 1; cx.strokeRect(x0, y0 - vh, x1 - x0, vh); cx.restore();
-      rich(g, x0 - 9, y0 - vh * 0.45, 'b_' + (i + 1), { size: 12, align: 'right', col: active ? COL.b : C.dim });
-      if (single) { rich(g, x0, y0 + 12, '0', { size: 10, align: 'center', col: C.dim }); rich(g, x1, y0 + 12, '1', { size: 10, align: 'center', col: C.dim }); }
-      if (q >= 0.84) {
-        drawBridgeCurve(g, map, bowl, seg(q, 0.84, 0.91), COL.signal, 2, function (t) { return bridgeSignalCost(bowl, t); });
-        drawBridgeCurve(g, map, bowl, seg(q, 0.87, 0.94), COL.target, 3);
-        var touch = map(bowl.old, bridgeBowlCost(bowl, bowl.old)); cx.save(); cx.globalAlpha = seg(q, 0.88, 0.95); cx.fillStyle = C.gold; cx.beginPath(); cx.arc(touch[0], touch[1], 5, 0, Math.PI * 2); cx.fill(); cx.restore();
-        rich(g, touch[0] + 8, touch[1] - 13, 'touch at old', { size: 10, col: C.gold, p: seg(q, 0.9, 0.97), box: true });
-      } else drawBridgeCurve(g, map, bowl, reveal * (active ? 1 : 0.25), COL.target, active ? 3 : 1.8);
-      if (!(reveal > 0) || q >= 0.84) return; var pos = bridgePosition(bowl, q), ball = map(pos, bridgeBowlCost(bowl, pos)), bottom = map(bowl.centre, 0), oldPt = map(bowl.old, bridgeBowlCost(bowl, bowl.old));
-      cx.save(); cx.globalAlpha = active ? 1 : 0.35; cx.fillStyle = COL.pass; cx.beginPath(); cx.arc(bottom[0], bottom[1], 5, 0, Math.PI * 2); cx.fill(); cx.fillStyle = COL.signal; cx.beginPath(); cx.arc(ball[0], ball[1], 6, 0, Math.PI * 2); cx.fill(); cx.restore();
-      if (focus === i && (q < 0.38 || (q >= 0.54 && q < 0.84))) {
-        var tangentDx = Math.min(34, (x1 - x0) * 0.12), slopePx = -(bowl.slope / 0.60 * vh) / (x1 - x0); cx.save(); cx.globalAlpha = 0.9; cx.strokeStyle = COL.signal; cx.lineWidth = 1.8; cx.beginPath(); cx.moveTo(oldPt[0] - tangentDx, oldPt[1] - slopePx * tangentDx); cx.lineTo(oldPt[0] + tangentDx, oldPt[1] + slopePx * tangentDx); cx.stroke(); cx.restore();
-        if (single) {
-          var arrowY = y0 - vh * 0.16, arrowP = seg(q, 0.66, 0.80), arrowA = [oldPt[0] + 16, arrowY], arrowB = [bottom[0] - 16, arrowY];
-          g.arrowPx(arrowA, [mix(arrowA[0], arrowB[0], arrowP), arrowY], COL.signal, 2);
-        }
-      }
+  function drawBridgeCurtain(g, V, bowl, p, o) {
+    if (!(p > 0)) return; o = o || {}; var cx = g.ctx, costFn = o.costFn, r = o.r == null ? 0 : o.r, n = 28;
+    cx.save(); cx.globalAlpha = clamp(p, 0, 1) * 0.075; cx.fillStyle = o.col || C.gold;
+    for (var j = 0; j < n; j++) {
+      var ta = j / n, tb = (j + 1) / n, a = bridgeProject(V, ta, r, 0), b0 = bridgeProject(V, tb, r, 0), c0 = bridgeProject(V, tb, r, bridgeJointCost(bowl, tb, r, costFn)), d0 = bridgeProject(V, ta, r, bridgeJointCost(bowl, ta, r, costFn));
+      cx.beginPath(); cx.moveTo(a[0], a[1]); cx.lineTo(b0[0], b0[1]); cx.lineTo(c0[0], c0[1]); cx.lineTo(d0[0], d0[1]); cx.closePath(); cx.fill();
+    }
+    cx.restore();
+  }
+  function drawBridgeAxes3D(g, V, p, i, compact) {
+    if (!(p > 0)) return; var O = bridgeProject(V, 0, -1, 0), X = bridgeProject(V, 1, -1, 0), D = bridgeProject(V, 0, 1, 0), Z = bridgeProject(V, 0, -1, V.zmax * 0.78);
+    g.arrowPx(O, X, COL.b, 1.3); g.arrowPx(O, D, C.gold, 1.3); g.arrowPx(O, Z, COL.target, 1.3);
+    rich(g, X[0] - 2, X[1] + 13, compact ? 'b_' + (i + 1) : 'symbol estimate b_' + (i + 1), { size: compact ? 9.5 : 11, align: 'right', col: COL.b, p: p });
+    if (!compact) rich(g, D[0] - 2, D[1] - 12, 'one real coordinate of *C', { size: 10.5, align: 'left', col: C.gold, p: p });
+    rich(g, Z[0] - 5, Z[1] - 2, 'cost', { size: compact ? 9.5 : 10.5, align: 'right', col: COL.target, p: p });
+  }
+  function drawBridgeDot3D(g, a, radius, col, p) {
+    if (!(p > 0)) return; var cx = g.ctx; cx.save(); cx.globalAlpha = clamp(p, 0, 1); cx.shadowColor = 'rgba(0,0,0,0.65)'; cx.shadowBlur = radius; cx.shadowOffsetY = 3; cx.fillStyle = col; cx.beginPath(); cx.arc(a[0], a[1], radius, 0, Math.PI * 2); cx.fill(); cx.shadowColor = 'transparent'; cx.strokeStyle = 'rgba(255,255,255,0.72)'; cx.lineWidth = 1; cx.stroke(); cx.restore();
+  }
+  function drawBridgeTangent3D(g, V, bowl, p) {
+    if (!(p > 0)) return; var cx = g.ctx, span = 0.14, ta = clamp(bowl.old - span, 0, 1), tb = clamp(bowl.old + span, 0, 1), y0 = bridgeBowlCost(bowl, bowl.old);
+    var a = bridgeProject(V, ta, 0, y0 + bowl.slope * (ta - bowl.old)), b0 = bridgeProject(V, tb, 0, y0 + bowl.slope * (tb - bowl.old));
+    cx.save(); cx.globalAlpha = clamp(p, 0, 1); cx.strokeStyle = COL.signal; cx.lineWidth = 2; cx.beginPath(); cx.moveTo(a[0], a[1]); cx.lineTo(b0[0], b0[1]); cx.stroke(); cx.restore();
+  }
+  function drawBridgeResponseSlice(g, V, bowl, p) {
+    if (!(p > 0)) return; var cx = g.ctx, t = bowl.centre, n = 40, dStar = bridgeResponseMinimum(bowl, t), move = seg(p, 0.28, 0.86), now = mix(0, dStar, move);
+    cx.save(); cx.globalAlpha = clamp(p, 0, 1); cx.strokeStyle = C.gold; cx.lineWidth = 3; cx.beginPath();
+    for (var j = 0; j <= n; j++) { var r = -1 + 2 * j / n, a = bridgeProject(V, t, r, bridgeJointCost(bowl, t, r)); if (!j) cx.moveTo(a[0], a[1]); else cx.lineTo(a[0], a[1]); } cx.stroke(); cx.restore();
+    var old = bridgeProject(V, t, 0, bridgeJointCost(bowl, t, 0)), cur = bridgeProject(V, t, now, bridgeJointCost(bowl, t, now)); g.arrowPx(old, cur, C.gold, 2.2); drawBridgeDot3D(g, cur, 6, C.gold, p);
+    var compact = V.F[2] < 360, labelX = compact ? V.F[0] + V.F[2] - 8 : cur[0] + 10;
+    rich(g, labelX, cur[1] - 15, compact ? 'one *C direction' : 'one shown direction through *C', { size: 10.5, align: compact ? 'right' : 'left', col: C.gold, p: seg(p, 0.45, 0.78), box: true });
+  }
+  function drawBridgeRails(g, Rr, q) {
+    var cx = g.ctx, left = Rr[0] + 36, right = Rr[0] + Rr[2] - 18, top = Rr[1] + Rr[3] - 66, move = seg(q, 0.38, 0.52);
+    bridgeBowls.forEach(function (bowl, i) {
+      var y = top + i * 18, a = mix(left, right, bowl.old), b0 = mix(left, right, bowl.centre), x = mix(a, b0, move); cx.strokeStyle = 'rgba(242,245,248,0.28)'; cx.lineWidth = 1; cx.beginPath(); cx.moveTo(left, y); cx.lineTo(right, y); cx.stroke();
+      rich(g, left - 8, y, 'b_' + (i + 1), { size: 9.5, align: 'right', col: COL.b }); drawBridgeDot3D(g, [x, y], 3.5, COL.signal, 1); rich(g, Rr[0] + Rr[2] - 4, y, f3(mix(bowl.old, bowl.centre, move)), { size: 9.5, align: 'right', col: C.gold, mono: true });
     });
+  }
+  function drawBridgeOne3D(g, F, bowl, q, o) {
+    o = o || {}; var reveal = o.reveal == null ? 1 : o.reveal, V = bridgeView(F, o.unfold == null ? 1 : o.unfold), active = o.active == null ? 1 : o.active, finalModel = o.finalModel;
+    if (finalModel) {
+      drawBridgeSurface3D(g, V, bowl, reveal * seg(q, 0.84, 0.91), { col: COL.signal, meshCol: 'rgba(244,190,87,0.5)', fill: 0.055, mesh: 0.28, costFn: function (b0, t) { return bridgeSignalCost(b0, t); } });
+      drawBridgeSurface3D(g, V, bowl, reveal * seg(q, 0.87, 0.94), { col: COL.target, fill: 0.04, mesh: 0.46 });
+      drawBridgeCurtain(g, V, bowl, seg(q, 0.87, 0.94), { col: C.gold });
+      bridgePath3D(g, V, bowl, seg(q, 0.84, 0.91), COL.signal, 2.2, 0, function (b0, t) { return bridgeSignalCost(b0, t); });
+      bridgePath3D(g, V, bowl, seg(q, 0.87, 0.94), COL.target, 3.2, 0);
+      var touch = bridgeProject(V, bowl.old, 0, bridgeBowlCost(bowl, bowl.old)), touchP = seg(q, 0.88, 0.93) * (1 - seg(q, 0.94, 0.97)); drawBridgeDot3D(g, touch, 6, C.gold, touchP);
+      rich(g, touch[0] + 10, touch[1] - 17, 'touch on *C = *C^k', { size: 10.5, col: C.gold, p: touchP, box: true });
+    } else {
+      drawBridgeSurface3D(g, V, bowl, reveal * active, { col: COL.target });
+      drawBridgeCurtain(g, V, bowl, reveal * active, { col: C.gold });
+      bridgePath3D(g, V, bowl, reveal * active, COL.target, o.compact ? 2.2 : 3.2, 0);
+      var pos = bridgePosition(bowl, q), ball = bridgeProject(V, pos, 0, bridgeBowlCost(bowl, pos)), bottom = bridgeProject(V, bowl.centre, 0, 0);
+      drawBridgeDot3D(g, bottom, o.compact ? 3.5 : 5, COL.pass, reveal * active); drawBridgeDot3D(g, ball, o.compact ? 4.5 : 6.5, COL.signal, reveal * active);
+      if (o.tangent) drawBridgeTangent3D(g, V, bowl, reveal * active);
+    }
+    drawBridgeAxes3D(g, V, reveal * active, bowl.i, !!o.compact);
+    if (o.response) { rich(g, F[0] + F[2] / 2, F[1] + 18, 'refresh weights, then hold *b fixed', { size: 11, align: 'center', col: COL.signal, p: seg(q, 0.94, 0.97), box: true }); drawBridgeResponseSlice(g, V, bowl, seg(q, 0.94, 1)); }
+    else rich(g, bridgeProject(V, 0.08, 0, 0)[0], bridgeProject(V, 0.08, 0, 0)[1] + 12, '*C = *C^k', { size: o.compact ? 9 : 10.5, col: C.gold, p: reveal * active, box: !o.compact });
+  }
+  function drawBridge3D(g, Rr, q) {
+    var focus = bridgeFocus(q), shared = q >= 0.38 && q < 0.54, single = !shared, compactStage = Rr[2] < 390, tabbed = q < 0.38, title = q < 0.84 ? '3D view: symbol, response and cost' : q < 0.94 ? '3D signal surface: fixed-C slice' : 'hold b fixed: solve the response';
+    g.panel(Rr, title);
+    var inner = [Rr[0] + 6, Rr[1] + (tabbed ? 44 : 28), Rr[2] - 12, Rr[3] - (tabbed ? 52 : 44)];
+    if (single) {
+      var idx = focus == null ? (q >= 0.84 ? 1 : 0) : focus, bowl = bridgeBowls[idx], unfold = q < 0.08 ? seg(q, 0, 0.075) : 1;
+      drawBridgeOne3D(g, inner, bowl, q, { reveal: q < 0.08 ? seg(q, 0, 0.075) : seg(q, bowl.start, bowl.start + 0.07), unfold: unfold, tangent: focus === idx && (q < 0.38 || (q >= 0.54 && q < 0.84)), finalModel: q >= 0.84, response: q >= 0.94 });
+      if (q < 0.38) {
+        [0, 1, 2].forEach(function (i) { rich(g, Rr[0] + Rr[2] * (0.36 + 0.14 * i), Rr[1] + 37, 'b_' + (i + 1), { size: 10.5, align: 'center', col: idx === i ? C.gold : C.dim, p: q < 0.08 ? seg(q, 0.02, 0.07) : 1, box: idx === i }); });
+      }
+    } else if (!compactStage && Rr[3] >= 390) {
+      var gap = 2, rowH = (inner[3] - 2 * gap) / 3;
+      bridgeBowls.forEach(function (bowl, i) { drawBridgeOne3D(g, [inner[0], inner[1] + i * (rowH + gap), inner[2], rowH], bowl, q, { reveal: 1, active: 1, compact: true }); });
+      rich(g, Rr[0] + Rr[2] / 2, Rr[1] + 43, 'freeze *C: all three markers move together', { size: 11, align: 'center', col: COL.pass, p: seg(q, 0.38, 0.45), box: true, weight: '700' });
+    } else {
+      var upper = [inner[0], inner[1], inner[2], inner[3] - 72]; drawBridgeOne3D(g, upper, bridgeBowls[1], q, { reveal: 1 }); drawBridgeRails(g, Rr, q);
+      rich(g, Rr[0] + Rr[2] / 2, Rr[1] + 44, 'one shared update: three synchronized values', { size: 10.5, align: 'center', col: COL.pass, p: seg(q, 0.38, 0.45), box: true, weight: '700' });
+    }
+    if (q < 0.08) rich(g, Rr[0] + Rr[2] / 2, Rr[1] + Rr[3] - 15, 'the old curve opens into a second receiver direction', { size: 10.5, align: 'center', col: C.dim, p: seg(q, 0.02, 0.08) });
+    if (q >= 0.94) rich(g, Rr[0] + Rr[2] / 2, Rr[1] + Rr[3] - 15, 'one direction is drawn; the full response C is solved together', { size: 10.5, align: 'center', col: COL.pass, p: seg(q, 0.95, 1), box: true });
+    var cx = g.ctx; cx.save(); cx.fillStyle = 'rgba(20,27,36,0.96)'; cx.fillRect(Rr[0] + 5, Rr[1] + 4, Rr[2] - 10, 23); cx.font = '700 12.5px ' + g.sans; cx.fillStyle = C.gold; cx.textAlign = 'left'; cx.textBaseline = 'top'; cx.fillText(title, Rr[0] + 10, Rr[1] + 8); cx.restore();
   }
   function drawBridge(g, Rr, q) {
-    var RR = P.two(Rr, 0.63), info = bridgeLines(q); if (P.wide(Rr)) drawBridgeWide(g, RR[0], q); else drawBridgeNarrow(g, RR[0], q);
+    var RR = P.two(Rr, 0.66), info = bridgeLines(q); drawBridge3D(g, RR[0], q);
     var cardP = bridgeCardProgress(q); info.lines.forEach(function (it, i) { it.p = seg(cardP, 0.02 + 0.10 * i, 0.16 + 0.10 * i); });
     P.lines(g, RR[1], info.lines, 1, info.title, { size: RR[1][2] < 390 ? 11 : 12, rowH: 29 });
   }
 
-  out.push({ id: 'sapphire-bridge', chapter: CH.inside, title: 'Three temporary bowls, one shared update', layout: 'side', dur: 30,
-    text: 'For this toy shared update, the objective function separates into three quadratic functions, one for each symbol estimate. The animation places their graphs in depth only so that all three fit on one screen. A single graph over b<sub>1</sub>, b<sub>2</sub> and b<sub>3</sub> would need a fourth axis for cost height. ' +
-      at(0.08, 'The first bowl has curvature 2 and its bottom is 0.350. ') +
-      at(0.18, 'The second has three equal-weight terms: one signal term and two check requests. Its curvature is 3, so its bowl is narrower, and its bottom is 0.533. ') +
-      at(0.28, 'The third returns to curvature 2 and has its bottom at 0.750. ') +
-      at(0.38, 'The three moves are shown together because they use the same old vector. They are one shared update, not three coordinate-descent steps. ') +
+  out.push({ id: 'sapphire-bridge', chapter: CH.inside, title: 'Three temporary bowls inside a 3D receiver view', layout: 'side', dur: 34,
+    text: 'For this toy shared update, the objective function separates into three quadratic functions, one for each symbol estimate. The 3D drawing adds one real coordinate of SAPPHIRE’s frequency-domain response <b>C</b>. That response includes carrier coupling used to model intercarrier interference (ICI). Left–right is b<sub>i</sub>, front–back is that response coordinate, and height is cost. Demodulation is the operation, not a plotted variable. The bright <b>C</b> = <b>C</b><sup>k</sup> slice preserves the earlier one-symbol curve exactly. The entire receiver view, including the surrounding sheet, is schematic. ' +
+      at(0.08, 'On that bright slice, the first bowl has curvature 2 and bottom 0.350. ') +
+      at(0.18, 'The second slice has three equal-weight terms: one signal term and two check requests. Its curvature is 3, so its bowl is narrower, and its bottom is 0.533. ') +
+      at(0.28, 'The third slice returns to curvature 2 and has its bottom at 0.750. ') +
+      at(0.38, 'SAPPHIRE holds <b>C</b> fixed and moves all three symbol estimates together because they use the same old vector. This is one shared <b>b</b>-block update, not three coordinate-descent steps. ') +
       at(0.54, 'The replay enlarges symbol 2. Its positive slope 0.200 sends the estimate toward a smaller value. ') +
       at(0.70, 'Subtracting slope divided by curvature jumps directly from 0.600 to 0.533. The answer is already inside [0,1], so clipping does nothing. ') +
-      at(0.84, 'In a recorded frame, SAPPHIRE first builds an upper quadratic model of the fixed-weight signal cost for each free symbol estimate. It touches that cost at the old estimate, has the same slope there, and stays above it. The binary push and ADMM agreement terms are then added to form the full temporary bowl. The SAPPHIRE symbol page ahead clips the bottom of that full bowl to [0,1].'),
+      at(0.84, 'SAPPHIRE builds an upper quadratic model of the fixed-weight received-signal cost. Here the bright fixed-response slice illustrates its touch, common slope and upper-bound relationship. Binary and ADMM terms then form the full temporary bowl. ') +
+      at(0.94, 'Next SAPPHIRE refreshes the robust weights, holds the new symbol estimates fixed and solves the response block. The depth axis shows one real coordinate, while the full complex response <b>C</b> is solved together by normal equations.'),
     math: '',
-    bowlModel: { bowls: bridgeBowls, cost: bridgeBowlCost, signalCost: bridgeSignalCost },
+    bowlModel: { bowls: bridgeBowls, cost: bridgeBowlCost, signalCost: bridgeSignalCost, jointCost: bridgeJointCost, responseMinimum: bridgeResponseMinimum, response: bridgeResponse },
     draw: function (g, q) { drawBridge(g, g.sideR, q); } });
 
   out.push({ id: 'lbfgs', chapter: CH.beside, title: 'ADMM and L-BFGS work at different levels', layout: 'side', dur: 9,
