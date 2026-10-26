@@ -28,9 +28,9 @@ check('six receiver records include PEARL with its frozen cohort',
 check('the legacy evidence identity is presented publicly as SAPPHIRE',
   D.receivers.filter(function (r) { return r.id === 'cajode' && r.name === 'CAJODE' && r.cohort === 'modern_r3_ber'; }).length === 1 &&
   M.NAME.cajode === 'SAPPHIRE' && cov.filter(function (r) { return r.id === 'cajode' && r.name === 'SAPPHIRE'; }).length === 1);
-check('coverage: 5,328 available and 432 missing rows, including 528 PEARL rows',
-  cov.reduce(function (s, q) { return s + q.available; }, 0) === 5328 && cov.reduce(function (s, q) { return s + q.missing; }, 0) === 432 &&
-  cov.map(function (q) { return q.available; }).join(',') === '960,960,960,960,960,528');
+check('coverage: all 5,760 rows are available, including all 960 PEARL rows',
+  cov.reduce(function (s, q) { return s + q.available; }, 0) === 5760 && cov.reduce(function (s, q) { return s + q.missing; }, 0) === 0 &&
+  cov.map(function (q) { return q.available; }).join(',') === '960,960,960,960,960,960');
 check('the five established receivers have twelve complete base cases',
   M.BASE_COMMON.map(function (c) { return c.key; }).join(' ') === 'R1h1 R1h2 R1h3 R2h1 R2h2 R2h3 R3h1 R3h2 R3h3 R4h1 R4h2 R4h3');
 check('the fixed six-receiver plot scope is six cases complete at all five pilot ratios',
@@ -50,12 +50,11 @@ var z = M.point('jade', M.COMMON[0], M.pilotIndex(15), M.snrIndex(30));
 check('a point with no error seen keeps BER 0 and is plotted at 0.5 / bits', z.zero && z.ber === 0 && Math.abs(z.plot - 0.5 / z.bits) < 1e-18);
 check('PEARL is available on the fixed plot scope at all five pilot ratios',
   [2.5, 5, 7.5, 12, 15].every(function (r) { return M.curve('pearl', M.pilotIndex(r)).every(function (q) { return q !== null; }); }));
-check('availability and missing reasons are pilot-specific',
-  M.has('pearl', M.COMMON[0]) && M.has('pearl', M.CHANNELS[6], M.pilotIndex(2.5)) && M.has('pearl', M.CHANNELS[6], M.pilotIndex(5)) && !M.has('pearl', M.CHANNELS[6], M.pilotIndex(12)) &&
-  M.missingOf('pearl', M.CHANNELS[6], M.pilotIndex(5)) === null && M.missingOf('pearl', M.CHANNELS[6], M.pilotIndex(12)) === 'source_result_missing');
-check('newly admitted cases contribute to the six-case pooled curves while Red 3 H1 remains outside that scope',
-  M.point('pearl', M.CHANNELS[5], M.pilotIndex(15), 0) !== null && M.point('pearl', M.CHANNELS[6], M.pilotIndex(5), 0) !== null &&
-  M.COMMON.indexOf(M.CHANNELS[5]) >= 0 && M.COMMON.indexOf(M.CHANNELS[6]) < 0 && M.pooled('pearl', M.pilotIndex(15), 0) !== null);
+check('PEARL has all five pilot ratios on all twelve recording–hydrophone cases',
+  M.CHANNELS.every(function (c) { return [2.5, 5, 7.5, 12, 15].every(function (ratio) { return M.has('pearl', c, M.pilotIndex(ratio)) && M.missingOf('pearl', c, M.pilotIndex(ratio)) === null; }); }));
+check('full-table coverage does not expand the fixed six-case pooled scope',
+  M.point('pearl', M.CHANNELS[11], M.pilotIndex(15), 0) !== null && M.COMMON.indexOf(M.CHANNELS[5]) >= 0 && M.COMMON.indexOf(M.CHANNELS[6]) < 0 &&
+  M.pooled('pearl', M.pilotIndex(15), 0) !== null);
 
 // ---------------------------------------------------------------- 3. the course in a browser-less sandbox
 function sandbox(width, height) {
@@ -127,10 +126,9 @@ if (course) {
     var ex = rows.filter(function (r) { return r.receiver === 'ofdm+fec' && r.red === '1' && r.hydrophone === '1' && r.pilot_ratio_percent === '7.5' && r.snr_db === '10'; })[0];
     check('the one-point page quotes that point’s integers', text('pooled').indexOf(ex.total_bit_errors.replace(/\B(?=(\d{3})+(?!\d))/g, ',') + ' of ' + ex.total_payload_bits.replace(/\B(?=(\d{3})+(?!\d))/g, ',')) >= 0, ex.total_bit_errors + '/' + ex.total_payload_bits);
     var reasons = {}; rows.forEach(function (r) { if (r.status === 'missing') reasons[r.receiver + ' R' + r.red + 'h' + r.hydrophone + ' ' + r.pilot_id] = r.missing_reason; });
-    check('all 27 missing channel/pilot conditions are PEARL source gaps and Red4 H3 is complete',
-      Object.keys(reasons).length === 27 && Object.keys(reasons).every(function (k) { return /^pearl /.test(k) && reasons[k] === 'source_result_missing'; }) &&
-      ['jade', 'cajode'].every(function (k) { return !reasons[k + ' R4h3 p025']; }) &&
-      /all five pilot ratios on the six-case plot scope/.test(text('missing')) && /active sequential fill queue covers the remaining 27 case–pilot conditions/.test(text('missing')), Object.keys(reasons).length + ' missing conditions');
+    check('all six receivers have complete coverage and the page reports the validated PEARL fill',
+      Object.keys(reasons).length === 0 && /All 5,760 rows now have authenticated results/.test(text('missing')) &&
+      /37-job sequential PEARL fill is validated complete/.test(text('missing')) && /No row is missing in this snapshot/.test(text('missing')), Object.keys(reasons).length + ' missing conditions');
   }
   check('the mechanism map distinguishes complete receiver routes from decoder components', /Belief propagation is a decoder component/.test(text('routes')) && /estimate from pilots and then decode once/.test(text('routes')) && /scaled dual variables/.test(text('routes')) && /parity polytopes\|as constraints/.test(courseSrc) && /ADMM blocks\|of one problem/.test(courseSrc));
   check('PEARL is expanded consistently with the retained receiver name', /PEARL is the Persistent-Edge Alternating Receiver Loop/.test(text('routes')) && /PEARL is the Persistent-Edge Alternating Receiver Loop/.test(text('pearl')));
@@ -147,9 +145,9 @@ if (course) {
   check('CAJODE appears in reader copy only as an explicit legacy evidence label', (all.match(/CAJODE/g) || []).length === 1 && /legacy receiver key cajode and source label CAJODE/.test(text('cajode')));
   check('the three cohorts and the fixed six-case boundary are explicit', /authenticated four-receiver Red replay/.test(text('cohorts')) && /older jade_bp output/.test(text('cohorts')) && /newer R3 BER campaign/.test(text('cohorts')) && /frozen persistent R2-V1 campaign/.test(text('cohorts')) &&
     /does not establish identical payload bits, transmitted waveforms, received samples, or noise realizations across all three campaigns/.test(text('cohorts')) && /same six recording–hydrophone labels/.test(text('common')) && /all five pilot ratios/.test(text('common')));
-  check('zero observations and missing results are stated without a false bound', /It is not a measured BER/.test(text('zero')) && /A missing result is never drawn as zero/.test(text('missing')) &&
+  check('zero observations and absent results are stated without a false bound', /It is not a measured BER/.test(text('zero')) && /an absent result would keep its BER fields blank instead of becoming zero/.test(text('missing')) &&
     /plotted at 0.5 \/ N/.test(text('one-curve')) && !/upper bound/i.test(all));
-  check('the 5% case map distinguishes the six PEARL plot-scope cases, one additional case and five missing cases', /PEARL is available on the six fixed plot-scope cases and on Red 3, hydrophone 1/.test(text('channels')) && /other five cases have no complete source result/.test(text('channels')));
+  check('the 5% case map has all twelve PEARL cases while retaining the six-case pooled scope', /All six receivers have results on all 12 cases/.test(text('channels')) && /pooled pilot panels still use only the fixed six-case scope/.test(text('channels')));
   check('result language refers to sampled thresholds and does not claim monotonic pilot improvement', /first sampled SNR/.test(text('thresholds')) && /do not obey a pointwise rule/.test(text('sweep')) && !/all (five|six) curves fall earlier and lower/.test(all));
   check('the experimental units have stable names', /recording–hydrophone case/.test(text('grid')) && /test condition/.test(text('grid')) && /receiver result/.test(text('pooled')) && /pooled curve point/.test(text('common')));
   check('Red, SNR and the pilot-ratio denominator are introduced', /measured shallow-water channel recordings/.test(text('question')) && /near Singapore at a 25 kHz carrier/.test(text('question')) && /sample signal power in the replay divided by the expected noise power added during replay, not E_b\/N_0/.test(text('question')) && /pilot ratio uses the low-density parity-check codeword length/.test(text('pilots')));

@@ -151,17 +151,20 @@ PEARL_P025_P05 = (
 PEARL_REMAINING37 = (
     GITHUB_ROOT / "JadeJcade-runs/pearl-remaining37-fill-001/attempt-001"
 )
-PEARL_REMAINING37_KEYS = (
-    (2, 2, "p025"),
-    (2, 2, "p05"),
-    (2, 2, "p12"),
-    (2, 2, "p15"),
-    (2, 3, "p025"),
-    (2, 3, "p05"),
-    (2, 3, "p12"),
-    (2, 3, "p15"),
-    (3, 1, "p025"),
-    (3, 1, "p05"),
+PEARL_REMAINING37_KEYS = tuple(
+    (red, hydrophone, pilot)
+    for red, hydrophone in (
+        (2, 2),
+        (2, 3),
+        (3, 1),
+        (3, 2),
+        (3, 3),
+        (4, 1),
+        (4, 2),
+        (4, 3),
+    )
+    for pilot in PILOTS
+    if not (pilot == "p075" and (red, hydrophone) in ((2, 2), (2, 3), (3, 1)))
 )
 # Every listed root is authenticated by the pinned SHA-256 registry below and
 # must also satisfy the embedded completion, manifest, frame, aggregate, and
@@ -395,6 +398,168 @@ PEARL_ARTIFACT_SHA256 = {
         "2b154f71dc751567c81ca4b84164796bc6c876f98ee376cb6584a2d7636db063",
         "b068862d48f334045cfb1957f16492c62ccc61828542a3c738addfa789c98898",
         "e843ea31ba340bd0891135c6c1b90d846bce444b60606f2ec423e5aa48a8055a",
+    ),
+    (3, 1, "p12"): (
+        "53535a3e522a4842dd50ae8a02d8ba378b5eeedd205654990b643618f89c9701",
+        "7a2fbe6856380970d98e550fa6ec727df2f9176bfcbf182d1fe9b9ece0733f9f",
+        "7bee1fa63bcef8d85cd318622e9795a252280c5402dcd25e5c6736e5ec352138",
+        "f73df47d700c2d972b6ddf39aac6a85e816637674bd28bf6ae7db442c9c1699e",
+    ),
+    (3, 1, "p15"): (
+        "362db2bc4ae3f396f1a2563179b0f09c699aaf2d55022bc1d676f317c2df1507",
+        "f8be437522e1dadb45a786ff1971d72173eb5f003f630a86358c10ac67ad0288",
+        "65264946455af69d528dc55a1c06cb62104930945ebe309554aee99e99b60ba5",
+        "99d5477d504a3aecde15d5d1966a11dfeb02b42281a77cf729990751918985b8",
+    ),
+    (3, 2, "p025"): (
+        "3f2d9e4f372c059c2186fa69ff9505c97c4de11298f26367a816858b0885d9db",
+        "1e33d8778086b5e6c943e09388ae2f4d5011caf754750bdb9b736674b7443125",
+        "668f8d04d11d5e4dda5fc34dcbb79cd5992d40d6f1f2174f1e2ba9c13ea02e58",
+        "51f26c6318fc1621fcc87be1122a3869e7d2195ec2d5b44c28ac03ccb953c7e7",
+    ),
+    (3, 2, "p05"): (
+        "ac08292cb7b749893b6604a6d0445931be567a02e1f65b4365f938b663081d27",
+        "cff43c0e3fdff91e825ad07e563426a4af5183f67a9cb933362c673996d0f65f",
+        "af690606bbc224325c65893384ec69782e23facadaefee37bec70325d0a90620",
+        "8b5e0d8df5f96ae8dde36ebb650075d1f6f63a36e6499eb367f23bcf5cbe6db8",
+    ),
+    (3, 2, "p075"): (
+        "5f7ac94f5bd9fee6edef81b3dd183d58638eb3f9b3f446f99668eb36d88fce53",
+        "48f479cb6b73ed63201c135a955b1b3e67ee9b3aaa61fa3c1b7dc5388b94135b",
+        "013ce097ad66aa03ba17c233a696efa13ffd632a540d85ea20736532631e9adc",
+        "296cbaee69f0af3eb178602f49dccdbe75529b178cc11cfe7f354e5774677653",
+    ),
+    (3, 2, "p12"): (
+        "6fafbb7ab65b36bc4d3af57b1d55c32772138b87b9fe202f2290d546b7c42461",
+        "b34204a82b35766a1885a78e579d96f468445266c30b0ef6430b41669ea300b3",
+        "cca8eec3515f203f38c368bb92f583542b7c37fc7472f32e696a16647dfc9ba5",
+        "25e4c9ff3d824ee49329e7d26ca48e3502f2ea9447ad98442691e32b63fbf9f5",
+    ),
+    (3, 2, "p15"): (
+        "b339f126396a3b442fc68b9c2557cb1b8dcf398e02f8667b126a04fcb53df36e",
+        "59a4b37a4b6a14217cc4a8e55c7f5fea9093d5fb202e5ef6ce672aeddc19b725",
+        "a530b7d4099c6186d18a6f4cf98d58ead47cc8a3ca99a04e05a80912d66af12d",
+        "8c5d768808ab9ea6bad52c9f23709be6c2e705f6d8728a0a3ec32403fb3fb214",
+    ),
+    (3, 3, "p025"): (
+        "49342897540b8c932af0a1044eedc21ead8baf3429bbf5d4d402a60d58be7b6b",
+        "5860ded5bb23d636fe20dd0d0e7eee31597b12c06775fd7895a4994594f03698",
+        "d6ac0847d5b97d5f53b2e2cfb0c3b919c02a7471cdeb0f6e89ca7075e7b03f73",
+        "db781da484d660e2f753080ebaa91f5354d5a0cb264dcd4f1a0af8eb282efca6",
+    ),
+    (3, 3, "p05"): (
+        "bf6d88e3f91f825c01ff4ec7e8312327fb5fb2502207a4cb8bb1409075295f82",
+        "780671d98a8a7b995f7787bb8fc4687ce316dde2ef94d3ff126312c24318413c",
+        "a93b2fec5c99910d00a476524b3df564fe0ee5645db085a216d0bb8b27881405",
+        "bafefae07b3a85fba538a30125b46ffe1fe67c7e979006faf0d6d1c0678a1418",
+    ),
+    (3, 3, "p075"): (
+        "64bd5da53f10d0d53dfe5ad725c34c5346b878cd01a11cb49b921673811e8a83",
+        "29b16318cdc2344aa001fec6b6e5513a512f340410590b8cf345eed84f893bb5",
+        "6c4fb6cb30016ac77ea4fcb9e0ec1e56b7c989810b592b5c574f47ae611391dd",
+        "abca237c9c9c850c46b538d431b49a4cc0ee8e96e3339288089e00ca2e124b02",
+    ),
+    (3, 3, "p12"): (
+        "f9ce6d90def31a14f99d6fa9048b899287316c791f7f1eefc76f8436b6c3a88a",
+        "ac9df3e7b43233fb6583437fd905522ccb3113b138fcaa2e0d1cb821f3718aa4",
+        "7a545f59b238524013b47d945ae20cb72f8ed4efa3c9e16fea3fe475cd42867b",
+        "2c0697fc7b82cdc7c3b6cd82b5dc5c1331750e51ecc8433365eef9fd6250edd9",
+    ),
+    (3, 3, "p15"): (
+        "6b96b2d3e19ba146f4e40aee1dff593fcb26a31cd7330bcad4ca605a178e9c09",
+        "a50cdf2ac4341a12dc9c8976c467a23aa5c187d45747eb703c77bfdf09992f78",
+        "4adebb404f248da49ee498ed1fef3fe2f90fe210b1c84077e8291ac9810c93c8",
+        "fd306bbc38c7b55f132ab7821a2933a5e411c05d22d9b082687d324e30a9c770",
+    ),
+    (4, 1, "p025"): (
+        "920d99120b362bdd662895e2d529a6b1e217abda9dc2b0164ce1cfc9b032023b",
+        "1b742de65904e23815fdffc1556fe0e4bef952a030e82b5806d09360ae38cec8",
+        "8b99e5331c0da400c3ab70647d821f4686dbec2bc6e34d4eae417b646418b7f2",
+        "7476079b15dc9b7757967657183b65b370d6f45ced376056c6892b2940c3b93f",
+    ),
+    (4, 1, "p05"): (
+        "25a217d54ec2cda97d8677f9b3967bf75147a5bfd4b3b382b5aafbb932243ae5",
+        "473fd3589deef10c2e8d9ac0c36cdb96d8a89c1b0e753eb1292cc724c738822e",
+        "58cec51fa97e5c6816be1a0dc7d951aad297e25d64a034c89d3538af27c30d27",
+        "bc1f6e3611ecaf4def301c91fbb67bf6e7258bcb03ef0322151e8e3dbe6a67b2",
+    ),
+    (4, 1, "p075"): (
+        "8f78428810ef559217bc5c19d49d78f68c1284c116f2880d0c0ebdd934b5a590",
+        "13b4ec22f25f8abf4c3557381fc664639eb3c62b42334b858041e13534e18fb3",
+        "b5c04c0420c83217da10eb093c21f36250ed191e6a30573ffdd8c0326ca6775d",
+        "78dfb0c7f2f56fb5b78f5a8fe4302b037173bfd6da132a262b3406ee49ece435",
+    ),
+    (4, 1, "p12"): (
+        "ede0a3b049e88746e8f372dc2518929f894c060428f76231ee7fc485200b36f3",
+        "b4773b2004a929eb0666ea2fa3e7a187071cc16dcd58b73d20cefb81e0771082",
+        "87a7dbdd3a6e3a4fb642197da2fc7259dd44fac6a3c68d8a5eacb6cd55adc438",
+        "eb17fbdf8ed861d545cec498ce4e212ed963f73b54f14bf09f6d682ef1d2733f",
+    ),
+    (4, 1, "p15"): (
+        "34d01bbeb5203f4193e075a63c70635c97e12027726be09458e996a76e78a607",
+        "8f29aa1c10d98b364ee3c23fbb0b7360a54b58cbc0cb5f72db88aaecec2a5c1b",
+        "2570fd669b64485cd98b79475de9c581ca3eb7daecd331c13a66984dd976c298",
+        "15cdc34de630db9415bb3cacd28be5d9972a8b50d2a6dbc90206e5a92113612c",
+    ),
+    (4, 2, "p025"): (
+        "2fd92533618cc4da9411f7ccf99965f5503d8d9b5c94f2d2c35cd9ce71110cc4",
+        "7bc252a5eab1d95c34378bb6e9ea8ae28e69b027760a1ab4b58f465ec3cfb937",
+        "11f2a95612cf87edc54a89c10ddd4e8a5ee059b7b13027001d99c0b08801d525",
+        "86aefc9a5e456efd07a75f877168cbc17f6cd03a49ab5eea5766f6116323ae1c",
+    ),
+    (4, 2, "p05"): (
+        "b57d257997e2be7d74e46531dc355c8f6e1f7a51e1b9c26b7969698d44eeac89",
+        "57680a2082e262847091b677577f53e69826520ab63b3e2ba23b65aed373de1b",
+        "0e615b29622fb8559033a3dd91440a38e1360f6a454c5c1f40df354bd0ed9935",
+        "985472367fde9aa282950d8de31c16ae8ccbba91c25cf9f887c126ae8c0e101f",
+    ),
+    (4, 2, "p075"): (
+        "e32bc98ad8268ecadb5749226804c8fddae6da3bd38a47555fb8084fe1f2d32b",
+        "0095bd8f918281dbb015c4f327b8a5cce428ac962b42501fcac5a083752f7664",
+        "5f9b0ece2583f4fec1252c43f90a46aafc6648508a5894ffb5041425ad456581",
+        "b88a09385486b7f88617366ca715b2c621bd4183b785ee0bab00798b5ee6e7b7",
+    ),
+    (4, 2, "p12"): (
+        "8bfa4444c01e895008088165ae5e1f4404c0346b769a35265242954a39b1fc4a",
+        "3ed836da62d4fbb45f269d93b51010d9a9cab2fe5e438c4db6d3f7ab5284333a",
+        "09f3f179e1733cd50c7cd7869818646d047eb10ce6866d8944e1382ff9ab7b4f",
+        "57088720539782e15ff7b50fa1010fd271c00dd36da1efb4ef608d02781a8440",
+    ),
+    (4, 2, "p15"): (
+        "d3c016d62eaba7c2813debb67c31b8878c6ef2934db9c78c78129151a176ad4e",
+        "9b015bb73f0aa7a7f224a15420b490fd2d4f9444407449d0fe23d9389eb72871",
+        "fdec4ecaa7ac295022d0b43a661b5cb08650b1f1d582cca3e9436a79ee515b57",
+        "7c0e829c08125a1c35c6b97fec79f8147b7191d45b037bad9d5c6df323b83fef",
+    ),
+    (4, 3, "p025"): (
+        "140e9565e94ca1dae94846b887d81995a1c1409f1012464caeea16b74aaeb98a",
+        "b1462b434b7fdefbf39fbbca2db0b44693502015243655b33208fd185dc964f2",
+        "fcc8804bfe75347821dc828138c6e67ec42c6c23eee1a0aff99d68404736a644",
+        "ff92c7e5d3cf8d824804bc6ff52e00d540af00ead3258163150a22491cd1c35f",
+    ),
+    (4, 3, "p05"): (
+        "b238386709c6db53f20080960fd9efa525abbd08750fea4e08c508fd7fe6b5d7",
+        "00864f46634d26d9a3b3b9e7881a493298ea19911a899348dfe3abc2f708ecf6",
+        "d83c2b496fcf8e59185d3acc15ea416de037483a4cb20b2bf604a6728e6c2f31",
+        "c8f713193f77d702bc7f4442eb147eeae5e5947156a98791dc8c726f8ca36e5c",
+    ),
+    (4, 3, "p075"): (
+        "bd4a8f440ebbd268eb17cb10d44c37e0e99d8407dff61fb26a8859ed1052e930",
+        "5dfbfaa1da37b536727c289f6beba9e7feab707bc030c50f2f8f288225b0ee0b",
+        "7f77ed2018f77ff7552bc9fa18ff01fd6daa55ad161fea6a658c562fb43c0c2c",
+        "9d7a77d4c64ef5a24217aa682c582ba62e3d36e7f86beba6f6edfb967157cc96",
+    ),
+    (4, 3, "p12"): (
+        "d71dc44e1217167f9dcd77500fc64c177ada5bd641a2b82e512ab40b45ea0196",
+        "504eea6d3da806dbd88c3954e5f08643f83b7287d06976de1b37d991af5033a4",
+        "64a833aa54cdd968b562b2c57d3661ebab05a52b4a0f5e30362bd69b0d54cac6",
+        "2f4887553c42437fdc843f39e4e7b5be9dcd23969f3cfa8cc9392a53414afccb",
+    ),
+    (4, 3, "p15"): (
+        "8be6618142e7b566169c4c44ffa368f2429b7a94058b71146076205922bd4911",
+        "c6dd74c2f3908926066a9341dafb9552ffac806ae1459b4d1bc3fae88a66107b",
+        "dacbe0daebda24fbbf663b23efd13ad2b09349ce9593090c9b80030c26d91af2",
+        "680417c9a9a0e0cf680659ebd45bd9c14408da7037a097d0be6d60a5bf3dfc06",
     ),
 }
 FIELDS = (
@@ -1178,6 +1343,15 @@ def main() -> None:
             key for key, root in PEARL_RUNS.items() if root.parent == PEARL_P12_P15
         ),
         "legacy paired PEARL artifact keys",
+    )
+    require_equal(
+        set(PEARL_REMAINING37_KEYS),
+        {
+            key
+            for key, root in PEARL_RUNS.items()
+            if root.parent == PEARL_REMAINING37
+        },
+        "remaining-37 PEARL artifact keys",
     )
     snapshot = datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
     rows = {

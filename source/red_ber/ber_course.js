@@ -270,12 +270,12 @@
     } });
 
   // ------------------------------------------------------------ 3. reading the table
-  out.push({ id: 'missing', chapter: CH.read, title: 'Missing is not zero', layout: 'side', dur: 6.5,
-    text: 'Of the ' + group(D.rows) + ' rows, ' + group(miss) + ' have no result. They stay in the table, marked missing, with blank BER fields and a reason. ' +
-      'OFDM + FEC, Partial FFT + FEC, JADE, CORAL and SAPPHIRE each have all 960 rows. ' +
-      'PEARL has ' + group(pearlCov.available) + ' of 960 rows: all five pilot ratios on the six-case plot scope, plus 2.5%, 5% and 7.5% on Red 3, hydrophone 1. The active sequential fill queue covers the remaining ' + group(pearlCov.missing / D.snrs.length) + ' case–pilot conditions. Each stays blank until its complete result passes the admission checks. A missing result is never drawn as zero.',
+  out.push({ id: 'missing', chapter: CH.read, title: 'Complete coverage', layout: 'side', dur: 6.5,
+    text: 'All ' + group(D.rows) + ' rows now have authenticated results. Each of the six receivers has 960 of 960 rows across twelve recording–hydrophone cases and five pilot ratios. ' +
+      'The 37-job sequential PEARL fill is validated complete. No row is missing in this snapshot. ' +
+      'The table retains status and missing_reason fields: an absent result would keep its BER fields blank instead of becoming zero. A zero records a tested receiver result with no observed error.',
     math: 'available ' + group(avail) + ' + missing ' + group(miss) + ' = ' + group(D.rows) + ' rows',
-    a11y: 'Coverage table across twelve recording–hydrophone cases and five pilot ratios. OFDM plus FEC, Partial FFT plus FEC, JADE, CORAL and SAPPHIRE each have 960 of 960 receiver results. PEARL has ' + group(pearlCov.available) + ' of 960: all five pilot ratios on the fixed six cases, plus 2.5, 5 and 7.5 percent on Red 3, hydrophone 1. The active sequential fill queue covers the remaining ' + group(pearlCov.missing / D.snrs.length) + ' case–pilot conditions. They stay blank until complete results pass the admission checks; missing entries are never zero.',
+    a11y: 'Complete coverage table across twelve recording–hydrophone cases and five pilot ratios. Every receiver has 960 of 960 rows, so all six receiver rows show all five pilot ratios in every case. The sequential PEARL fill is validated complete. No result is missing. The table still distinguishes an absent result, whose BER fields would remain blank, from a tested result with no observed error.',
     draw: function (g, p) {
       var R = g.sideR, narrow = R[2] < 560; g.panel(R, 'which receiver has results in which case');
       var cols = M.CHANNELS.map(function (ch) { return ch.key; });
@@ -289,7 +289,7 @@
       });
       var yk = res.bottom + 26, qk = seg(p, 0.8, 1);
       if (narrow) cov.forEach(function (q, r) { g.labelPx(R[0] + 16 + (r % 2) * (R[2] / 2), yk + Math.floor(r / 2) * 20, RX[q.id].name + ': ' + group(q.available) + ' / ' + group(q.available + q.missing), RX[q.id].col, { plain: true, size: 10.5, p: qk }); });
-      else g.labelPx(R[0] + 16, yk, 'fraction: available pilot ratios; hatched: no complete source result', C.dim, { plain: true, size: 11, p: qk });
+      else g.labelPx(R[0] + 16, yk, 'every cell has all five pilot ratios; no result is missing', C.dim, { plain: true, size: 11, p: qk });
     } });
 
   var notCommon = M.CHANNELS.filter(function (ch) { return M.COMMON.indexOf(ch) < 0; });
@@ -425,17 +425,17 @@
     text: 'Pooling hides how much the recording–hydrophone cases differ. This map shows every case at one test condition: ' + pct(5) + ' pilots and ' + sC + ' dB. ' +
       chanText(M.CHANNELS[hardest]) + ' is the hardest there: OFDM + FEC leaves ' + sci(perChan['ofdm+fec'][hardest].ber, 1) + ', JADE ' + sci(perChan.jade[hardest].ber, 1) + ' and SAPPHIRE ' + sci(perChan.cajode[hardest].ber, 1) + '. ' +
       (h3Lowest ? 'On every recording, hydrophone 3 gives OFDM + FEC its lowest BER at this point. ' : '') +
-      'At this 5% condition, PEARL is available on the six fixed plot-scope cases and on Red 3, hydrophone 1; the other five cases have no complete source result. The other five receivers have results on all 12 cases.',
+      'All six receivers have results on all 12 cases at this condition. The pooled pilot panels still use only the fixed six-case scope shown earlier.',
     math: 'one test condition: ' + pct(5) + ' pilots, ' + sC + ' dB, every recording–hydrophone case, ' + D.frames + ' frames each',
-    a11y: 'Case-by-case information BER at 5 percent pilots and 20 dB. ' + chanText(M.CHANNELS[hardest]) + ' has the largest OFDM plus FEC BER, ' + sci(perChan['ofdm+fec'][hardest].ber, 1) + '; JADE is ' + sci(perChan.jade[hardest].ber, 1) + ' and SAPPHIRE is ' + sci(perChan.cajode[hardest].ber, 1) + ' there. PEARL is available on the six fixed plot-scope cases and on Red 3, hydrophone 1; it is missing on the other five cases. Hydrophone 3 has the lowest OFDM plus FEC BER within every recording at this condition. The other five receivers have results on all twelve cases.',
+    a11y: 'Case-by-case information BER at 5 percent pilots and 20 dB. ' + chanText(M.CHANNELS[hardest]) + ' has the largest OFDM plus FEC BER, ' + sci(perChan['ofdm+fec'][hardest].ber, 1) + '; JADE is ' + sci(perChan.jade[hardest].ber, 1) + ' and SAPPHIRE is ' + sci(perChan.cajode[hardest].ber, 1) + ' there. All six receivers have results on all twelve cases. Hydrophone 3 has the lowest OFDM plus FEC BER within every recording at this condition. The pooled pilot panels retain their fixed six-case scope.',
     draw: function (g, p) {
       var R = g.sideR, narrow = R[2] < 560; g.panel(R, narrow ? 'BER by case: ' + pct(5) + ' pilots, ' + sC + ' dB' : 'information BER per case at ' + pct(5) + ' pilots, ' + sC + ' dB');
       var res = P.matrix(g, [R[0], R[1], R[2], R[3] - 40], { rows: ORDER, cols: M.CHANNELS.map(function (ch) { return ch.key; }), labelW: narrow ? 104 : 150, top: 56, maxH: narrow ? 34 : 50, headSize: narrow ? 8.5 : 10.5, size: narrow ? 8.5 : 10.5, p: p,
         cell: function (id, k) { var q = perChan[id][k]; if (!q) return { hatch: true }; return q.zero ? { fill: 'rgba(38,70,112,0.6)', text: '0', textCol: C.ink } : { fill: P.berColour(q.ber), text: narrow ? '' : sci(q.ber, 0) }; } });
       if (narrow) {
         g.labelPx(R[0] + 12, res.bottom + 20, 'colour: BER (blue low, warm high)', C.dim, { plain: true, size: 9.5, p: seg(p, 0.75, 0.95) });
-        g.labelPx(R[0] + 12, res.bottom + 35, 'hatch: missing result', C.dim, { plain: true, size: 9.5, p: seg(p, 0.75, 0.95) });
-      } else g.labelPx(R[0] + 16, res.bottom + 22, 'colour: information BER on a logarithmic scale, blue small, warm large;  0: no error seen;  hatched: missing', C.dim, { plain: true, size: 11, p: seg(p, 0.75, 0.95) });
+        g.labelPx(R[0] + 12, res.bottom + 35, 'all receiver results are present', C.dim, { plain: true, size: 9.5, p: seg(p, 0.75, 0.95) });
+      } else g.labelPx(R[0] + 16, res.bottom + 22, 'colour: information BER on a logarithmic scale, blue small, warm large;  0: no error seen;  all results present', C.dim, { plain: true, size: 11, p: seg(p, 0.75, 0.95) });
     } });
 
   // ------------------------------------------------------------ 5. what the table supports
@@ -450,7 +450,7 @@
     'PEARL has authenticated pooled curves at all five pilot ratios on the fixed six-case scope.'
   ].filter(Boolean);
   var NOT = [
-    'A six-receiver comparison on every Red channel: PEARL coverage outside the fixed six-case scope is incomplete.',
+    'A pooled comparison over all twelve cases: the five pilot panels deliberately retain the fixed six-case scope.',
     'A measured BER of 0.5/N: that value only places a zero-observation marker on a logarithmic plot.',
     'Anything about speed: the table holds no timing.',
     'A causal explanation: the table compares outcomes but does not isolate which mechanism caused a difference.',
@@ -461,7 +461,7 @@
   out.push({ id: 'supports', chapter: CH.claims, title: 'What the table supports, and what it does not', layout: 'side', dur: 7,
     text: 'Read with its settings and the fixed ' + M.COMMON.length + '-case plot scope, the table supports descriptive statements like those marked with a tick. PEARL participates only where its curve is authenticated. ' +
       'It does not support those marked with a cross. The observations are descriptive for this table, not causal explanations or universal receiver rankings. A rebuild recomputes every ticked statement from the counts.',
-    math: 'supported: descriptive, pooled over the fixed six cases, at these settings;  not supported: missing-curve rankings, causality, universality or speed',
+    math: 'supported: descriptive, pooled over the fixed six cases, at these settings;  not supported: twelve-case pooling, causality, universality or speed',
     a11y: 'Evidence boundary. Supported statements: ' + SUPPORT.join(' ') + ' Not supported: ' + NOT.join(' '),
     draw: function (g, p) {
       var R = g.sideR, c = g.ctx, narrow = R[2] < 560; g.panel(R);
@@ -487,8 +487,8 @@
 
   out.push({ id: 'snapshot', chapter: CH.claims, title: 'Provenance appendix: the data snapshot', layout: 'side', dur: 5,
     text: 'These pages read the table rebuilt at ' + D.snapshot + '. Its CSV file has the SHA-256 hash ' + D.csvSha256.slice(0, 12) + '…' + D.csvSha256.slice(-4) + '. ' +
-      'The table can be rebuilt from its sibling result repositories; rows now missing are filled once their runs produce authenticated aggregates. ' +
-      'Rebuilding this page then recomputes every number in it, including the statements on the previous page.',
+      'The table can be rebuilt from its sibling result repositories. Every planned row is present in this snapshot. ' +
+      'Rebuilding this page recomputes every number in it, including the statements on the previous page.',
     math: 'python3 -B results/red_hydrophone_ber/build_table.py;  python3 -B source/red_ber/build_ber.py',
     draw: function (g, p) {
       var R = g.sideR, narrow = R[2] < 560; g.panel(R, 'the table these pages read');

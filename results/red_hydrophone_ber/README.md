@@ -14,7 +14,7 @@ The table contains 5,760 rows:
 
 Here, “all pilot ratios” means the five ratios in the current comparison. Older 20% pilot results exist but are outside this table. The common configuration is FFT length 1024, code rate 1/4, and 47 one-second frames per point.
 
-The current CSV snapshot is `2026-10-25T07:53:47Z`. Its coverage is:
+The current CSV snapshot is `2026-10-26T06:33:09Z`. Its coverage is:
 
 | Receiver | Available | Missing | Coverage |
 |---|---:|---:|---:|
@@ -23,14 +23,14 @@ The current CSV snapshot is `2026-10-25T07:53:47Z`. Its coverage is:
 | JADE | 960 | 0 | 100.0% |
 | CORAL | 960 | 0 | 100.0% |
 | SAPPHIRE (`cajode`) | 960 | 0 | 100.0% |
-| PEARL | 528 | 432 | 55.0% |
-| **Total** | **5,328** | **432** | **92.5%** |
+| PEARL | 960 | 0 | 100.0% |
+| **Total** | **5,760** | **0** | **100.0%** |
 
 JADE and SAPPHIRE now include all five authenticated curves for each of the 12 recording–hydrophone cases. The refresh admits 160 Red 4/hydrophone 3 rows from fresh CAJODE attempt `R3-CAJODE-RED4-H3-BER-002` and JADE attempt `R3-JADE-RED4H3-BER-001`. Their completion-receipt SHA-256 values are `fdb3b01b40a7e4c8d69b054d04bddfba65c9b5ef3af7eb0588eae763d5f4e529` and `628e113d0895235fb4b057eef09f055a325211cfbe80077b1e801fc80576140d`. Recovery controller `red4h3-after-red4h2-004` completed with receipt SHA-256 `69fc52aec81b833940da1e0fa12cbdb793807f22a6d8899b9cb3ee09e5897b2b`. The terminal partial CAJODE attempt 001 remains immutable and excluded.
 
-PEARL has complete curves at all five pilot ratios for Red 1 and Red 2 on all three hydrophones. Those six recording–hydrophone cases form the fixed plot scope used by every pilot panel. PEARL also has complete 2.5%, 5%, and 7.5% curves for Red 3/hydrophone 1. The earlier attempt-003 fill contributed the 2.5% and 5% curves for Red 1/hydrophones 1–3 and Red 2/hydrophone 1. Controller `pearl-p025-p05-fill-after-red4h3-003` completed with receipt SHA-256 `61ad85320d98b263ff30c2245a52fbb49405fc8360dc31c6db8f939e4d559181`; its terminal attempt receipt has SHA-256 `6ebda4b432053f3b13bfe4e7d6ce37608b94196268decc233331dc3756ea6192`.
+PEARL now has complete curves at all five pilot ratios for all 12 recording–hydrophone cases: 60 curves and 960 rows. The five pooled pilot panels deliberately retain their fixed six-case scope, Red 1 and Red 2 on all three hydrophones, so adding full-table coverage does not change their comparison population. The earlier attempt-003 fill contributed the 2.5% and 5% curves for Red 1/hydrophones 1–3 and Red 2/hydrophone 1. Controller `pearl-p025-p05-fill-after-red4h3-003` completed with receipt SHA-256 `61ad85320d98b263ff30c2245a52fbb49405fc8360dc31c6db8f939e4d559181`; its terminal attempt receipt has SHA-256 `6ebda4b432053f3b13bfe4e7d6ce37608b94196268decc233331dc3756ea6192`.
 
-The active 37-job fill now contributes ten authenticated curves: the four previously missing pilot ratios on Red 2/hydrophones 2 and 3, plus 2.5% and 5% on Red 3/hydrophone 1. Each result's completion, frame, aggregate, and manifest hashes are pinned in the builder. The active sequential queue covers the remaining 27 unavailable PEARL case–pilot conditions. They remain marked `source_result_missing` until each complete result is authenticated and registered. The partial Red 3/hydrophone 2 artifact, which covers only SNR 0–14 dB, remains deliberately excluded.
+The 37-job `PEARL-REMAINING37-FILL-001` campaign completed at `2026-10-25T18:58:42Z`, providing the remaining full curves. Its terminal receipt has SHA-256 `e55b2d03ebaac7b788db5d39883192a984205ed4c157b4a3cdb109edbf9992a4`. Every job has 752 frame rows, 16 aggregate rows, a passing trace audit, and pinned completion, frame, aggregate, and manifest hashes in the builder. The earlier partial Red 3/hydrophone 2 artifact, which covered only SNR 0–14 dB, remains deliberately excluded in favor of the complete authenticated result.
 
 ## Receiver mapping and source cohorts
 
