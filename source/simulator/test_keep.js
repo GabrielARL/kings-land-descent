@@ -164,6 +164,7 @@ if (course) {
     return ch.name === EXPECTED_CHAPTERS[i][0] && ch.start === EXPECTED_CHAPTERS[i][1] && ch.n === EXPECTED_CHAPTERS[i][2];
   }), course.chapters.map(function (ch) { return ch.name + ':' + ch.start + '+' + ch.n; }).join(' | '));
   check('every step has a unique id, a title, a text and a draw function', ids.every(function (id, i) { return ids.indexOf(id) === i; }) && steps.every(function (s) { return s.id && s.title && typeof s.text === 'string' && typeof s.draw === 'function'; }));
+  check('all 28 steps retain an equation transcript for the in-stage equation rail', steps.every(function (s) { return typeof s.math === 'string' && s.math.trim().length > 0; }));
   var drawn = 0;
   steps.forEach(function (s, i) { [0, 0.25, 0.5, 0.75, 1].forEach(function (p) { sb.Board.debug({ step: i, p: p }); drawn++; }); });
   var errs = sb.kingsLandErrors || [];
@@ -233,6 +234,8 @@ if (course) {
 
   var shell = fs.readFileSync(path.join(__dirname, 'advanced.html'), 'utf8');
   check('the shell title, H1, and summary use the approved SAPPHIRE presentation', /<title>SAPPHIRE: A Joint OFDM Receiver for Data Detection and Error-Correction Decoding under Intercarrier Interference<\/title>/.test(shell) && /<h1 id="board-title">SAPPHIRE: A Joint OFDM Receiver<\/h1>/.test(shell) && /Pilots anchor the frequency-domain response, including carrier coupling; code constraints help resolve the data bits\./.test(shell));
+  var canvasAt = shell.indexOf('id="board-canvas"'), equationAt = shell.indexOf('id="board-math"'), storyAt = shell.indexOf('<section class="story"');
+  check('the equation rail is inside the animation stage rather than the story card', /<div class="stage-visual"><canvas/.test(shell) && /<div class="math stage-math" id="board-math" aria-label="Equation in the animation"><\/div>/.test(shell) && canvasAt >= 0 && canvasAt < equationAt && equationAt < storyAt && (shell.match(/id="board-math"/g) || []).length === 1 && /\.stage \{[^}]*display: flex;[^}]*flex-direction: column;/.test(shell) && /\.stage-visual \{[^}]*aspect-ratio: 16 \/ 11;/.test(shell) && /\.stage-math \{[^}]*overflow-x: hidden;/.test(shell) && /\.stage-math \.bp \{ opacity: 0; \}/.test(shell));
   check('the canvas is an accessible technical diagram described by the step text and equation', /<canvas id="board-canvas" role="img"[^>]*aria-describedby="board-step board-text board-math"/.test(shell) && /Your browser does not support the tutorial diagram\.<\/canvas>/.test(shell));
   check('the shell uses legible technical display, body, and monospace fonts', /Atkinson\+Hyperlegible/.test(shell) && /IBM\+Plex\+Mono/.test(shell) && /--mono: 'IBM Plex Mono'/.test(shell));
 }
