@@ -102,7 +102,8 @@ check('Veil: the Loom’s weave solves its balance equations', (function () { va
 check('Veil: the Loom’s weave is the lowest weave at fixed tiles and weights', (function () { var lm = r3.loom, best = vl.veilCost(r3.w2, r3.b, lm.c); for (var k = 0; k < 200; k++) { var c = [lm.c[0] + 0.3 * (Math.random() - 0.5), lm.c[1] + 0.3 * (Math.random() - 0.5)]; if (vl.veilCost(r3.w2, r3.b, c) < best - 1e-12) return false; } return true; })());
 
 // ---------------------------------------------------------------- 3. the course in a browser-less sandbox
-function sandbox() {
+function sandbox(width, height) {
+  width = width || 960; height = height || 660;
   var elements = {}, drawnText = [], noop = function () {};
   function ctx() {
     var t = { globalAlpha: 1, fillStyle: '', strokeStyle: '', lineWidth: 1, font: '', textAlign: '', textBaseline: '', lineCap: '', lineJoin: '',
@@ -119,7 +120,7 @@ function sandbox() {
     var e = { id: id, hidden: false, textContent: '', innerHTML: '', disabled: false, width: 0, height: 0, style: {}, offsetTop: 0, offsetHeight: 0, scrollTop: 0, clientHeight: 100,
       classList: { toggle: noop, add: noop, remove: noop }, setAttribute: function (n, v) { this[n] = String(v); }, getAttribute: function (n) { return this[n] == null ? null : this[n]; },
       addEventListener: noop, querySelectorAll: function () { return []; }, querySelector: function () { return element('q-' + Object.keys(elements).length); }, closest: function () { return null; },
-      getBoundingClientRect: function () { return { width: 960, height: 660, top: 0, left: 0, right: 960, bottom: 660 }; }, scrollIntoView: noop, focus: noop,
+      getBoundingClientRect: function () { return { width: width, height: height, top: 0, left: 0, right: width, bottom: height }; }, scrollIntoView: noop, focus: noop,
       getContext: function () { return ctx(); } };
     return (elements[id] = e);
   }
@@ -185,7 +186,7 @@ if (course) {
   check('Partial FFT is not credited with new information or a guaranteed gain', /creates no new information/.test(partial) && /does not prove a performance gain/.test(partial));
   check('the conventional one-way receiver appears before the single constrained SAPPHIRE problem', ids.indexOf('separate-chain') < ids.indexOf('joint-loop') && /information normally travels only forward/.test(text('separate-chain')) && /one constrained optimization problem/.test(text('joint-loop')));
   check('the joint problem keeps pilot anchoring and code constraints distinct', /Pilots anchor the channel\/ICI response/.test(text('joint-loop')) && /code constraints restrict the coded bits/.test(text('joint-loop')) && /do not turn unknown data into pilots/.test(text('joint-loop')));
-  check('SAPPHIRE is not drawn or described as decoder feedback', /does not run a separate decoder and feed decoder messages back to a detector/.test(text('joint-loop')) && /not messages between a detector and a separate decoder/.test(text('why-alternate')) && /No BP or decoder message is returned/.test(text('iteration-order')) && /P\.objectiveBlocks/.test(String(steps[ids.indexOf('joint-loop')].draw)) && /loop: false/.test(String(steps[ids.indexOf('why-alternate')].draw)) && /loop: false/.test(String(steps[ids.indexOf('iteration-order')].draw)) && !/residual changes both blocks/.test(String(steps[ids.indexOf('prediction')].draw)));
+  check('SAPPHIRE is not drawn or described as decoder feedback', /does not run a separate decoder and feed decoder messages back to a detector/.test(text('joint-loop')) && /not messages between a detector and a separate decoder/.test(text('why-alternate')) && /No BP or decoder message is returned/.test(text('iteration-order')) && /P\.objectiveBlocks/.test(String(steps[ids.indexOf('joint-loop')].draw)) && /drawJointSlice/.test(String(steps[ids.indexOf('why-alternate')].draw)) && !/P\.updateLoop/.test(String(steps[ids.indexOf('why-alternate')].draw)) && /loop: false/.test(String(steps[ids.indexOf('iteration-order')].draw)) && !/residual changes both blocks/.test(String(steps[ids.indexOf('prediction')].draw)));
 
   var roles = text('anchors-and-constraints');
   check('pilots, LDPC parity, configured bits, and CRC have four distinct roles', /Known pilot symbols provide fixed references/.test(roles) && /low-density parity-check \(LDPC\) code supplies parity relations/.test(roles) && /receiver configuration fixes any known bit positions/.test(roles) && /CRC tests a hard candidate/.test(roles) && /none substitutes for another/.test(roles));
@@ -199,7 +200,39 @@ if (course) {
   check('the objective separates response priors and distinguishes the deck’s parity penalty from SAPPHIRE projection', /frequency smoothness of the correction Δ = C − C⁰/.test(objective) && /temporal prior on the full response C/.test(objective) && /supplied deck’s smooth parity penalty is a different formulation/.test(objective) && /SAPPHIRE’s parity-polytope projection/.test(objective) && /Hard code feasibility is separate/.test(objective));
   check('the full SAPPHIRE expansion appears only after its receiver terms have been introduced', ids.indexOf('robust-objective') > ids.indexOf('ici') && /SAPPHIRE stands for Symbol detection Aided by code through Parity constraints and Polytope projections, with Half-quadratic weighting under ICI in a joint OFDM Receiver with Error-correction decoding/.test(objective));
   var alternation = raw('why-alternate'), majorizer = raw('bit-majorizer');
-  check('the block-schedule page visibly introduces the bit partial derivatives and response normal equations', /partial derivatives of the received-signal part of the cost/.test(alternation) && /∂Q<sub>w<\/sub>\/∂b<sub>i<\/sub>/.test(alternation) && /∂Q<sub>w<\/sub>\/∂C\*/.test(alternation) && /M C<sup>k\+1<\/sup> = r/.test(alternation));
+  check('the joint-surface page visibly introduces the bit partial derivative and response normal equations', /analytical partial derivative/.test(alternation) && /∂Q<sub>w<\/sub>\/∂b<sub>2<\/sub>/.test(alternation) && /∂Q<sub>w<\/sub>\/∂C\*/.test(alternation) && /M C<sup>k\+1<\/sup> = r/.test(alternation));
+  var jointStep = steps[ids.indexOf('why-alternate')], joint = jointStep.jointSliceModel;
+  check('the joint view is an exact bounded teaching slice rather than a claimed full receiver surface', !!joint && /exact two-dimensional slice/.test(alternation) && /not the full receiver surface or a sampled receiver frame/.test(alternation) && /Neither temporary minimum is claimed to minimize the gold surface globally/.test(alternation));
+  check('the joint slice starts at the recorded bit and complete response state', close(joint.oldB, r3.from[1]) && closeAll(joint.oldC, r3.cFrom) && close(joint.actual(joint.oldB, 0), r3.L0, 1e-12));
+  check('the displayed update path moves only b first and only the complete response second', close(joint.start[1], joint.afterBit[1]) && !close(joint.start[0], joint.afterBit[0]) && close(joint.afterBit[0], joint.afterResponse[0]) && !close(joint.afterBit[1], joint.afterResponse[1]) && closeAll(joint.response(0), r3.cFrom) && closeAll(joint.response(1), r3.c));
+  check('the three displayed heights are the recorded 6.975, 6.435, and 6.225 costs', close(joint.start[2], r3.L0) && close(joint.afterBit[2], r3.L1) && close(joint.afterResponse[2], r3.L2) && close(joint.actual(joint.newB, 0), r3.L1) && close(joint.actual(joint.newB, 1), r3.L2), [joint.start[2], joint.afterBit[2], joint.afterResponse[2]].map(function (v) { return v.toFixed(6); }).join(' -> '));
+  var bitUpperSafe = true, responseUpperSafe = true, bi;
+  for (bi = 0; bi <= 200; bi++) {
+    var bt = bi / 200, tau = joint.tauMin + (joint.tauMax - joint.tauMin) * bi / 200;
+    if (joint.bitUpper(bt) < joint.actual(bt, 0) - 1e-10) bitUpperSafe = false;
+    if (joint.responseUpper(tau) < joint.actual(joint.newB, tau) - 1e-10) responseUpperSafe = false;
+  }
+  check('the temporary bit quadratic touches the gold fixed-response slice and upper-bounds it', close(joint.bitUpper(joint.oldB), joint.actual(joint.oldB, 0), 1e-12) && bitUpperSafe);
+  var derivativeEps = 1e-6;
+  var bitActualLeft = (joint.actual(joint.oldB, 0) - joint.actual(joint.oldB - derivativeEps, 0)) / derivativeEps;
+  var bitUpperLeft = (joint.bitUpper(joint.oldB) - joint.bitUpper(joint.oldB - derivativeEps)) / derivativeEps;
+  check('the analytical bit quadratic has the same feasible-side slope where it touches at b2 = 1', close(bitActualLeft, bitUpperLeft, 3e-6), bitActualLeft.toFixed(6) + ' versus ' + bitUpperLeft.toFixed(6));
+  check('the bit quadratic is minimized at the recorded new symbol estimate', joint.bitUpper(joint.newB) <= joint.bitUpper(joint.newB - 1e-4) && joint.bitUpper(joint.newB) <= joint.bitUpper(joint.newB + 1e-4) && close(joint.newB, r3.b[1]));
+  check('the refreshed response quadratic touches and upper-bounds the fixed-symbol response slice', close(joint.responseUpper(0), joint.actual(joint.newB, 0), 1e-12) && responseUpperSafe);
+  var responseActualSlope = (joint.actual(joint.newB, derivativeEps) - joint.actual(joint.newB, -derivativeEps)) / (2 * derivativeEps);
+  var responseUpperSlope = (joint.responseUpper(derivativeEps) - joint.responseUpper(-derivativeEps)) / (2 * derivativeEps);
+  check('the refreshed response quadratic has the same slope where it touches at the current response', close(responseActualSlope, responseUpperSlope, 3e-6), responseActualSlope.toFixed(6) + ' versus ' + responseUpperSlope.toFixed(6));
+  check('the response quadratic is minimized at the normal-equation endpoint', joint.responseUpper(1) <= joint.responseUpper(1 - 1e-4) && joint.responseUpper(1) <= joint.responseUpper(1 + 1e-4) && closeAll(joint.response(1), r3.c));
+  var mixed = joint.actual(0.75, 0.8) - joint.actual(0.75, 0.2) - joint.actual(0.25, 0.8) + joint.actual(0.25, 0.2);
+  check('the plotted gold surface genuinely couples the symbol and response directions', Math.abs(mixed) > 1e-5, mixed.toExponential(3));
+  var jointDrawing = drawnText('why-alternate', 0.87);
+  check('the animation labels one surface, both estimate directions, and the L-shaped cost history', /one surface: b₂ \+ response C/.test(jointDrawing) && /symbol estimate b₂/.test(jointDrawing) && /complete response path C\(τ\)/.test(jointDrawing) && /6\.975 -> 6\.435 -> 6\.225/.test(jointDrawing), jointDrawing);
+  var phoneErrors = [], phoneDraws = 0;
+  try {
+    var phone = sandbox(390, 720); [0.12, 0.24, 0.40, 0.55, 0.70, 0.87, 0.97].forEach(function (p) { phone.Board.debug({ step: 'why-alternate', p: p }); phoneDraws++; });
+    phoneErrors = phone.kingsLandErrors || [];
+  } catch (phoneError) { phoneErrors.push(phoneError && phoneError.stack || String(phoneError)); }
+  check('the joint animation renders every transition on a 390-pixel phone canvas', phoneDraws === 7 && phoneErrors.length === 0, phoneErrors.slice(0, 2).join(' | '));
   check('the bit page defines g as a partial derivative and distinguishes its closed-form majorized step from gradient descent', /partial derivatives g<sub>i<\/sub>/.test(majorizer) && /∂Q<sub>w<\/sub>\/∂b<sub>i<\/sub>/.test(majorizer) && /temporary quadratic/.test(majorizer) && /does not take a gradient-descent step/.test(majorizer));
 
   var k3 = kw[3], iteration3 = text('aim') + ' ' + text('bit-update') + ' ' + text('projection') + ' ' + text('dual-update');
@@ -244,9 +277,9 @@ if (course) {
   var liveEquation = sb.document.getElementById('board-equation'), everyEquationVisible = steps.every(function (s, i) { sb.Board.debug({ step: i, p: 1 }); return liveEquation.innerHTML && liveEquation.innerHTML.trim().length > 0; });
   check('every one of the 28 steps finishes with a visible equation inside the animation', everyEquationVisible);
   sb.Board.debug({ step: 'why-alternate', p: 0.25 }); var liveBitDerivative = liveEquation.innerHTML;
-  sb.Board.debug({ step: 'why-alternate', p: 0.55 }); var liveChannelDerivative = liveEquation.innerHTML;
-  sb.Board.debug({ step: 'why-alternate', p: 0.75 }); var liveConstraintUpdate = liveEquation.innerHTML;
-  check('the alternation animation changes from the bit derivative to the response equation and then ADMM', /∂Q<sub>w<\/sub>\/∂b<sub>i<\/sub>/.test(liveBitDerivative) && /∂Q<sub>w<\/sub>\/∂C\*/.test(liveChannelDerivative) && /Π<sub>𝒫a<\/sub>/.test(liveConstraintUpdate) && /u<sub>a<\/sub><sup>k\+1<\/sup>/.test(liveConstraintUpdate));
+  sb.Board.debug({ step: 'why-alternate', p: 0.70 }); var liveChannelDerivative = liveEquation.innerHTML;
+  sb.Board.debug({ step: 'why-alternate', p: 0.95 }); var liveConstraintUpdate = liveEquation.innerHTML;
+  check('the alternation animation changes from the bit derivative to the response equation and then ADMM', /∂Q<sub>w<\/sub>\/∂b<sub>2<\/sub>/.test(liveBitDerivative) && /∂Q<sub>w<\/sub>\/∂C\*/.test(liveChannelDerivative) && /Π<sub>𝒫a<\/sub>/.test(liveConstraintUpdate) && /u<sub>a<\/sub><sup>k\+1<\/sup>/.test(liveConstraintUpdate));
   check('the shell uses legible technical display, body, and monospace fonts', /Atkinson\+Hyperlegible/.test(shell) && /IBM\+Plex\+Mono/.test(shell) && /--mono: 'IBM Plex Mono'/.test(shell));
 }
 

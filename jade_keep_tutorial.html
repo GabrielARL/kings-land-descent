@@ -2560,7 +2560,7 @@ var KeepParts = (function () {
   'use strict';
   var E = window.Engine, B = window.Board, K = window.Keep, P = window.KeepParts; if (!E || !B || !K || !P) return;
   var H = B.H, C = H.C, seg = H.seg, num = H.num, pair = H.pair, at = H.at, add = H.add, sub = H.sub,
-      lerp2 = H.lerp2, clamp = H.clamp;
+      lerp2 = H.lerp2, mix = H.mix, clamp = H.clamp;
   var JADE = P.JADE, word = P.word;
 
   // ------------------------------------------------------------ frozen teaching examples
@@ -2610,6 +2610,152 @@ var KeepParts = (function () {
     c.strokeStyle = C.faint; c.lineWidth = 1.5; c.beginPath(); c.moveTo(cx - rad - 24, cy); c.lineTo(cx + rad + 24, cy); c.moveTo(cx, cy - rad - 24); c.lineTo(cx, cy + rad + 24); c.stroke();
     [[-1, -1, '11'], [-1, 1, '10'], [1, -1, '01'], [1, 1, '00']].forEach(function (a, i) { var q = seg(p, 0.1 * i, 0.35 + 0.1 * i), x = cx + a[0] * rad, y = cy - a[1] * rad; c.globalAlpha = q; c.fillStyle = JADE; c.beginPath(); c.arc(x, y, 6, 0, Math.PI * 2); c.fill(); c.globalAlpha = 1; g.labelPx(x + (a[0] < 0 ? -10 : 10), y + (a[1] > 0 ? -14 : 14), a[2], C.ink, { align: a[0] < 0 ? 'right' : 'left', plain: true, mono: true, size: 11.5, p: q }); });
     g.labelPx(cx + rad + 26, cy + 16, 'I', C.dim, { plain: true, size: 11.5 }); g.labelPx(cx + 10, cy - rad - 24, 'Q', C.dim, { plain: true, size: 11.5 });
+  }
+
+  // An exact two-coordinate slice through iteration 3 of the real-valued teaching receiver.  The horizontal
+  // coordinate is b_2.  The depth coordinate follows the chord from the old complete two-coefficient response
+  // to the response returned by the normal equations, so the drawing never pretends that c_1 moved alone.
+  // The gold surface is J plus the frozen ADMM agreement term.  The two temporary curves are the actual bit
+  // majorizer and the refreshed fixed-weight response quadratic used by that same recorded iteration.
+  var jointSlice = (function () {
+    var oldB = vb0[1], newB = vb1[1], tauMin = -0.25, tauMax = 1.35;
+    function response(tau) { return [mix(cF[0], cN[0], tau), mix(cF[1], cN[1], tau)]; }
+    function bits(t) { return [vb0[0], t]; }
+    function actual(t, tau) { var b = bits(t); return veil.J(response(tau), b) + veil.rope(b, vz, vu, rho); }
+    function bitUpper(t) {
+      var d = t - oldB, oldAgreement = oldB - vz[1] + vu[1], agreement = t - vz[1] + vu[1];
+      return vr.L0 + vr.g[1] * d + 0.5 * vr.h[1] * d * d +
+        veil.beta * (t * (1 - t) - oldB * (1 - oldB)) + 0.5 * rho * (agreement * agreement - oldAgreement * oldAgreement);
+    }
+    function responseUpper(tau) { return vr.L1 + veil.Q(vr.w2, response(tau), vb1) - veil.Q(vr.w2, cF, vb1); }
+    return { oldB: oldB, newB: newB, oldC: cF.slice(), newC: cN.slice(), tauMin: tauMin, tauMax: tauMax,
+      response: response, bits: bits, actual: actual, bitUpper: bitUpper, responseUpper: responseUpper,
+      start: [oldB, 0, vr.L0], afterBit: [newB, 0, vr.L1], afterResponse: [newB, 1, vr.L2] };
+  })();
+  function jointView(F) {
+    return { F: F, ox: F[0] + F[2] * 0.28, oy: F[1] + F[3] * 0.84, xw: F[2] * 0.64,
+      dx: -F[2] * 0.22, dy: -F[3] * 0.16, zh: F[3] * 0.56, zmin: 4.65, zmax: 7.55 };
+  }
+  function jointProject(V, b, tau, z) {
+    var d = (tau - jointSlice.tauMin) / (jointSlice.tauMax - jointSlice.tauMin);
+    return [V.ox + b * V.xw + d * V.dx, V.oy + d * V.dy - (z - V.zmin) / (V.zmax - V.zmin) * V.zh];
+  }
+  function jointDot(g, a, radius, col, p) {
+    if (!(p > 0)) return; var c = g.ctx; c.save(); c.globalAlpha = clamp(p, 0, 1); c.shadowColor = 'rgba(0,0,0,0.72)'; c.shadowBlur = radius; c.shadowOffsetY = 3;
+    c.fillStyle = col; c.beginPath(); c.arc(a[0], a[1], radius, 0, Math.PI * 2); c.fill(); c.shadowColor = 'transparent'; c.strokeStyle = 'rgba(255,255,255,0.78)'; c.lineWidth = 1; c.stroke(); c.restore();
+  }
+  function jointArrow(g, a, b, col, width, progress, alpha) {
+    if (!(progress > 0) || !(alpha > 0)) return; var c = g.ctx; c.save(); c.globalAlpha = clamp(alpha, 0, 1);
+    g.arrowPx(a, [mix(a[0], b[0], progress), mix(a[1], b[1], progress)], col, width); c.restore();
+  }
+  function jointCurve(g, V, pointAt, p, col, width, dash) {
+    if (!(p > 0)) return; var c = g.ctx, n = V.F[2] < 360 ? 28 : 46, upto = clamp(p, 0, 1) * n, whole = Math.floor(upto), frac = upto - whole;
+    c.save(); c.globalAlpha = clamp(p * 1.6, 0, 1); c.strokeStyle = col; c.lineWidth = width || 2; c.lineCap = 'round'; c.lineJoin = 'round'; if (dash) c.setLineDash(dash); c.beginPath();
+    var prev = pointAt(0), j; c.moveTo(prev[0], prev[1]);
+    for (j = 1; j <= whole; j++) { prev = pointAt(j / n); c.lineTo(prev[0], prev[1]); }
+    if (whole < n && frac > 0) { var next = pointAt((whole + 1) / n); c.lineTo(mix(prev[0], next[0], frac), mix(prev[1], next[1], frac)); }
+    c.stroke(); c.restore();
+  }
+  function jointSurface(g, V, p) {
+    if (!(p > 0)) return; var c = g.ctx, nx = V.F[2] < 390 ? 13 : 19, ny = V.F[2] < 390 ? 7 : 10, ix, iy;
+    c.save(); c.fillStyle = C.gold; c.strokeStyle = 'rgba(255,210,122,0.56)'; c.lineWidth = 0.75;
+    for (iy = ny - 1; iy >= 0; iy--) {
+      var ta = mix(jointSlice.tauMin, jointSlice.tauMax, iy / ny), tb = mix(jointSlice.tauMin, jointSlice.tauMax, (iy + 1) / ny);
+      for (ix = 0; ix < nx; ix++) {
+        var ba = ix / nx, bb = (ix + 1) / nx;
+        var a = jointProject(V, ba, ta, jointSlice.actual(ba, ta)), b = jointProject(V, bb, ta, jointSlice.actual(bb, ta));
+        var cc = jointProject(V, bb, tb, jointSlice.actual(bb, tb)), d = jointProject(V, ba, tb, jointSlice.actual(ba, tb));
+        c.globalAlpha = clamp(p, 0, 1) * 0.085; c.beginPath(); c.moveTo(a[0], a[1]); c.lineTo(b[0], b[1]); c.lineTo(cc[0], cc[1]); c.lineTo(d[0], d[1]); c.closePath(); c.fill();
+      }
+    }
+    c.globalAlpha = clamp(p, 0, 1) * 0.48;
+    for (iy = 0; iy <= ny; iy++) {
+      var t = mix(jointSlice.tauMin, jointSlice.tauMax, iy / ny); c.beginPath();
+      for (ix = 0; ix <= nx; ix++) { var x = ix / nx, q = jointProject(V, x, t, jointSlice.actual(x, t)); if (!ix) c.moveTo(q[0], q[1]); else c.lineTo(q[0], q[1]); } c.stroke();
+    }
+    for (ix = 0; ix <= nx; ix += 3) {
+      var xx = ix / nx; c.beginPath();
+      for (iy = 0; iy <= ny; iy++) { var tt = mix(jointSlice.tauMin, jointSlice.tauMax, iy / ny), qq = jointProject(V, xx, tt, jointSlice.actual(xx, tt)); if (!iy) c.moveTo(qq[0], qq[1]); else c.lineTo(qq[0], qq[1]); } c.stroke();
+    }
+    c.restore();
+  }
+  function jointAxes(g, V, p) {
+    if (!(p > 0)) return; var O = jointProject(V, 0, jointSlice.tauMin, V.zmin), X = jointProject(V, 1, jointSlice.tauMin, V.zmin);
+    var D = jointProject(V, 0, jointSlice.tauMax, V.zmin), Z = jointProject(V, 0, jointSlice.tauMin, V.zmax * 0.97), compact = V.F[2] < 390;
+    g.arrowPx(O, X, JADE, 1.4); g.arrowPx(O, D, C.blue, 1.4); g.arrowPx(O, Z, C.gold, 1.4);
+    g.labelPx(X[0], X[1] + 13, compact ? 'bit estimate b₂' : 'symbol estimate b₂', JADE, { align: 'right', plain: true, size: compact ? 9.5 : 10.5, p: p, within: V.F });
+    g.labelPx(D[0] - 2, D[1] - 12, compact ? 'response path' : 'complete response path C(τ)', C.blue, { plain: true, size: compact ? 9.5 : 10.5, p: p, within: V.F });
+    g.labelPx(Z[0] - 5, Z[1], 'cost', C.gold, { align: 'right', plain: true, size: 10.5, p: p, within: V.F });
+  }
+  function jointPhase(q) {
+    if (q < 0.16) return { p: seg(q, 0, 0.16), title: 'one surface, two unknowns', lines: [
+      { text: 'left–right: symbol estimate b₂', col: JADE }, { text: 'front–back: complete response C(τ)', col: C.blue },
+      { text: 'height: objective + ADMM agreement', col: C.gold }, { text: 'one 2D slice of the teaching model', col: C.dim }] };
+    if (q < 0.32) return { p: seg(q, 0.16, 0.32), title: 'one receiver state', lines: [
+      { text: 'b₂ = 1.000', col: JADE, mono: true }, { text: 'C = (0.954, 0.156)', col: C.blue, mono: true },
+      { text: 'fixed cost = 6.975', col: C.gold, mono: true }, { text: 'the marker has not moved', col: C.dim }] };
+    if (q < 0.50) return { p: seg(q, 0.32, 0.50), title: 'first: update b', lines: [
+      { text: 'hold the complete response fixed', col: C.blue }, { text: 'violet: temporary bit quadratic', col: C.violet },
+      { text: 'direct minimum: b₂ = 0.630', col: JADE, mono: true }, { text: 'actual fixed cost falls to 6.435', col: C.green, mono: true }] };
+    if (q < 0.60) return { p: seg(q, 0.50, 0.60), title: 'refresh weights', lines: [
+      { text: 'one observation: 0.94 -> 0.68', col: C.blue, mono: true }, { text: 'the marker does not move', col: C.ink },
+      { text: 'the gold cost surface does not change', col: C.gold }, { text: 'only the next temporary model changes', col: C.violet }] };
+    if (q < 0.84) return { p: seg(q, 0.60, 0.84), title: 'then: update C', lines: [
+      { text: 'hold both symbol estimates fixed', col: JADE }, { text: 'blue: fixed-weight quadratic', col: C.blue },
+      { text: 'normal equations solve both c values', col: C.gold }, { text: 'C: (0.954,0.156) -> (0.915,0.022)', col: C.green, mono: true, size: 10 }] };
+    if (q < 0.92) return { p: seg(q, 0.84, 0.92), title: 'the L-shaped round', lines: [
+      { text: '6.975 -> 6.435 -> 6.225', col: C.gold, mono: true }, { text: 'first b moves; then C moves', col: C.green },
+      { text: 'both belong to one coupled problem', col: C.ink }, { text: 'not a claimed global minimum', col: C.dim }] };
+    return { p: seg(q, 0.92, 1), title: 'constraint state follows', lines: [
+      { text: 'project each local replica z_a', col: C.violet }, { text: 'add disagreement to each ledger u_a', col: C.orange },
+      { text: 'threshold and test after the round', col: C.green }, { text: 'no BP or decoder message returns', col: C.dim }] };
+  }
+  function jointAfter(g, R, q) {
+    var p = seg(q, 0.92, 1); if (!(p > 0)) return; var c = g.ctx, y = R[1] + R[3] - (R[2] < 440 ? 136 : 48), w = Math.min(105, (R[2] - 54) / 3), gap = 18;
+    var total = 3 * w + 2 * gap, x = R[0] + (R[2] - total) / 2, labels = [['project z', C.violet], ['update u', C.orange], ['test word', C.green]];
+    labels.forEach(function (it, i) { var xp = x + i * (w + gap), pp = seg(p, i * 0.14, 0.55 + i * 0.14); box(g, xp, y, w, 34, it[0], '', it[1], pp); if (i && pp > 0) g.arrowPx([xp - gap + 2, y + 17], [xp - 3, y + 17], C.faint, 1.4); });
+  }
+  function drawJointSlice(g, R, q) {
+    var parts = split(R, 0.72, 8), plot = parts[0], card = parts[1], compact = plot[2] < 440;
+    g.panel(plot, 'one surface: b₂ + response C');
+    var F = [plot[0] + 7, plot[1] + 42, plot[2] - 14, plot[3] - 52], V = jointView(F), surfaceP = seg(q, 0, 0.15) * (1 - 0.68 * seg(q, 0.92, 1));
+    g.clip(plot); jointSurface(g, V, surfaceP); jointAxes(g, V, seg(q, 0.04, 0.14) * (1 - seg(q, 0.92, 0.96)));
+    var A = jointProject(V, jointSlice.oldB, 0, jointSlice.actual(jointSlice.oldB, 0));
+    var BU = jointProject(V, jointSlice.newB, 0, jointSlice.bitUpper(jointSlice.newB));
+    var B0 = jointProject(V, jointSlice.newB, 0, jointSlice.actual(jointSlice.newB, 0));
+    var CU = jointProject(V, jointSlice.newB, 1, jointSlice.responseUpper(1));
+    var C0 = jointProject(V, jointSlice.newB, 1, jointSlice.actual(jointSlice.newB, 1));
+    var bitShow = seg(q, 0.19, 0.31) * (1 - seg(q, 0.52, 0.59));
+    jointCurve(g, V, function (t) { var b = t; return jointProject(V, b, 0, jointSlice.actual(b, 0)); }, bitShow, C.gold, 2.4);
+    jointCurve(g, V, function (t) { var b = t; return jointProject(V, b, 0, jointSlice.bitUpper(b)); }, bitShow, C.violet, 3);
+    jointDot(g, A, 6, C.ink, seg(q, 0.12, 0.20) * (1 - seg(q, 0.46, 0.54)));
+    g.labelPx(A[0] + 8, A[1] - 15, 'old state', C.ink, { size: 10, p: seg(q, 0.16, 0.23) * (1 - seg(q, 0.44, 0.51)), within: plot });
+    var bitMove = seg(q, 0.32, 0.43), bitArrowP = 1 - seg(q, 0.50, 0.58); jointArrow(g, A, BU, C.violet, 2.6, bitMove, bitArrowP);
+    jointDot(g, BU, 5.5, C.violet, seg(q, 0.39, 0.45) * (1 - seg(q, 0.46, 0.50)));
+    var bitDrop = seg(q, 0.43, 0.49); jointArrow(g, BU, B0, C.green, 2.1, bitDrop, bitArrowP);
+    jointDot(g, B0, 6, C.green, seg(q, 0.47, 0.53) * (1 - seg(q, 0.75, 0.84)));
+    var weightP = seg(q, 0.50, 0.56) * (1 - seg(q, 0.59, 0.62));
+    g.labelPx(B0[0] + 7, B0[1] - 18, 'weights: 0.94 -> 0.68; position fixed', C.blue, { size: compact ? 9 : 10, p: weightP, within: plot });
+    var responseShow = seg(q, 0.58, 0.68) * (1 - seg(q, 0.87, 0.93));
+    jointCurve(g, V, function (t) { var tau = mix(jointSlice.tauMin, jointSlice.tauMax, t); return jointProject(V, jointSlice.newB, tau, jointSlice.actual(jointSlice.newB, tau)); }, responseShow, C.gold, 2.4);
+    jointCurve(g, V, function (t) { var tau = mix(jointSlice.tauMin, jointSlice.tauMax, t); return jointProject(V, jointSlice.newB, tau, jointSlice.responseUpper(tau)); }, responseShow, C.blue, 3);
+    var responseMove = seg(q, 0.68, 0.78), responseArrowP = 1 - seg(q, 0.84, 0.90); jointArrow(g, B0, CU, C.blue, 2.6, responseMove, responseArrowP);
+    jointDot(g, CU, 5.5, C.blue, seg(q, 0.75, 0.80) * (1 - seg(q, 0.81, 0.84)));
+    var responseDrop = seg(q, 0.79, 0.84); jointArrow(g, CU, C0, C.green, 2.1, responseDrop, responseArrowP);
+    jointDot(g, C0, 6.5, C.green, seg(q, 0.82, 0.88));
+    var pathP = seg(q, 0.83, 0.91);
+    jointCurve(g, V, function (t) { var b = mix(jointSlice.oldB, jointSlice.newB, t); return jointProject(V, b, 0, jointSlice.actual(b, 0)); }, Math.min(1, pathP * 2), C.green, 3.2);
+    jointCurve(g, V, function (t) { return jointProject(V, jointSlice.newB, t, jointSlice.actual(jointSlice.newB, t)); }, Math.max(0, pathP * 2 - 1), C.green, 3.2);
+    if (pathP > 0.3) {
+      jointDot(g, A, 4.5, C.ink, pathP); jointDot(g, B0, 5, JADE, pathP); jointDot(g, C0, 6, C.green, pathP);
+      g.labelPx(B0[0] + 7, B0[1] + 17, 'b moved', JADE, { size: 9.5, p: pathP, within: plot });
+      g.labelPx(C0[0] + 7, C0[1] - 15, 'C moved', C.blue, { size: 9.5, p: pathP, within: plot });
+    }
+    jointAfter(g, plot, q); g.ctx.restore();
+    // Redraw the panel title after the meshes so it cannot be hidden by the surface.
+    var c = g.ctx; c.save(); c.fillStyle = 'rgba(20,27,36,0.96)'; c.fillRect(plot[0] + 5, plot[1] + 4, plot[2] - 10, 23); c.font = '700 12.5px ' + g.sans; c.fillStyle = C.gold; c.textAlign = 'left'; c.textBaseline = 'top'; c.fillText('one surface: b₂ + response C', plot[0] + 10, plot[1] + 8); c.restore();
+    var info = jointPhase(q); info.lines.forEach(function (it, i) { it.p = seg(info.p, 0.02 + 0.10 * i, 0.18 + 0.10 * i); });
+    P.lines(g, card, info.lines, 1, info.title, { size: card[2] < 390 ? 10.5 : 11.5, rowH: 28 });
   }
   function walkTo(g, walk, upto, col, w, key) {
     key = key || 'x'; var n = Math.min(walk.length - 1, Math.floor(upto)), f = clamp(upto - n, 0, 1), pts = [];
@@ -2691,27 +2837,29 @@ var KeepParts = (function () {
       { tag: 'H', label: 'hard parity set', note: 'z_a ∈ P_a', col: C.violet },
       { tag: 'A', label: 'ADMM agreement', note: 'shared b, local z_a, dual u_a', col: C.orange }], result: 'minimize J subject to hard parity sets; ADMM enforces agreement' }); } });
   var whyAlternateFrames = [
-    { at: 0.04, html: 'one optimization state: (C<sup>k</sup>, b<sup>k</sup>, {z<sub>a</sub><sup>k</sup>,u<sub>a</sub><sup>k</sup>})' },
-    { at: 0.18, html: 'g<sub>i</sub><sup>k</sup> = ∂Q<sub>w</sub>/∂b<sub>i</sub> at b<sup>k</sup><br>b<sup>k+1</sup> = arg min<sub>0≤b≤1</sub> Q̂<sub>k</sub>(b)' },
-    { at: 0.46, html: '∂Q<sub>w</sub>/∂C* = 0<br>⇔ M C<sup>k+1</sup> = r &nbsp; (sparse response solve)' },
-    { at: 0.66, html: 'z<sub>a</sub><sup>k+1</sup> = Π<sub>𝒫a</sub>(S<sub>a</sub>b<sup>k+1</sup> + u<sub>a</sub><sup>k</sup>)<br>u<sub>a</sub><sup>k+1</sup> = u<sub>a</sub><sup>k</sup> + S<sub>a</sub>b<sup>k+1</sup> − z<sub>a</sub><sup>k+1</sup>' },
-    { at: 0.90, html: 'one optimization round is now complete<br>threshold b and test the candidate separately; no BP or decoder call' }
+    { at: 0.04, html: 'C(τ) = C<sup>k</sup> + τ(C<sup>k+1</sup> − C<sup>k</sup>)<br>ℒ<sub>k</sub>(t,τ) = J(C(τ),[0,t]) + ADMM agreement' },
+    { at: 0.18, html: 'g<sub>2</sub><sup>k</sup> = ∂Q<sub>w</sub>/∂b<sub>2</sub> at b<sup>k</sup><br>b<sub>2</sub>: 1.000 → arg min Q̂<sub>k</sub> = 0.630; &nbsp; C = C<sup>k</sup>' },
+    { at: 0.50, html: 'refresh w after b changes<br>one observation: 0.94 → 0.68; &nbsp; (b,C) does not move' },
+    { at: 0.60, html: '∂Q<sub>w</sub>/∂C* = 0 &nbsp; ⇔ &nbsp; M C<sup>k+1</sup> = r<br>C: (0.954,0.156) → (0.915,0.022); &nbsp; b<sub>2</sub> = 0.630' },
+    { at: 0.84, html: 'same fixed cost: 6.975 → 6.435 → 6.225<br>first b moves; then the complete response C moves' },
+    { at: 0.92, html: 'z<sub>a</sub><sup>k+1</sup> = Π<sub>𝒫a</sub>(S<sub>a</sub>b<sup>k+1</sup> + u<sub>a</sub><sup>k</sup>)<br>u<sub>a</sub><sup>k+1</sup> = u<sub>a</sub><sup>k</sup> + S<sub>a</sub>b<sup>k+1</sup> − z<sub>a</sub><sup>k+1</sup>' }
   ];
-  out.push({ id: 'why-alternate', chapter: CH.joint, title: 'Why the solver updates one block at a time', layout: 'side', dur: 8.8,
-    text: 'There is no closed-form minimizer for the complete coupled nonconvex problem. SAPPHIRE therefore updates blocks of one optimization state in a fixed order. With the robust weights fixed, it takes partial derivatives of the received-signal part of the cost with respect to b. Those derivatives and safe curvature make a temporary quadratic function that touches and stays above that part of the cost; SAPPHIRE minimizes this function, refreshes the weights, solves the fixed-bit response block, projects every local replica, and accumulates the remaining disagreement in u. These are internal optimization operations, not messages between a detector and a separate decoder. A hard candidate is formed and tested only after the round.',
-    math: at(0.04, 'one state: (C<sup>k</sup>, b<sup>k</sup>, {z<sub>a</sub><sup>k</sup>,u<sub>a</sub><sup>k</sup>})') +
-      at(0.18, '<br>g<sub>i</sub><sup>k</sup> = ∂Q<sub>w</sub>/∂b<sub>i</sub> at b<sup>k</sup>;  b<sup>k+1</sup> = arg min Q̂<sub>k</sub>(b)') +
-      at(0.46, '<br>∂Q<sub>w</sub>/∂C* = 0  ⇔  M C<sup>k+1</sup> = r') +
-      at(0.66, '<br>z<sub>a</sub><sup>k+1</sup> = Π<sub>𝒫a</sub>(S<sub>a</sub>b<sup>k+1</sup> + u<sub>a</sub><sup>k</sup>);  u<sub>a</sub><sup>k+1</sup> = u<sub>a</sub><sup>k</sup> + S<sub>a</sub>b<sup>k+1</sup> − z<sub>a</sub><sup>k+1</sup>') +
-      at(0.90, '<br>after the round: threshold b and test parity, fixed bits and CRC; no BP/decoder call'),
-    draw: function (g, p) { P.updateLoop(g, g.sideR, { p: p, title: 'one constrained state, updated internally', loop: false, steps: [
-      { tag: '1', label: 'robust weights: closed form', col: C.blue },
-      { tag: '2', label: 'bit partial derivatives → bowl minimum', col: JADE },
-      { tag: '3', label: 'refresh robust weights', col: C.blue },
-      { tag: '4', label: 'response normal equations', col: C.gold },
-      { tag: '5', label: 'parity-polytope projections', col: C.violet },
-      { tag: '6', label: 'scaled duals add disagreement', col: C.orange }],
-      footnote: 'After this optimization round: form one hard candidate and test it. No decoder output is fed back.' }); liveEquation(p, whyAlternateFrames); } });
+  out.push({ id: 'why-alternate', chapter: CH.joint, title: 'Watch both estimates move on one surface', layout: 'side', dur: 14,
+    text: 'Open one symbol estimate and one direction through the complete frequency-domain channel/ICI response on the same three-dimensional surface. Left–right is b<sub>2</sub>. Front–back follows C(τ) = C<sup>k</sup> + τ(C<sup>k+1</sup> − C<sup>k</sup>), so both response coefficients move together. Height is J plus the ADMM agreement term, with b<sub>1</sub>, z<sup>k</sup>, u<sup>k</sup>, and all unshown directions fixed. This is an exact two-dimensional slice of the four-observation real-valued teaching model, not the full receiver surface or a sampled receiver frame. ' +
+      at(0.16, 'The marker starts at b<sub>2</sub> = 1.000 and C<sup>k</sup> = (0.954, 0.156), where the fixed cost is 6.975. ') +
+      at(0.32, 'First hold the complete response fixed. The violet temporary quadratic uses an analytical partial derivative and safe curvature. The derivative sets the function’s tilt; it does not move the estimate. Minimizing that function directly sends b<sub>2</sub> to 0.630, then the marker drops to the gold surface at cost 6.435. All free symbol estimates belong to the same b update; only the changing toy coordinate is drawn. ') +
+      at(0.50, 'Now refresh the robust weights. One displayed observation changes from 0.94 to 0.68, but the marker and the gold surface do not move: the weights replace the temporary model, not the receiver problem. ') +
+      at(0.60, 'Next hold both symbol estimates fixed. The blue fixed-weight quadratic touches the gold response slice at the current state. Setting its response derivative to zero gives the normal equations. Their direct solution moves the full response from (0.954, 0.156) to (0.915, 0.022), where the actual fixed cost is 6.225. The arrow is one direct solve, not a sequence of gradient steps. ') +
+      at(0.84, 'The green L-shaped trail is the point: b and C live in one coupled problem, yet the solver moves along one variable block and then the other. Joint estimation does not mean a simultaneous closed-form solution. Neither temporary minimum is claimed to minimize the gold surface globally. ') +
+      at(0.92, 'The parity projections and scaled-dual updates then change z and u off this b–C surface. Only after the round does the receiver threshold and test a candidate. These are internal optimization operations, not messages between a detector and a separate decoder.'),
+    math: at(0.04, 'C(τ) = C<sup>k</sup> + τ(C<sup>k+1</sup> − C<sup>k</sup>);  ℒ<sub>k</sub>(t,τ) = J(C(τ),[0,t]) + (ρ/2)‖[0,t] − z<sup>k</sup> + u<sup>k</sup>‖²') +
+      at(0.18, '<br>g<sub>2</sub><sup>k</sup> = ∂Q<sub>w</sub>/∂b<sub>2</sub>;  b<sub>2</sub>: 1.000 → arg min Q̂<sub>k</sub> = 0.630 while C = C<sup>k</sup>') +
+      at(0.50, '<br>refresh w after b changes: 0.94 → 0.68 for one observation;  (b,C) stays fixed') +
+      at(0.60, '<br>∂Q<sub>w</sub>/∂C* = 0  ⇔  M C<sup>k+1</sup> = r;  C: (0.954,0.156) → (0.915,0.022) while b<sub>2</sub> = 0.630') +
+      at(0.84, '<br>ℒ<sub>k</sub>: 6.975 → 6.435 → 6.225;  first b moves, then C moves') +
+      at(0.92, '<br>z<sub>a</sub><sup>k+1</sup> = Π<sub>𝒫a</sub>(S<sub>a</sub>b<sup>k+1</sup> + u<sub>a</sub><sup>k</sup>);  u<sub>a</sub><sup>k+1</sup> = u<sub>a</sub><sup>k</sup> + S<sub>a</sub>b<sup>k+1</sup> − z<sub>a</sub><sup>k+1</sup>'),
+    jointSliceModel: jointSlice,
+    draw: function (g, p) { drawJointSlice(g, g.sideR, p); liveEquation(p, whyAlternateFrames); } });
 
   // ------------------------------------------------------------ 4. ADMM for the code constraints
   out.push({ id: 'parity-polytope', chapter: CH.admm, title: 'A two-bit parity set', layout: 'map+side', view: VIEW, dur: 5.4,
