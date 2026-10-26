@@ -1946,11 +1946,11 @@ var ThreeParts = (function () {
       { text: 'bright slice preserves the toy curve', col: C.gold },
       { text: 'touch; then add binary + ADMM terms', col: COL.pass }
     ] };
-    return { title: 'response block', lines: [
-      { text: 'refresh the robust weights', col: COL.signal },
-      { text: 'hold the new *b fixed', col: COL.b },
-      { text: 'bright direction runs through *C', col: C.gold },
-      { text: 'solve full *C by normal equations', col: COL.pass }
+    return { title: 'freeze the response', lines: [
+      { text: 'the depth direction belongs to *C', col: C.gold },
+      { text: 'the symbol update holds *C = *C^k', col: COL.b },
+      { text: 'also hold weights, *z and *u fixed', col: COL.signal },
+      { text: 'next: open two symbol coordinates', col: COL.pass }
     ] };
   }
   function bridgeView(F, unfold) {
@@ -2019,12 +2019,12 @@ var ThreeParts = (function () {
     cx.save(); cx.globalAlpha = clamp(p, 0, 1); cx.strokeStyle = COL.signal; cx.lineWidth = 2; cx.beginPath(); cx.moveTo(a[0], a[1]); cx.lineTo(b0[0], b0[1]); cx.stroke(); cx.restore();
   }
   function drawBridgeResponseSlice(g, V, bowl, p) {
-    if (!(p > 0)) return; var cx = g.ctx, t = bowl.centre, n = 40, dStar = bridgeResponseMinimum(bowl, t), move = seg(p, 0.28, 0.86), now = mix(0, dStar, move);
+    if (!(p > 0)) return; var cx = g.ctx, t = bowl.centre, n = 40;
     cx.save(); cx.globalAlpha = clamp(p, 0, 1); cx.strokeStyle = C.gold; cx.lineWidth = 3; cx.beginPath();
     for (var j = 0; j <= n; j++) { var r = -1 + 2 * j / n, a = bridgeProject(V, t, r, bridgeJointCost(bowl, t, r)); if (!j) cx.moveTo(a[0], a[1]); else cx.lineTo(a[0], a[1]); } cx.stroke(); cx.restore();
-    var old = bridgeProject(V, t, 0, bridgeJointCost(bowl, t, 0)), cur = bridgeProject(V, t, now, bridgeJointCost(bowl, t, now)); g.arrowPx(old, cur, C.gold, 2.2); drawBridgeDot3D(g, cur, 6, C.gold, p);
-    var compact = V.F[2] < 360, labelX = compact ? V.F[0] + V.F[2] - 8 : cur[0] + 10;
-    rich(g, labelX, cur[1] - 15, compact ? 'one *C direction' : 'one shown direction through *C', { size: 10.5, align: compact ? 'right' : 'left', col: C.gold, p: seg(p, 0.45, 0.78), box: true });
+    var old = bridgeProject(V, t, 0, bridgeJointCost(bowl, t, 0)); drawBridgeDot3D(g, old, 6, C.gold, p);
+    var compact = V.F[2] < 360, labelX = compact ? V.F[0] + V.F[2] - 8 : old[0] + 10;
+    rich(g, labelX, old[1] - 15, compact ? '*C stays fixed' : 'response direction; *C stays fixed', { size: 10.5, align: compact ? 'right' : 'left', col: C.gold, p: seg(p, 0.35, 0.75), box: true });
   }
   function drawBridgeRails(g, Rr, q) {
     var cx = g.ctx, left = Rr[0] + 36, right = Rr[0] + Rr[2] - 18, top = Rr[1] + Rr[3] - 66, move = seg(q, 0.38, 0.52);
@@ -2052,11 +2052,11 @@ var ThreeParts = (function () {
       if (o.tangent) drawBridgeTangent3D(g, V, bowl, reveal * active);
     }
     drawBridgeAxes3D(g, V, reveal * active, bowl.i, !!o.compact);
-    if (o.response) { rich(g, F[0] + F[2] / 2, F[1] + 18, 'refresh weights, then hold *b fixed', { size: 11, align: 'center', col: COL.signal, p: seg(q, 0.94, 0.97), box: true }); drawBridgeResponseSlice(g, V, bowl, seg(q, 0.94, 1)); }
+    if (o.response) { rich(g, F[0] + F[2] / 2, F[1] + 18, 'hold *C = *C^k for the symbol update', { size: 11, align: 'center', col: COL.signal, p: seg(q, 0.94, 0.97), box: true }); drawBridgeResponseSlice(g, V, bowl, seg(q, 0.94, 1)); }
     else rich(g, bridgeProject(V, 0.08, 0, 0)[0], bridgeProject(V, 0.08, 0, 0)[1] + 12, '*C = *C^k', { size: o.compact ? 9 : 10.5, col: C.gold, p: reveal * active, box: !o.compact });
   }
   function drawBridge3D(g, Rr, q) {
-    var focus = bridgeFocus(q), shared = q >= 0.38 && q < 0.54, single = !shared, compactStage = Rr[2] < 390, tabbed = q < 0.38, title = q < 0.84 ? '3D view: symbol, response and cost' : q < 0.94 ? '3D signal surface: fixed-C slice' : 'hold b fixed: solve the response';
+    var focus = bridgeFocus(q), shared = q >= 0.38 && q < 0.54, single = !shared, compactStage = Rr[2] < 390, tabbed = q < 0.38, title = q < 0.84 ? '3D view: symbol, response and cost' : q < 0.94 ? '3D signal surface: fixed-C slice' : 'freeze C for the symbol view';
     g.panel(Rr, title);
     var inner = [Rr[0] + 6, Rr[1] + (tabbed ? 44 : 28), Rr[2] - 12, Rr[3] - (tabbed ? 52 : 44)];
     if (single) {
@@ -2074,13 +2074,152 @@ var ThreeParts = (function () {
       rich(g, Rr[0] + Rr[2] / 2, Rr[1] + 44, 'one shared update: three synchronized values', { size: 10.5, align: 'center', col: COL.pass, p: seg(q, 0.38, 0.45), box: true, weight: '700' });
     }
     if (q < 0.08) rich(g, Rr[0] + Rr[2] / 2, Rr[1] + Rr[3] - 15, 'the old curve opens into a second receiver direction', { size: 10.5, align: 'center', col: C.dim, p: seg(q, 0.02, 0.08) });
-    if (q >= 0.94) rich(g, Rr[0] + Rr[2] / 2, Rr[1] + Rr[3] - 15, 'one direction is drawn; the full response C is solved together', { size: 10.5, align: 'center', col: COL.pass, p: seg(q, 0.95, 1), box: true });
+    if (q >= 0.94) rich(g, Rr[0] + Rr[2] / 2, Rr[1] + Rr[3] - 15, 'C moves later; next open b_1 and b_2 together', { size: 10.5, align: 'center', col: COL.pass, p: seg(q, 0.95, 1), box: true });
     var cx = g.ctx; cx.save(); cx.fillStyle = 'rgba(20,27,36,0.96)'; cx.fillRect(Rr[0] + 5, Rr[1] + 4, Rr[2] - 10, 23); cx.font = '700 12.5px ' + g.sans; cx.fillStyle = C.gold; cx.textAlign = 'left'; cx.textBaseline = 'top'; cx.fillText(title, Rr[0] + 10, Rr[1] + 8); cx.restore();
   }
   function drawBridge(g, Rr, q) {
     var RR = P.two(Rr, 0.66), info = bridgeLines(q); drawBridge3D(g, RR[0], q);
     var cardP = bridgeCardProgress(q); info.lines.forEach(function (it, i) { it.p = seg(cardP, 0.02 + 0.10 * i, 0.16 + 0.10 * i); });
     P.lines(g, RR[1], info.lines, 1, info.title, { size: RR[1][2] < 390 ? 11 : 12, rowH: 29 });
+  }
+
+  // A two-symbol teaching slice for comparing the cost of one frozen b block with the temporary quadratic used to
+  // choose its update.  It preserves the preceding old point, slopes, curvatures and new point.  The nonnegative
+  // squared gap makes the violet surface an exact upper bound for this schematic slice; neither surface is sampled
+  // from a recorded receiver frame or presented as the complete high-dimensional SAPPHIRE objective.
+  var surrogateDemo = { old: [0.10, 0.60], next: [0.350, 8 / 15], curvature: [2, 3], base: 0.10, gap: 0.30 };
+  function surrogateUpper(x, y) {
+    var dx = x - surrogateDemo.next[0], dy = y - surrogateDemo.next[1];
+    return surrogateDemo.base + dx * dx + 1.5 * dy * dy;
+  }
+  function surrogateGap(x, y) {
+    var d1 = x - surrogateDemo.old[0], d2 = y - surrogateDemo.old[1], d = d1 - d2;
+    return surrogateDemo.gap * d * d;
+  }
+  function surrogateActual(x, y) { return surrogateUpper(x, y) - surrogateGap(x, y); }
+  function surrogateSlope() {
+    return [surrogateDemo.curvature[0] * (surrogateDemo.old[0] - surrogateDemo.next[0]), surrogateDemo.curvature[1] * (surrogateDemo.old[1] - surrogateDemo.next[1])];
+  }
+  function surrogateView(F) {
+    return { F: F, ox: F[0] + F[2] * 0.29, oy: F[1] + F[3] * 0.82, xw: F[2] * 0.64, dx: -F[2] * 0.23, dy: -F[3] * 0.16, zh: F[3] * 0.56, zmin: 0.02, zmax: 0.80 };
+  }
+  function surrogateProject(V, x, y, z) {
+    return [V.ox + x * V.xw + y * V.dx, V.oy + y * V.dy - (z - V.zmin) / (V.zmax - V.zmin) * V.zh];
+  }
+  function drawSurrogateSurface(g, V, costFn, p, o) {
+    if (!(p > 0)) return; o = o || {}; var cx = g.ctx, nx = V.F[2] < 360 ? 13 : 19, ny = V.F[2] < 360 ? 8 : 11, grow = o.grow == null ? 1 : o.grow;
+    cx.save(); cx.fillStyle = o.fillCol || COL.signal; cx.strokeStyle = o.meshCol || 'rgba(244,190,87,0.58)'; cx.lineWidth = o.width || 0.8;
+    for (var iy = ny - 1; iy >= 0; iy--) {
+      var ya = iy / ny, yb = (iy + 1) / ny;
+      for (var ix = 0; ix < nx; ix++) {
+        var xa = ix / nx, xb = (ix + 1) / nx, xm = (xa + xb) / 2, ym = (ya + yb) / 2;
+        var dist = Math.hypot(xm - surrogateDemo.old[0], ym - surrogateDemo.old[1]) / 1.28;
+        var gp = seg(grow, dist * 0.78, dist * 0.78 + 0.18); if (!(gp > 0)) continue;
+        var a0 = surrogateProject(V, xa, ya, costFn(xa, ya)), b0 = surrogateProject(V, xb, ya, costFn(xb, ya));
+        var c0 = surrogateProject(V, xb, yb, costFn(xb, yb)), d0 = surrogateProject(V, xa, yb, costFn(xa, yb));
+        cx.globalAlpha = clamp(p, 0, 1) * gp * (o.fill == null ? 0.10 : o.fill);
+        cx.beginPath(); cx.moveTo(a0[0], a0[1]); cx.lineTo(b0[0], b0[1]); cx.lineTo(c0[0], c0[1]); cx.lineTo(d0[0], d0[1]); cx.closePath(); cx.fill();
+      }
+    }
+    var meshP = clamp(p, 0, 1) * seg(grow, 0.48, 0.92) * (o.mesh == null ? 0.44 : o.mesh); cx.globalAlpha = meshP;
+    for (var jy = 0; jy <= ny; jy++) {
+      var yy = jy / ny; cx.beginPath();
+      for (var jx = 0; jx <= nx; jx++) { var xx = jx / nx, py = surrogateProject(V, xx, yy, costFn(xx, yy)); if (!jx) cx.moveTo(py[0], py[1]); else cx.lineTo(py[0], py[1]); }
+      cx.stroke();
+    }
+    for (var kx = 0; kx <= nx; kx += 3) {
+      var xxx = kx / nx; cx.beginPath();
+      for (var ky = 0; ky <= ny; ky++) { var yyy = ky / ny, px = surrogateProject(V, xxx, yyy, costFn(xxx, yyy)); if (!ky) cx.moveTo(px[0], px[1]); else cx.lineTo(px[0], px[1]); }
+      cx.stroke();
+    }
+    cx.restore();
+  }
+  function drawSurrogateAxes(g, V) {
+    var O = surrogateProject(V, 0, 0, V.zmin), X = surrogateProject(V, 1, 0, V.zmin), Y = surrogateProject(V, 0, 1, V.zmin), Z = surrogateProject(V, 0, 0, V.zmax * 0.88), compact = V.F[2] < 360;
+    g.arrowPx(O, X, COL.b, 1.4); g.arrowPx(O, Y, COL.z, 1.4); g.arrowPx(O, Z, COL.target, 1.4);
+    rich(g, X[0], X[1] + 13, compact ? 'b_1' : 'symbol estimate b_1', { size: compact ? 9.5 : 10.5, align: 'right', col: COL.b });
+    rich(g, Y[0] - 3, Y[1] - 11, compact ? 'b_2' : 'symbol estimate b_2', { size: compact ? 9.5 : 10.5, align: 'left', col: COL.z });
+    rich(g, Z[0] - 5, Z[1], 'cost', { size: compact ? 9.5 : 10.5, align: 'right', col: COL.target });
+  }
+  function drawSurrogatePoint(g, point, radius, col, p) { drawBridgeDot3D(g, point, radius, col, p); }
+  function drawSurrogateSlopes(g, V, p) {
+    if (!(p > 0)) return; var old = surrogateDemo.old, slope = surrogateSlope(), z0 = surrogateActual(old[0], old[1]), P0 = surrogateProject(V, old[0], old[1], z0), step = 0.19;
+    var T1 = surrogateProject(V, old[0] + step, old[1], z0 + slope[0] * step), T2 = surrogateProject(V, old[0], old[1] + step, z0 + slope[1] * step);
+    g.arrowPx(P0, [mix(P0[0], T1[0], p), mix(P0[1], T1[1], p)], COL.b, 2);
+    g.arrowPx(P0, [mix(P0[0], T2[0], p), mix(P0[1], T2[1], p)], COL.z, 2);
+    rich(g, T1[0] + 4, T1[1] - 10, '∂/∂b_1', { size: 10, col: COL.b, p: seg(p, 0.45, 0.9), box: true });
+    rich(g, T2[0] - 4, T2[1] - 10, '∂/∂b_2', { size: 10, align: 'right', col: COL.z, p: seg(p, 0.45, 0.9), box: true });
+  }
+  function drawSurrogateScan(g, V, q) {
+    var p = seg(q, 0.55, 0.67); if (!(p > 0)) return; var cx = g.ctx, y = q < 0.59 ? surrogateDemo.old[1] : mix(0.08, 0.92, seg(q, 0.59, 0.67)), n = 46;
+    function line(fn, col, width) { cx.save(); cx.globalAlpha = p; cx.strokeStyle = col; cx.lineWidth = width; cx.beginPath(); for (var i = 0; i <= n; i++) { var x = i / n, a = surrogateProject(V, x, y, fn(x, y)); if (!i) cx.moveTo(a[0], a[1]); else cx.lineTo(a[0], a[1]); } cx.stroke(); cx.restore(); }
+    line(surrogateActual, COL.signal, 2.6); line(surrogateUpper, COL.target, 2.6);
+    cx.save(); cx.globalAlpha = p * 0.65; cx.strokeStyle = C.gold; cx.lineWidth = 1; cx.setLineDash([3, 3]);
+    for (var j = 1; j < 7; j++) { var xx = j / 7, a0 = surrogateProject(V, xx, y, surrogateActual(xx, y)), b0 = surrogateProject(V, xx, y, surrogateUpper(xx, y)); cx.beginPath(); cx.moveTo(a0[0], a0[1]); cx.lineTo(b0[0], b0[1]); cx.stroke(); }
+    cx.restore();
+  }
+  function surrogateCardProgress(q) {
+    if (q < 0.12) return seg(q, 0, 0.12); if (q < 0.23) return seg(q, 0.12, 0.23); if (q < 0.36) return seg(q, 0.23, 0.36);
+    if (q < 0.55) return seg(q, 0.36, 0.55); if (q < 0.67) return seg(q, 0.55, 0.67); if (q < 0.80) return seg(q, 0.67, 0.80);
+    if (q < 0.91) return seg(q, 0.80, 0.91); return seg(q, 0.91, 1);
+  }
+  function surrogateLines(q) {
+    if (q < 0.12) return { title: 'an honest two-symbol view', lines: [
+      { text: 'gold: Φ_k(b_1,b_2)', col: COL.signal }, { text: 'actual frozen block cost', col: C.ink },
+      { text: 'schematic teaching slice', col: C.gold }, { text: 'not the full receiver objective', col: C.dim }
+    ] };
+    if (q < 0.23) return { title: 'freeze everything else', lines: [
+      { text: '*b^k = (0.100, 0.600)', col: COL.b }, { text: 'Φ_k(*b^k) = 0.169', col: COL.signal },
+      { text: 'fixed: *C, weights, *z, *u', col: C.gold }, { text: 'and every unshown symbol', col: C.dim }
+    ] };
+    if (q < 0.36) return { title: 'read two partial derivatives', lines: [
+      { text: '∂Φ_k/∂b_1 = −0.500', col: COL.b }, { text: '∂Φ_k/∂b_2 = +0.200', col: COL.z },
+      { text: 'evaluated from explicit formulas', col: C.gold }, { text: 'the estimate has not moved', col: C.dim }
+    ] };
+    if (q < 0.55) return { title: 'grow the easy stand-in', lines: [
+      { text: 'violet: temporary surrogate Φ̂_k', col: COL.target }, { text: 'same height and slopes at *b^k', col: C.gold },
+      { text: 'curvatures: 2 and 3', col: COL.b }, { text: 'a separable quadratic function', col: COL.pass }
+    ] };
+    if (q < 0.67) return { title: 'why the stand-in is safe', lines: [
+      { text: 'Φ̂_k − Φ_k = 0.30(Δb_1 − Δb_2)^2', col: C.gold, size: 10.5 }, { text: 'therefore Φ̂_k ≥ Φ_k', col: COL.target },
+      { text: 'the moving slice shows the gap', col: C.ink }, { text: 'the gap is zero at *b^k', col: COL.pass }
+    ] };
+    if (q < 0.80) return { title: 'minimize the easy bowl', lines: [
+      { text: 'arg min Φ̂_k = (0.350, 0.533)', col: C.gold, size: 10.5 }, { text: 'minimize the quadratic function directly', col: COL.pass, size: 10.5 },
+      { text: 'both coordinates move together', col: COL.b }, { text: 'not gradient-descent steps', col: C.dim }
+    ] };
+    if (q < 0.91) return { title: 'return to the actual cost', lines: [
+      { text: 'Φ_k(new) = 0.070', col: COL.signal }, { text: 'Φ̂_k(new) = 0.100', col: COL.target },
+      { text: 'Φ_k(old) = Φ̂_k(old) = 0.169', col: C.gold, size: 10.5 }, { text: 'the frozen cost fell', col: COL.pass }
+    ] };
+    return { title: 'what changes next round', lines: [
+      { text: 'the constrained problem stays fixed', col: COL.pass }, { text: '*C, weights, *z and *u move', col: C.gold },
+      { text: 'their new values reshape Φ_{k+1}', col: COL.signal }, { text: 'then SAPPHIRE builds a new surrogate', col: COL.target }
+    ] };
+  }
+  function drawSurrogateDemo(g, Rr, q) {
+    var share = P.wide(Rr) ? 0.71 : 0.66, RR = P.two(Rr, share), plot = RR[0], card = RR[1], title = q < 0.36 ? 'actual cost with the other state frozen' : q < 0.67 ? 'actual cost and temporary surrogate' : q < 0.80 ? 'one direct surrogate minimum' : q < 0.91 ? 'the actual cost at the new coordinates' : 'the fixed problem continues';
+    g.panel(plot, title); var F = [plot[0] + 7, plot[1] + 50, plot[2] - 14, plot[3] - 60], V = surrogateView(F);
+    var actualP = seg(q, 0, 0.12), grow = seg(q, 0.36, 0.55), fadeSur = 1 - seg(q, 0.91, 0.98), surP = seg(q, 0.36, 0.47) * fadeSur;
+    drawSurrogateSurface(g, V, surrogateActual, actualP, { fillCol: COL.signal, meshCol: 'rgba(244,190,87,0.64)', fill: q >= 0.67 ? 0.045 : 0.09, mesh: q >= 0.67 ? 0.34 : 0.5 });
+    drawSurrogateSurface(g, V, surrogateUpper, surP, { fillCol: COL.target, meshCol: 'rgba(203,186,255,0.72)', fill: 0.075, mesh: 0.55, grow: grow });
+    drawSurrogateAxes(g, V); drawSurrogateScan(g, V, q);
+    var old = surrogateDemo.old, next = surrogateDemo.next, oldPt = surrogateProject(V, old[0], old[1], surrogateActual(old[0], old[1]));
+    var upperNext = surrogateProject(V, next[0], next[1], surrogateUpper(next[0], next[1])), actualNext = surrogateProject(V, next[0], next[1], surrogateActual(next[0], next[1]));
+    var drop = seg(q, 0.12, 0.22), oldStart = [oldPt[0], F[1] + 8]; drawSurrogatePoint(g, [mix(oldStart[0], oldPt[0], drop), mix(oldStart[1], oldPt[1], drop)], 6, C.gold, drop * (1 - seg(q, 0.79, 0.9)));
+    rich(g, oldPt[0] + 9, oldPt[1] - 16, '*b^k', { size: 10.5, col: C.gold, p: seg(q, 0.17, 0.24) * (1 - seg(q, 0.79, 0.9)), box: true });
+    drawSurrogateSlopes(g, V, seg(q, 0.23, 0.36) * (1 - seg(q, 0.42, 0.50)));
+    var arrowP = seg(q, 0.67, 0.78); if (arrowP > 0) g.arrowPx(oldPt, [mix(oldPt[0], upperNext[0], arrowP), mix(oldPt[1], upperNext[1], arrowP)], COL.target, 2.6);
+    drawSurrogatePoint(g, upperNext, 6, COL.target, seg(q, 0.73, 0.80) * (1 - seg(q, 0.82, 0.86)));
+    rich(g, upperNext[0] + 8, upperNext[1] - 14, 'arg min Φ̂_k', { size: 10, col: COL.target, p: seg(q, 0.74, 0.81) * (1 - seg(q, 0.82, 0.86)), box: true });
+    var downP = seg(q, 0.80, 0.89); if (downP > 0) g.arrowPx(upperNext, [mix(upperNext[0], actualNext[0], downP), mix(upperNext[1], actualNext[1], downP)], COL.pass, 2.2);
+    drawSurrogatePoint(g, actualNext, 6, COL.pass, seg(q, 0.83, 0.91));
+    rich(g, actualNext[0] + 8, actualNext[1] + 18, 'same new coordinates', { size: 10, col: COL.pass, p: seg(q, 0.86, 0.92), box: true });
+    rich(g, plot[0] + plot[2] / 2, plot[1] + 38, 'fixed constrained problem: unchanged', { size: plot[2] < 390 ? 9.5 : 10.5, align: 'center', col: COL.pass, p: 1, box: true });
+    if (q >= 0.91) rich(g, plot[0] + plot[2] / 2, plot[1] + plot[3] - 14, 'new frozen values → a new Φ_{k+1} and a new surrogate', { size: plot[2] < 390 ? 9.5 : 10.5, align: 'center', col: COL.target, p: seg(q, 0.91, 0.98), box: true });
+    var cx = g.ctx; cx.save(); cx.fillStyle = 'rgba(20,27,36,0.96)'; cx.fillRect(plot[0] + 5, plot[1] + 4, plot[2] - 10, 23); cx.font = '700 12.5px ' + g.sans; cx.fillStyle = C.gold; cx.textAlign = 'left'; cx.textBaseline = 'top'; cx.fillText(title, plot[0] + 10, plot[1] + 8); cx.restore();
+    var info = surrogateLines(q), cardP = surrogateCardProgress(q); info.lines.forEach(function (it, i) { it.p = seg(cardP, 0.02 + 0.10 * i, 0.16 + 0.10 * i); });
+    P.lines(g, card, info.lines, 1, info.title, { size: card[2] < 390 ? 10.5 : 11.5, rowH: 28 });
   }
 
   out.push({ id: 'sapphire-bridge', chapter: CH.inside, title: 'Three temporary bowls inside a 3D receiver view', layout: 'side', dur: 34,
@@ -2092,10 +2231,23 @@ var ThreeParts = (function () {
       at(0.54, 'The replay enlarges symbol 2. Its positive slope 0.200 sends the estimate toward a smaller value. ') +
       at(0.70, 'Subtracting slope divided by curvature jumps directly from 0.600 to 0.533. The answer is already inside [0,1], so clipping does nothing. ') +
       at(0.84, 'SAPPHIRE builds an upper quadratic model of the fixed-weight received-signal cost. Here the bright fixed-response slice illustrates its touch, common slope and upper-bound relationship. Binary and ADMM terms then form the full temporary bowl. ') +
-      at(0.94, 'Next SAPPHIRE refreshes the robust weights, holds the new symbol estimates fixed and solves the response block. The depth axis shows one real coordinate, while the full complex response <b>C</b> is solved together by normal equations.'),
+      at(0.94, 'The response direction exists, but this symbol update holds <b>C</b> fixed. Hold the weights, replicas, ledgers and every unshown symbol estimate fixed as well. The next page opens two symbol coordinates together and compares their cost with its temporary bowl.'),
     math: '',
     bowlModel: { bowls: bridgeBowls, cost: bridgeBowlCost, signalCost: bridgeSignalCost, jointCost: bridgeJointCost, responseMinimum: bridgeResponseMinimum, response: bridgeResponse },
     draw: function (g, q) { drawBridge(g, g.sideR, q); } });
+
+  out.push({ id: 'sapphire-surrogate', chapter: CH.inside, title: 'The coupled surface and the easy bowl', layout: 'side', dur: 30,
+    text: 'The previous page showed each symbol estimate on its own one-dimensional slice while the response stayed fixed. Now keep that frozen state and open two symbol coordinates together. The gold surface is a schematic teaching slice, not the complete receiver objective or a sampled receiver frame. ' +
+      at(0.12, 'For this symbol update, hold <b>C</b><sup>k</sup>, the weights, the replicas, the ledgers and every unshown symbol estimate fixed. The resulting cost Φ<sub>k</sub>(b<sub>1</sub>,b<sub>2</sub>) is the actual cost of this frozen block. ') +
+      at(0.23, 'At <b>b</b><sup>k</sup> = (0.100, 0.600), the two partial derivatives are −0.500 and +0.200. The implementation evaluates them from explicit formulas. They describe the local slopes; they do not move the estimates. ') +
+      at(0.36, 'SAPPHIRE uses those slopes and safe curvatures to build the violet surrogate function. It is a quadratic function with one separate term for each shown symbol. It has the same height and the same slopes as the gold surface at the old point. ') +
+      at(0.55, 'For this teaching slice, Φ̂<sub>k</sub> − Φ<sub>k</sub> = 0.30(Δb<sub>1</sub> − Δb<sub>2</sub>)². The difference is never negative and is zero at the old point, so the violet surface touches the gold surface and stays above it. ') +
+      at(0.67, 'The solver jumps directly to the bottom of the violet bowl, (0.350, 0.533). Both coordinates come from the same old vector and move as one block. The solver minimizes the quadratic function directly; it does not take a sequence of gradient-descent steps. ') +
+      at(0.80, 'At those new coordinates, the actual frozen cost is 0.070, no higher than the surrogate value 0.100 or the old value 0.169. This certifies a decrease for this frozen block; it does not certify a global minimum. ') +
+      at(0.91, 'The constrained problem and its formula stay fixed. After the other blocks move, their new values produce Φ<sub>k+1</sub>, and the next round builds a new surrogate. The following page opens the violet bowl and reads its closed-form symbol rule.'),
+    math: '',
+    surrogateModel: { old: surrogateDemo.old, next: surrogateDemo.next, curvature: surrogateDemo.curvature, upper: surrogateUpper, actual: surrogateActual, gap: surrogateGap, slope: surrogateSlope },
+    draw: function (g, q) { drawSurrogateDemo(g, g.sideR, q); } });
 
   out.push({ id: 'lbfgs', chapter: CH.beside, title: 'ADMM and L-BFGS work at different levels', layout: 'side', dur: 9,
     text: 'The constrained problem stays fixed for the whole run. What changes between rounds is the temporary objective Φ<sub>k</sub>(' + b + ') = f(' + b + ') + (ρ/2) Σ<sub>a</sub> ‖' + Sa + b + ' − ' + sup(za, 'k') + ' + ' + sup(ua, 'k') + '‖², the part of the augmented Lagrangian that depends on ' + b + ', with the replicas and the ledgers frozen. ' +
@@ -2203,7 +2355,7 @@ var ThreeParts = (function () {
 
   // ------------------------------------------------------------ player, chapter bar, keyboard, and deep links
   // Keep the mechanism contiguous: finish the toy, enter SAPPHIRE, then compare it with other methods.
-  var lessonOrder = ['signal', 'checks', 'conflict', 'jobs', 'replicas', 'select', 'polytope', 'problem', 'no-ledger-arithmetic', 'no-ledger', 'ledger', 'edges', 'start', 'project', 'record', 'targets', 'shared', 'roles', 'rounds', 'answer', 'sapphire-bridge', 'sapphire-symbols', 'sapphire-channel', 'sapphire', 'bp', 'lbfgs', 'remember'];
+  var lessonOrder = ['signal', 'checks', 'conflict', 'jobs', 'replicas', 'select', 'polytope', 'problem', 'no-ledger-arithmetic', 'no-ledger', 'ledger', 'edges', 'start', 'project', 'record', 'targets', 'shared', 'roles', 'rounds', 'answer', 'sapphire-bridge', 'sapphire-surrogate', 'sapphire-symbols', 'sapphire-channel', 'sapphire', 'bp', 'lbfgs', 'remember'];
   out.sort(function (a, bq) { return lessonOrder.indexOf(a.id) - lessonOrder.indexOf(bq.id); });
   var chapters = [];
   out.forEach(function (s, i) { if (!chapters.length || chapters[chapters.length - 1].name !== s.chapter) chapters.push({ name: s.chapter, start: i, n: 0 }); chapters[chapters.length - 1].n++; });
