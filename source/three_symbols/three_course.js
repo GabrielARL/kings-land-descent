@@ -14,7 +14,7 @@
 
   // ------------------------------------------------------------ the case and its two runs
   var d = T.build(), A = d.admm, R = A.rounds, L = d.alone.rounds, rho = d.rho, c = d.c, PASS = A.firstPass, FIN = A.final, AL = d.alone.final, N = 12;
-  var R1 = R[1], R2 = R[2], RP = R[PASS];
+  var R1 = R[1], R2 = R[2], RP = R[PASS], L1 = L[1], L2 = L[2], L3 = L[3], L12 = L[12];
   function f2(v) { return num(v, 2); }
   function f3(v) { return num(v, 3); }
   function v2(v) { return '(' + v.map(f2).join(', ') + ')'; }
@@ -200,12 +200,37 @@
     } });
 
   // ------------------------------------------------------------ 3. memory
-  out.push({ id: 'no-ledger', chapter: CH.memory, title: 'Repair and average, with no memory', layout: 'side', dur: 8,
-    text: 'A first try uses two moves only. Each check projects its pair onto its diagonal, and then each symbol estimate becomes the average of the signal’s value and the copies of its checks. ' +
-      at(0.35, 'Symbol 1 averages 0.1 with the copy of check A; symbol 2 averages 0.6 with both copies; symbol 3 averages 0.9 with the copy of check B. ') +
-      at(0.58, 'Round after round the numbers settle at ' + b + ' = ' + v2(AL.b) + '. The rounded word stays ' + word(AL.word) + ', and check A never passes. ') +
-      at(0.82, 'The copies have stopped moving, yet they still sit ' + f2(AL.gap) + ' away from ' + b + '. In every round the signal pulls symbol 1 back toward 0.1 with the same strength, and nothing records that this pull keeps winning.'),
-    math: 'b<sub>i</sub> ← (c<sub>i</sub> + the copies of its checks) / (1 + its number of checks)' + at(0.58, '<br>settles at ' + b + ' = ' + v2(AL.b) + ' → ' + word(AL.word) + ', check A fails') + at(0.82, '<br>the gap between ' + Sa + b + ' and ' + za + ' stays ' + f2(AL.gap)),
+  out.push({ id: 'no-ledger-arithmetic', chapter: CH.memory, title: 'Where those numbers come from', layout: 'side', dur: 10,
+    text: 'The fixed problem remains the target. First make a deliberate counterfactual: hold every ledger at zero in every round. This is not ADMM; it isolates what the ledger contributes. ' +
+      at(0.24, 'Use ρ = 1 and start from ' + sup(b, 0) + ' = ' + cv + ' = (0.1, 0.6, 0.9), with every replica copying its symbols. The first shared update leaves ' + sup(b, 1) + ' = ' + cv + '. ') +
+      at(0.45, 'The checks project those pairs, giving ' + sup(zA, 1) + ' = (0.35, 0.35) and ' + sup(zB, 1) + ' = (0.75, 0.75). ') +
+      at(0.64, 'The next shared update averages each c<sub>i</sub> with the replica coordinates attached to that symbol. It gives ' + sup(b, 2) + ' = (0.225, 0.567, 0.825). ') +
+      at(0.86, 'Project again and repeat. By round 12, ' + b + ' = ' + v3(L12.b) + ', ' + zA + ' = ' + v3(L12.z[0]) + ' and ' + zB + ' = ' + v3(L12.z[1]) + '. The next page rounds them to two decimals.'),
+    math: 'counterfactual: ' + sup(ua, 'k') + ' = 0 for every check a and round k' +
+      at(0.24, '<br>b<sub>i</sub><sup>k+1</sup> = (c<sub>i</sub> + Σ<sub>a∋i</sub> z<sub>a,i</sub><sup>k</sup>) / (1 + d<sub>i</sub>)') +
+      at(0.45, '<br>' + sup(za, 'k+1') + ' = Π<sub>' + Pa + '</sub>(' + Sa + sup(b, 'k+1') + ')') +
+      at(0.64, '<br>' + sup(bi(1), 2) + ' = (0.1 + 0.35)/2 = ' + f3(L2.b[0]) + ',  ' + sup(bi(2), 2) + ' = (0.6 + 0.35 + 0.75)/3 = ' + f3(L2.b[1]) + ',  ' + sup(bi(3), 2) + ' = (0.9 + 0.75)/2 = ' + f3(L2.b[2])),
+    draw: function (g, q) {
+      var RR = P.two(g.sideR, 0.53);
+      P.numberLines(g, RR[0], [
+        { name: 'b_1', marks: [{ v: c[0], col: COL.signal, text: 'c₁ 0.10', p: seg(q, 0.18, 0.3) }, { v: L1.z[0][0], col: COL.z, text: 'A 0.35', p: seg(q, 0.36, 0.48) }, { v: L2.b[0], col: COL.b, big: true, below: false, text: 'b₁² 0.225', p: seg(q, 0.58, 0.7) }] },
+        { name: 'b_2', marks: [{ v: c[1], col: COL.signal, text: 'c₂ 0.60', p: seg(q, 0.18, 0.3) }, { v: L1.z[0][1], col: COL.z, text: 'A 0.35', p: seg(q, 0.36, 0.48) }, { v: L1.z[1][0], col: COL.z, text: 'B 0.75', p: seg(q, 0.42, 0.54) }, { v: L2.b[1], col: COL.b, big: true, below: false, text: 'b₂² 0.567', p: seg(q, 0.58, 0.7) }] },
+        { name: 'b_3', marks: [{ v: c[2], col: COL.signal, text: 'c₃ 0.90', p: seg(q, 0.18, 0.3) }, { v: L1.z[1][1], col: COL.z, text: 'B 0.75', p: seg(q, 0.42, 0.54) }, { v: L2.b[2], col: COL.b, big: true, below: false, text: 'b₃² 0.825', p: seg(q, 0.58, 0.7) }] }
+      ], q, 'round 2: average the signal and copies');
+      P.table3(g, RR[1], [
+        ['1', v3(L1.b), 'A ' + f3(L1.z[0][0]) + ' · B ' + f3(L1.z[1][0])],
+        ['2', v3(L2.b), 'A ' + f3(L2.z[0][0]) + ' · B ' + f3(L2.z[1][0])],
+        ['3', v3(L3.b), 'A ' + f3(L3.z[0][0]) + ' · B ' + f3(L3.z[1][0])],
+        ['12', v3(L12.b), 'A ' + f3(L12.z[0][0]) + ' · B ' + f3(L12.z[1][0])]
+      ], seg(q, 0.42, 0.92), 'repeat the same two updates', { head: ['round', '*b^k', 'equal value in each copy'], shares: [0.17, 0.55], size: 11.5, rowH: 50 });
+    } });
+
+  out.push({ id: 'no-ledger', chapter: CH.memory, title: 'Repeat the two updates: the gap remains', layout: 'side', dur: 8.5,
+    text: 'The counterfactual now repeats those two updates through round 12. The graph reads ' + b + ' = ' + v2(L12.b) + ', ' + zA + ' = ' + v2(L12.z[0]) + ' and ' + zB + ' = ' + v2(L12.z[1]) + '. ' +
+      at(0.32, 'Each replica is legal because both entries in its pair are equal. But the replicas do not equal the shared estimates: their gap is ' + f2(L12.gap) + '. The rounded word stays ' + word(L12.word) + ', and check A fails. ') +
+      at(0.6, 'More rounds approach ' + b + ' = ' + v3(AL.b) + ', almost the same numbers. This is not a solution of the fixed problem. That problem forces b<sub>1</sub> = b<sub>2</sub> = b<sub>3</sub>, whose best common value is ' + f3(d.mean) + '. ') +
+      at(0.84, 'The signal pulls symbol 1 back toward 0.1 in every round, and nothing records that this same disagreement keeps returning. The ledger supplies that missing memory.'),
+    math: 'round 12: ' + b + ' = ' + v2(L12.b) + ',  ' + zA + ' = ' + v2(L12.z[0]) + ',  ' + zB + ' = ' + v2(L12.z[1]) + at(0.32, '<br>legal copies, but ‖' + Sa + b + ' − ' + za + '‖ = ' + f2(L12.gap)) + at(0.6, '<br>fixed problem: ' + b + '<sup>★</sup> = (' + f3(d.mean) + ', ' + f3(d.mean) + ', ' + f3(d.mean) + '), gap = 0'),
     draw: function (g, q) {
       var RR = P.two(g.sideR, 0.52), k = Math.min(N, Math.floor(seg(q, 0.12, 0.6) * N)), st = L[Math.max(1, k)];
       P.graph(g, RR[0], { title: 'without a ledger, round ' + Math.max(1, k), vals: vals(st.b), status: status(st), statusP: seg(q, 0.58, 0.68), boxes: boxesOf(st, { short: true, p: 1 }) });
@@ -542,7 +567,7 @@
 
   // ------------------------------------------------------------ player, chapter bar, keyboard, and deep links
   // Keep the mechanism contiguous: finish the toy, enter SAPPHIRE, then compare it with other methods.
-  var lessonOrder = ['signal', 'checks', 'conflict', 'jobs', 'replicas', 'select', 'polytope', 'problem', 'no-ledger', 'ledger', 'edges', 'start', 'project', 'record', 'targets', 'shared', 'roles', 'rounds', 'answer', 'sapphire-bridge', 'sapphire-symbols', 'sapphire-channel', 'sapphire', 'bp', 'lbfgs', 'remember'];
+  var lessonOrder = ['signal', 'checks', 'conflict', 'jobs', 'replicas', 'select', 'polytope', 'problem', 'no-ledger-arithmetic', 'no-ledger', 'ledger', 'edges', 'start', 'project', 'record', 'targets', 'shared', 'roles', 'rounds', 'answer', 'sapphire-bridge', 'sapphire-symbols', 'sapphire-channel', 'sapphire', 'bp', 'lbfgs', 'remember'];
   out.sort(function (a, bq) { return lessonOrder.indexOf(a.id) - lessonOrder.indexOf(bq.id); });
   var chapters = [];
   out.forEach(function (s, i) { if (!chapters.length || chapters[chapters.length - 1].name !== s.chapter) chapters.push({ name: s.chapter, start: i, n: 0 }); chapters[chapters.length - 1].n++; });
