@@ -647,8 +647,9 @@ var KeepParts = (function () {
   }
 
   // Conventional chain versus joint processing. o: { p, title, mode ('compare'|'conventional'|'joint'),
-  // conventional [labels], joint [labels], showSupports }.  The joint row shows pilots and code checks as two
-  // different sources of information; neither is drawn as replacing the other.
+  // conventional [labels], joint [labels], showSupports, showRepeat }.  The joint row shows pilots and code checks
+  // as two different sources of information; neither is drawn as replacing the other.  A return arrow is opt-in so
+  // a constrained joint problem is not accidentally presented as detector-decoder feedback.
   function receiverFlow(g, R, o) {
     o = o || {}; var c = g.ctx, p = partProgress(o), title = o.title || 'Conventional and joint OFDM receiver flows', mode = o.mode || 'compare'; g.panel(R, title);
     var conventional = o.conventional || ['received samples', 'FFT + one-tap equalizer', 'channel LLRs', 'LDPC decoder', 'hard bits'];
@@ -692,8 +693,10 @@ var KeepParts = (function () {
           g.labelPx(checkBox[0] + checkBox[2] / 2, checkBox[1] + checkBox[3] + 13, codeText, C.violet, { align: 'center', size: 10.5, plain: true, p: supportP });
         }
       }
-      var repeat = seg(p, 0.74, 0.98), A = [checkBox[0] + checkBox[2] * 0.18, checkBox[1]], B = [fitBox[0] + fitBox[2] * 0.82, fitBox[1] + fitBox[3]];
-      if (repeat > 0) { c.globalAlpha = repeat; g.arrowPx(A, B, C.orange, 1.3, [4, 3]); c.globalAlpha = 1; g.labelPx((A[0] + B[0]) / 2, (A[1] + B[1]) / 2, 'repeat', C.orange, { align: 'center', size: 10, plain: true, p: repeat }); }
+      if (o.showRepeat === true) {
+        var repeat = seg(p, 0.74, 0.98), A = [checkBox[0] + checkBox[2] * 0.18, checkBox[1]], B = [fitBox[0] + fitBox[2] * 0.82, fitBox[1] + fitBox[3]];
+        if (repeat > 0) { c.globalAlpha = repeat; g.arrowPx(A, B, C.orange, 1.3, [4, 3]); c.globalAlpha = 1; g.labelPx((A[0] + B[0]) / 2, (A[1] + B[1]) / 2, 'repeat', C.orange, { align: 'center', size: 10, plain: true, p: repeat }); }
+      }
     }
     return { conventional: convBoxes, joint: jointBoxes };
   }

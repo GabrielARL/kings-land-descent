@@ -26,6 +26,13 @@
     var h = Math.round((R[3] - gap) * share); return [[R[0], R[1], R[2], h], [R[0], R[1] + h + gap, R[2], R[3] - h - gap]];
   }
   function tick(ok) { return ok ? '✓' : '✗'; }
+  // A few dense pages replace the visible equation as the active block changes.  The full `math` string remains
+  // the single accessible transcript; this only controls the aria-hidden equation inside the animation.
+  function liveEquation(p, frames) {
+    var el = document.getElementById('board-equation'); if (!el || !frames) return;
+    var html = ''; frames.forEach(function (frame) { if (p >= frame.at) html = frame.html; });
+    el.innerHTML = html ? '<div class="equation-body">' + html + '</div>' : ''; el.hidden = !html;
+  }
   function rrect(c, x, y, w, h, r) { r = Math.min(r, w / 2, h / 2); c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r); c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath(); }
   function box(g, x, y, w, h, title, detail, col, p) {
     if (!(p > 0)) return; var c = g.ctx; c.globalAlpha = clamp(p, 0, 1); c.fillStyle = 'rgba(255,255,255,0.045)';
@@ -33,16 +40,14 @@
     g.labelPx(x + w / 2, y + h * 0.40, title, col || C.ink, { align: 'center', plain: true, size: 12.5, p: p });
     if (detail) g.labelPx(x + w / 2, y + h * 0.68, detail, C.dim, { align: 'center', plain: true, size: 10.5, p: p, mono: true });
   }
-  function flow(g, R, items, p, title, feedback) {
+  function flow(g, R, items, p, title) {
     g.panel(R, title); var horizontal = R[2] >= 540, n = items.length, c = g.ctx, i, q;
     if (horizontal) {
       var gap = 22, w = Math.min(145, (R[2] - 30 - gap * (n - 1)) / n), h = Math.min(94, R[3] - 100), y = R[1] + (R[3] - h) / 2, x0 = R[0] + (R[2] - (n * w + (n - 1) * gap)) / 2;
       for (i = 0; i < n; i++) { q = seg(p, i / (n + 0.7), (i + 1) / (n + 0.7)); box(g, x0 + i * (w + gap), y, w, h, items[i][0], items[i][1], items[i][2], q); if (i && q > 0) g.arrowPx([x0 + (i - 1) * (w + gap) + w + 4, y + h / 2], [x0 + i * (w + gap) - 4, y + h / 2], C.dim, 1.8); }
-      if (feedback && p > 0.65) { c.strokeStyle = C.violet; c.lineWidth = 2; c.setLineDash([5, 4]); c.beginPath(); c.moveTo(x0 + (n - 0.5) * w + (n - 1) * gap, y + h + 9); c.lineTo(x0 + (n - 0.5) * w + (n - 1) * gap, y + h + 31); c.lineTo(x0 + w / 2, y + h + 31); c.lineTo(x0 + w / 2, y + h + 9); c.stroke(); c.setLineDash([]); g.labelPx(x0 + (n * w + (n - 1) * gap) / 2, y + h + 48, feedback, C.violet, { align: 'center', plain: true, size: 11.5, p: seg(p, 0.65, 1) }); }
     } else {
       var gh = 14, bh = Math.min(62, (R[3] - 54 - gh * (n - 1)) / n), bw = Math.min(R[2] - 32, 310), xx = R[0] + (R[2] - bw) / 2, yy = R[1] + 40;
       for (i = 0; i < n; i++) { q = seg(p, i / (n + 0.7), (i + 1) / (n + 0.7)); box(g, xx, yy + i * (bh + gh), bw, bh, items[i][0], items[i][1], items[i][2], q); if (i && q > 0) g.arrowPx([xx + bw / 2, yy + (i - 1) * (bh + gh) + bh + 2], [xx + bw / 2, yy + i * (bh + gh) - 2], C.dim, 1.6); }
-      if (feedback) g.labelPx(R[0] + R[2] / 2, R[1] + R[3] - 16, '↺ ' + feedback, C.violet, { align: 'center', plain: true, size: 10.5, p: seg(p, 0.72, 1) });
     }
   }
   function qpskPicture(g, R, p) {
@@ -89,9 +94,14 @@
     math: 'pilots → channel estimate → equalize/combine → decoder inputs → decoded word',
     draw: function (g, p) { P.receiverFlow(g, g.sideR, { p: p, title: 'one-way conventional receiver chain', mode: 'conventional', conventional: ['received samples', 'pilot channel estimate', 'equalize / combine', 'decoder inputs', 'hard bits'] }); } });
   out.push({ id: 'joint-loop', chapter: CH.observations, title: 'What joint detection and decoding means here', layout: 'side', dur: 6,
-    text: 'SAPPHIRE keeps the standard post-FFT carrier observations inside one objective and alternates between two unknown blocks. That is how joint detection and decoding works here: pilots anchor the channel/ICI response, while code constraints restrict the coded bits. The two sources of structure cooperate through the banded observation model, but neither replaces the other: parity checks do not turn unknown data into pilots, and pilots do not enforce a valid codeword.',
+    text: 'SAPPHIRE keeps the standard post-FFT carrier observations, the response C, and the relaxed coded-bit estimates b inside one constrained optimization problem. Pilots anchor the channel/ICI response, while code constraints restrict the coded bits. The solver updates blocks of this same state; it does not run a separate decoder and feed decoder messages back to a detector. Parity checks do not turn unknown data into pilots, and pilots do not enforce a valid codeword.',
     math: 'post-FFT y<sub>s,k</sub> ← prediction C·s(b);  pilots constrain C;  parity checks constrain b',
-    draw: function (g, p) { P.receiverFlow(g, g.sideR, { p: p, title: 'joint OFDM receiver flow', mode: 'joint', joint: ['post-FFT carrier observations', 'joint fit of C and b', 'parity-constrained updates', 'parity / fixed-bit / CRC test'], showSupports: true }); } });
+    draw: function (g, p) { P.objectiveBlocks(g, g.sideR, { p: p, title: 'one constrained receiver problem, not a feedback decoder', terms: [
+      { tag: 'y', label: 'post-FFT observations', note: 'fixed receiver input', col: C.blue },
+      { tag: 'C', label: 'response estimate', note: 'pilots anchor C', col: C.gold },
+      { tag: 'b', label: 'relaxed coded-bit estimates', note: 'shared symbol state', col: JADE },
+      { tag: 'P', label: 'parity constraints', note: 'local replicas z_a', col: C.violet }],
+      result: 'one objective state is updated block by block; no BP or decoder messages return' }); } });
 
   // ------------------------------------------------------------ 3. One receiver, two unknown blocks
   out.push({ id: 'variables', chapter: CH.joint, title: 'Name every receiver variable before the algorithm', layout: 'side', dur: 6.2,
@@ -115,7 +125,7 @@
   out.push({ id: 'prediction', chapter: CH.joint, title: 'The coupling sits in the prediction', layout: 'side', dur: 5.8,
     text: 'The predicted received observations are formed by applying the estimated response C to the symbols s(b). With b and the current robust weights fixed, the response update is a regularized quadratic problem. With C fixed, the bit update still contains modulation, binary encouragement, and code constraints. Jointly, C and b multiply inside the prediction, so the surface is nonconvex and can contain ambiguities or competing basins.',
     math: 'ŷ(C,b) = C·s(b);  residual r = y − ŷ(C,b)',
-    draw: function (g, p) { flow(g, g.sideR, [['bits b', 's(b)', JADE], ['response C', 'C·s(b)', C.gold], ['observations y', 'residual y − C·s(b)', C.blue]], p, 'prediction and residual', 'the residual changes both blocks'); } });
+    draw: function (g, p) { flow(g, g.sideR, [['bits b', 'form s(b)', JADE], ['response C', 'form C·s(b)', C.gold], ['observations y', 'measure y − C·s(b)', C.blue]], p, 'one prediction inside the joint objective'); } });
   out.push({ id: 'robust-objective', chapter: CH.joint, title: 'What the objective asks for', layout: 'side', dur: 6.2,
     text: 'The SAPPHIRE objective J combines a robust fit to the post-FFT carrier observations, pilot anchoring, frequency smoothness of the correction Δ = C − C⁰, a temporal prior on the full response C, and encouragement toward binary bit values. Hard code feasibility is separate: every local replica must lie in its parity polytope, z<sub>a</sub> ∈ P<sub>a</sub>. ADMM adds augmented agreement terms to make each z<sub>a</sub> match the shared b. The supplied deck’s smooth parity penalty is a different formulation; it must not be confused with SAPPHIRE’s parity-polytope projection. The estimated C is a model representation, not unique physical channel truth. SAPPHIRE stands for <strong>S</strong>ymbol detection <strong>A</strong>ided by code through <strong>P</strong>arity constraints and <strong>P</strong>olytope projections, with <strong>H</strong>alf-quadratic weighting under <strong>I</strong>CI in a joint OFDM <strong>R</strong>eceiver with <strong>E</strong>rror-correction decoding.',
     math: 'J(C,b) = robust fit + response regularization + binary pull;  z<sub>a</sub> ∈ P<sub>a</sub>;  ADMM augments b = z<sub>a</sub>',
@@ -125,10 +135,28 @@
       { tag: 'B', label: 'binary-end pull in J', note: 'b toward 0 or 1', col: JADE },
       { tag: 'H', label: 'hard parity set', note: 'z_a ∈ P_a', col: C.violet },
       { tag: 'A', label: 'ADMM agreement', note: 'shared b, local z_a, dual u_a', col: C.orange }], result: 'minimize J subject to hard parity sets; ADMM enforces agreement' }); } });
-  out.push({ id: 'why-alternate', chapter: CH.joint, title: 'Why the solver alternates', layout: 'side', dur: 5.8,
-    text: 'There is no closed-form minimizer for the coupled nonconvex objective. SAPPHIRE therefore uses a disciplined block schedule: robust weights, a majorized bit step, new weights, an exact sparse channel step for the fixed bit block, parity projections, and a scaled-dual update. A checked decrease for one block is narrow evidence about that step; it is not a certificate of the global solution.',
-    math: 'coupled nonconvex problem → checked block updates, not one closed-form solve',
-    draw: function (g, p) { flow(g, g.sideR, [['bit block b', 'majorized update', JADE], ['response block C', 'sparse linear solve', C.gold], ['code copies z,u', 'projection + dual', C.blue]], p, 'alternating block schedule', 'repeat, then test a hard candidate'); } });
+  var whyAlternateFrames = [
+    { at: 0.04, html: 'one optimization state: (C<sup>k</sup>, b<sup>k</sup>, {z<sub>a</sub><sup>k</sup>,u<sub>a</sub><sup>k</sup>})' },
+    { at: 0.18, html: 'g<sub>i</sub><sup>k</sup> = ∂Q<sub>w</sub>/∂b<sub>i</sub> at b<sup>k</sup><br>b<sup>k+1</sup> = arg min<sub>0≤b≤1</sub> Q̂<sub>k</sub>(b)' },
+    { at: 0.46, html: '∂Q<sub>w</sub>/∂C* = 0<br>⇔ M C<sup>k+1</sup> = r &nbsp; (sparse response solve)' },
+    { at: 0.66, html: 'z<sub>a</sub><sup>k+1</sup> = Π<sub>𝒫a</sub>(S<sub>a</sub>b<sup>k+1</sup> + u<sub>a</sub><sup>k</sup>)<br>u<sub>a</sub><sup>k+1</sup> = u<sub>a</sub><sup>k</sup> + S<sub>a</sub>b<sup>k+1</sup> − z<sub>a</sub><sup>k+1</sup>' },
+    { at: 0.90, html: 'one optimization round is now complete<br>threshold b and test the candidate separately; no BP or decoder call' }
+  ];
+  out.push({ id: 'why-alternate', chapter: CH.joint, title: 'Why the solver updates one block at a time', layout: 'side', dur: 8.8,
+    text: 'There is no closed-form minimizer for the complete coupled nonconvex problem. SAPPHIRE therefore updates blocks of one optimization state in a fixed order. With the robust weights fixed, it takes partial derivatives of the received-signal part of the cost with respect to b. Those derivatives and safe curvature make a temporary quadratic function that touches and stays above that part of the cost; SAPPHIRE minimizes this function, refreshes the weights, solves the fixed-bit response block, projects every local replica, and accumulates the remaining disagreement in u. These are internal optimization operations, not messages between a detector and a separate decoder. A hard candidate is formed and tested only after the round.',
+    math: at(0.04, 'one state: (C<sup>k</sup>, b<sup>k</sup>, {z<sub>a</sub><sup>k</sup>,u<sub>a</sub><sup>k</sup>})') +
+      at(0.18, '<br>g<sub>i</sub><sup>k</sup> = ∂Q<sub>w</sub>/∂b<sub>i</sub> at b<sup>k</sup>;  b<sup>k+1</sup> = arg min Q̂<sub>k</sub>(b)') +
+      at(0.46, '<br>∂Q<sub>w</sub>/∂C* = 0  ⇔  M C<sup>k+1</sup> = r') +
+      at(0.66, '<br>z<sub>a</sub><sup>k+1</sup> = Π<sub>𝒫a</sub>(S<sub>a</sub>b<sup>k+1</sup> + u<sub>a</sub><sup>k</sup>);  u<sub>a</sub><sup>k+1</sup> = u<sub>a</sub><sup>k</sup> + S<sub>a</sub>b<sup>k+1</sup> − z<sub>a</sub><sup>k+1</sup>') +
+      at(0.90, '<br>after the round: threshold b and test parity, fixed bits and CRC; no BP/decoder call'),
+    draw: function (g, p) { P.updateLoop(g, g.sideR, { p: p, title: 'one constrained state, updated internally', loop: false, steps: [
+      { tag: '1', label: 'robust weights: closed form', col: C.blue },
+      { tag: '2', label: 'bit partial derivatives → bowl minimum', col: JADE },
+      { tag: '3', label: 'refresh robust weights', col: C.blue },
+      { tag: '4', label: 'response normal equations', col: C.gold },
+      { tag: '5', label: 'parity-polytope projections', col: C.violet },
+      { tag: '6', label: 'scaled duals add disagreement', col: C.orange }],
+      footnote: 'After this optimization round: form one hard candidate and test it. No decoder output is fed back.' }); liveEquation(p, whyAlternateFrames); } });
 
   // ------------------------------------------------------------ 4. ADMM for the code constraints
   out.push({ id: 'parity-polytope', chapter: CH.admm, title: 'A two-bit parity set', layout: 'map+side', view: VIEW, dur: 5.4,
@@ -169,20 +197,27 @@
     math: 'E<sub>s</sub> = (squared prediction error + bit-uncertainty term)/v<sub>s</sub>' + at(0.42, '<br>w<sub>s</sub> = 1/√(1 + E<sub>s</sub>/δ²)') + at(0.76, '<br>δ = pseudo-Huber scale'),
     draw: function (g, p) { var after = p > 0.62, w = after ? vr.w2 : vr.w1, En = after ? vr.E2 : vr.E1, b = after ? vr.b : vr.from, R = split(g.sideR, 0.54); P.hall(g, R[0], { land: veil, b: b, w: w, p: 1, technical: true, title: 'four model observations: pilots at the ends' }); P.lines(g, R[1], En.map(function (e, k) { return { text: (k === 0 || k === 3 ? 'pilot ' : 'data  ') + k + ': E ' + num(e.E, 3) + ', w ' + num(w[k], 2), col: w[k] < 0.9 ? C.orange : C.ink, mono: true }; }), after ? 1 : seg(p, 0.15, 0.7), 'current robust weights'); } });
   var ropeV = function (b) { return veil.J(cF, b) + veil.rope(b, vz, vu, rho); };
+  var bitMajorizerFrames = [
+    { at: 0.08, html: 'g<sub>i</sub><sup>k</sup> = ∂Q<sub>w</sub>/∂b<sub>i</sub> at b<sup>k</sup><br>the derivative supplies the local slope' },
+    { at: 0.34, html: 'Q̂<sub>i</sub> = g<sub>i</sub><sup>k</sup>d<sub>i</sub> + ½h<sub>i</sub>d<sub>i</sub>² + βb<sub>i</sub>(1−b<sub>i</sub>)<br>+ ρ/2 Σ<sub>a∋i</sub>(b<sub>i</sub>−z<sub>a,i</sub>+u<sub>a,i</sub>)²' },
+    { at: 0.72, html: 'b<sub>i</sub><sup>k+1</sup> = arg min<sub>0≤t≤1</sub> Q̂<sub>i</sub>(t)<br>set the temporary bowl’s derivative to zero, then clip; not gradient descent' }
+  ];
   out.push({ id: 'bit-majorizer', chapter: CH.coupled, title: 'Majorize the coupled bit block, then minimize it', layout: 'map+side', view: VIEW, dur: 6.2,
-    text: 'With C, z, u, and the first weight set fixed, neighbouring-carrier coupling makes the bit coordinates interact. SAPPHIRE evaluates partial derivatives at the current b and adds diagonal curvature h<sub>i</sub> large enough for a surrogate to touch the coupled term at that point and stay above it. Minimizing that surrogate updates all bits together and clips them to [0,1]. The old “Bowl” is only an analogy for this majorizing surrogate.',
-    math: 'surrogate = gᵀ(b − b<sup>prev</sup>)' + at(0.38, '<br>+ ½Σh<sub>i</sub>(b<sub>i</sub> − b<sub>i</sub><sup>prev</sup>)²') + at(0.74, '<br>+ binary + ADMM terms'),
-    draw: function (g, p) { g.land(ropeV, { id: 'coupled-bit-step', rings: 10 }); P.axes(g, 'bit variable b₁ →', '↑ bit variable b₂'); P.square(g); P.lawLine(g); g.dot(vv, 6, C.violet, 1); var q = seg(p, 0.45, 0.88); g.path([vb0, vb1], JADE, 3, q); P.bitNode(g, lerp2(vb0, vb1, q), 1, q >= 1 ? 'majorized bit step' : ''); P.lines(g, g.sideR, [{ text: 'evaluate partial derivatives at b_prev', col: C.ink }, { text: 'choose diagonal curvature h_i', col: C.gold }, { text: 'minimize the surrogate for all b_i', col: JADE }, { text: 'clip each coordinate to [0,1]', col: C.blue }], p, 'one coupled bit update'); } });
+    text: 'With C, z, u, and the first weight set fixed, neighbouring-carrier coupling makes the bit coordinates interact. SAPPHIRE takes the partial derivatives g<sub>i</sub> of the received-signal part of the cost at the current b. It then adds safe diagonal curvature h<sub>i</sub>, creating a temporary quadratic function that touches that part of the cost there and stays above it. This is a majorization-minimization update. SAPPHIRE minimizes the temporary function in closed form and clips the result to [0,1]; it does not take a gradient-descent step.',
+    math: at(0.08, 'g<sub>i</sub><sup>k</sup> = ∂Q<sub>w</sub>/∂b<sub>i</sub> at b<sup>k</sup>;  d<sub>i</sub> = b<sub>i</sub> − b<sub>i</sub><sup>k</sup>') +
+      at(0.34, '<br>Q̂<sub>i</sub> = g<sub>i</sub><sup>k</sup>d<sub>i</sub> + ½h<sub>i</sub>d<sub>i</sub>² + βb<sub>i</sub>(1−b<sub>i</sub>) + ρ/2 Σ<sub>a∋i</sub>(b<sub>i</sub>−z<sub>a,i</sub>+u<sub>a,i</sub>)²') +
+      at(0.72, '<br>b<sub>i</sub><sup>k+1</sup> = arg min<sub>0≤t≤1</sub> Q̂<sub>i</sub>(t): set its derivative to zero, then clip'),
+    draw: function (g, p) { g.land(ropeV, { id: 'coupled-bit-step', rings: 10 }); P.axes(g, 'bit variable b₁ →', '↑ bit variable b₂'); P.square(g); P.lawLine(g); g.dot(vv, 6, C.violet, 1); var q = seg(p, 0.45, 0.88); g.path([vb0, vb1], JADE, 3, q); P.bitNode(g, lerp2(vb0, vb1, q), 1, q >= 1 ? 'majorized bit step' : ''); P.lines(g, g.sideR, [{ text: 'g_i = partial derivative at b^k', col: C.ink, mono: true }, { text: 'h_i = safe diagonal curvature', col: C.gold, mono: true }, { text: 'minimize the temporary quadratic', col: JADE }, { text: 'closed form + clip, not gradient descent', col: C.blue }], p, 'one coupled bit update'); liveEquation(p, bitMajorizerFrames); } });
   var lm = vr.loom, loomRel = lm.plumb / Math.max(Math.hypot(lm.r[0], lm.r[1]), 1e-30), loomView = [-2.4, 2.4, -2.4, 2.4];
   var loomFn = function (cq) { return veil.veilCost(vr.w2, vb1, cq); }, loomShade = P.shadeOf(loomFn, loomView, 'channel-solve', 12);
   out.push({ id: 'channel-solve', chapter: CH.coupled, title: 'With bits fixed, solve the response block', layout: 'map+side', view: loomView, dur: 5.8,
-    text: 'After recomputing the weights at the new b, hold both fixed. The toy response objective is quadratic in c = (c₀,c₁), so its minimizer solves the two-by-two normal equations M c = r. The residual check confirms this linear solve, not the global joint problem. Full SAPPHIRE performs the corresponding sparse solve for C = C⁰ + Δ with its response regularization.',
-    math: 'M c = r;  c: ' + pair(cF) + ' → ' + pair(cN) + ';  relative equation residual ' + loomRel.toExponential(1),
+    text: 'After recomputing the weights at the new b, hold both fixed. The toy response objective is quadratic in c = (c₀,c₁). Setting its response derivative to zero gives the two-by-two normal equations M c = r, which are solved directly. The residual check confirms this linear solve, not the global joint problem and not a gradient iteration. Full SAPPHIRE performs the corresponding sparse solve for C = C⁰ + Δ with its response regularization.',
+    math: '∂Q<sub>w</sub>/∂c = 0  ⇔  M c = r;  c: ' + pair(cF) + ' → ' + pair(cN) + ';  relative equation residual ' + loomRel.toExponential(1),
     draw: function (g, p) { g.land(loomFn, loomShade); P.axes(g, 'direct coefficient c₀ →', '↑ neighbour coefficient c₁'); g.dot(cF, 6, C.ink, 1); var q = seg(p, 0.28, 0.75); g.arrow(cF, cN, JADE, 3, q); if (q >= 1) { g.dot(cN, 6, JADE, 1); g.label(cN, 'linear-system solution', JADE, { dx: 10, dy: -14, size: 11.5 }); } P.lines(g, g.sideR, [{ text: 'bits b and robust weights w held fixed', col: C.ink }, { text: 'solve M c = r exactly for this toy block', col: C.gold, mono: true }, { text: 'absolute residual ' + lm.plumb.toExponential(1), col: C.blue, mono: true }, { text: 'relative residual ' + loomRel.toExponential(1), col: JADE, mono: true }], p, 'response-block certificate'); } });
   out.push({ id: 'iteration-order', chapter: CH.coupled, title: 'One complete SAPPHIRE-style iteration', layout: 'side', dur: 6.5,
-    text: 'Order matters. First derive every v<sub>a</sub> = z<sub>a</sub> − u<sub>a</sub>. Then compute robust weights, take the majorized bit update, recompute the weights because b changed, solve the response block, project each local replica, and update every scaled dual. Only then form and test a hard candidate. The parity projection is an exact feasibility operation, but it is not one of the objective-descent certificates.',
+    text: 'Order matters inside the single optimization state. First derive every v<sub>a</sub> = z<sub>a</sub> − u<sub>a</sub>. Then compute robust weights, take the majorized bit update, recompute the weights because b changed, solve the response block, project each local replica, and update every scaled dual. Only then form and test a hard candidate. No BP or decoder message is returned to the response block. The parity projection is an exact feasibility operation, but it is not one of the objective-descent certificates.',
     math: 'v → weights → b → weights → C → parity projections z → scaled duals u → candidate test',
-    draw: function (g, p) { P.updateLoop(g, g.sideR, { p: p, title: 'one complete SAPPHIRE-style iteration', steps: [
+    draw: function (g, p) { P.updateLoop(g, g.sideR, { p: p, title: 'one complete SAPPHIRE-style iteration', loop: false, steps: [
       { tag: '0', label: 'derive v = z − u', col: C.violet }, { tag: '1', label: 'robust weights', col: C.blue },
       { tag: '2', label: 'majorized bit step', col: JADE }, { tag: '3', label: 'refresh weights', col: C.blue },
       { tag: '4', label: 'response solve', col: C.gold }, { tag: '5', label: 'parity projections', col: C.violet },
@@ -224,7 +259,9 @@
     bar.innerHTML = chapters.map(function (ch, k) { return '<button type="button" class="seg" data-k="' + k + '" style="flex-grow:' + ch.n + '" title="' + ch.name + '"><span class="fill"></span><span class="name">' + ch.name + '</span></button>'; }).join('');
     bar.addEventListener('click', function (e) { var b = e.target.closest ? e.target.closest('[data-k]') : null; if (b) B.go(chapters[+b.getAttribute('data-k')].start); });
   }
-  B.onStep(function (i) {
+  B.onStep(function (i, step) {
+    var equation = document.getElementById('board-equation'), html = step && step.math || '';
+    if (equation) { equation.innerHTML = html ? '<div class="equation-body">' + html + '</div>' : ''; equation.hidden = !html; }
     if (!bar) return;
     Array.prototype.forEach.call(bar.querySelectorAll('[data-k]'), function (b, k) { var ch = chapters[k], f = clamp((i - ch.start + 1) / ch.n, 0, 1); b.querySelector('.fill').style.width = Math.round(f * 100) + '%'; b.classList.toggle('on', i >= ch.start && i < ch.start + ch.n); });
   });
